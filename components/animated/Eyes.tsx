@@ -24,8 +24,7 @@ export default function Eyes() {
       {[0, 1].map((i) => (
         <div
           key={i}
-          className="w-6 h-6 bg-primary rounded-full flex justify-center items-center shadow-sm"
-        >
+          className="w-6 h-6 bg-primary rounded-full flex justify-center items-center shadow-sm">
           <motion.div
             className="w-3 h-3 bg-black rounded-full"
             style={{ x: pupilX, y: pupilY }}

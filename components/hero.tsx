@@ -1,7 +1,7 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
-import { ArrowDown, Linkedin, Mail, Facebook, Instagram } from "lucide-react"
+import { ArrowDown, Linkedin, Mail, Facebook, Instagram, Github } from "lucide-react"
 import { useEffect, useState } from "react"
 import { useLanguage } from "@/hooks/use-language"
 
@@ -82,6 +82,14 @@ export function Hero() {
               className="text-muted-foreground hover:text-primary transition-colors"
             >
               <Instagram size={24} />
+            </a>
+            <a
+              href={t("myInfo.githubUrl")}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-muted-foreground hover:text-primary transition-colors"
+            >
+              <Github size={24} />
             </a>
           </div>
         </div>

@@ -7,6 +7,7 @@ export const translations = {
       linkedInUrl: "https://www.linkedin.com/in/dulguun-battulga-90a4a62a0",
       facebookUrl: "https://www.facebook.com/dulguun.battulga.353586",
       instagramUrl: "https://www.instagram.com/dlgn_dg",
+      githubUrl: "https://github.com/dgduksict",
     },
     nav: {
       about: "About",
@@ -60,6 +61,7 @@ export const translations = {
       linkedInUrl: "https://www.linkedin.com/in/dulguun-battulga-90a4a62a0",
       facebookUrl: "https://www.facebook.com/dulguun.battulga.353586",
       instagramUrl: "https://www.instagram.com/dlgn_dg",
+      githubUrl: "https://github.com/dgduksict",
     },
     nav: {
       about: "Миний тухай",
