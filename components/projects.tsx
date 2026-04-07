@@ -11,34 +11,34 @@ export function Projects() {
 
   const projects = [
     {
+      title: "Gogo.mn",
+      description:
+        "A comprehensive news and media platform with fullstack development and integrated AI features. Built with modern technologies for high-performance content delivery and intelligent content recommendations.",
+      image: "/defi-dashboard-interface.jpg",
+      technologies: ["Laravel", "Next.js", "NestJS", "AI", "PostgreSQL"],
+      github: "#",
+      demo: "https://gogo.mn",
+      category: "Fullstack + AI",
+    },
+    {
+      title: "Sonsy.mn",
+      description:
+        "A fullstack web application built with modern frameworks. Features responsive design, optimized performance, and scalable architecture for content management and delivery.",
+      image: "/trading-bot-dashboard.png",
+      technologies: ["Laravel", "Next.js", "NestJS", "PostgreSQL", "Redis"],
+      github: "#",
+      demo: "https://sonsy.mn",
+      category: "Fullstack",
+    },
+    {
       title: "DeFi Yield Optimizer",
       description:
         "An intelligent DeFi protocol that automatically optimizes yield farming strategies using AI-powered algorithms. Features automated rebalancing, risk assessment, and multi-chain support.",
-      image: "/defi-dashboard-interface.jpg",
+      image: "/nft-marketplace-interface.png",
       technologies: ["Solidity", "Python", "TensorFlow", "Web3.js", "React"],
       github: "#",
       demo: "#",
       category: "Blockchain",
-    },
-    {
-      title: "AI-Powered Trading Bot",
-      description:
-        "A sophisticated trading bot that uses machine learning to analyze market patterns and execute trades. Implements sentiment analysis, technical indicators, and risk management.",
-      image: "/trading-bot-dashboard.png",
-      technologies: ["Python", "PyTorch", "FastAPI", "PostgreSQL", "Docker"],
-      github: "#",
-      demo: "#",
-      category: "AI",
-    },
-    {
-      title: "NFT Marketplace with AI Curation",
-      description:
-        "A next-generation NFT marketplace that uses AI to curate and recommend digital assets. Features smart contract automation and personalized discovery algorithms.",
-      image: "/nft-marketplace-interface.png",
-      technologies: ["Solidity", "Next.js", "IPFS", "OpenAI API", "Ethereum"],
-      github: "#",
-      demo: "#",
-      category: "Web3",
     },
     {
       title: "Blockchain Analytics Platform",

@@ -14,13 +14,31 @@ export function Experience() {
       technologies: ["Solidity", "Ethereum", "Hardhat", "Web3.js", "Node.js", "Bitcoin.js", "Postgres"],
     },
     {
-      title: "Blockchain and AI expert",
+      title: "Blockchain and AI Expert",
       company: "ErchimLabs",
       location: "Hybrid",
-      period: "2025 - Present",
+      period: "2025 - 2026",
       description:
-        "Blockchain and backend development on web3 and web2s. Designing hybrid approach on both. Also automating using ai.",
-      technologies: ["Solidity", "Ethereum", "Hardhat", "Web3.js", "Node.js", "Bitcoin.js", "Postgres", "Python", "Tensorflow", "Huggingface"],
+        "Blockchain and backend development on web3 and web2s. Designing hybrid approach on both. Also automating using AI.",
+      technologies: ["Solidity", "Ethereum", "Hardhat", "Web3.js", "Node.js", "Bitcoin.js", "Postgres", "Python", "TensorFlow", "Huggingface"],
+    },
+    {
+      title: "Software Developer",
+      company: "Mongol Content LLC",
+      location: "Ulaanbaatar",
+      period: "2026 - Present",
+      description:
+        "Fullstack development, AI development, Machine Learning, and DevOps. Building scalable applications and integrating AI features into production systems.",
+      technologies: ["Laravel", "Next.js", "NestJS", "Python", "TensorFlow", "Docker", "AWS"],
+    },
+    {
+      title: "Software Developer",
+      company: "MobiCom",
+      location: "Ulaanbaatar",
+      period: "2026 - Present",
+      description:
+        "Fullstack development, AI development, Machine Learning, and DevOps. Developing enterprise-level solutions for telecommunications infrastructure.",
+      technologies: ["Laravel", "Next.js", "NestJS", "Python", "Machine Learning", "DevOps", "Kubernetes"],
     },
   ]
 
