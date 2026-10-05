@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { dictionaries, getDictionary } from "@/lib/i18n";
-import { LANGUAGES } from "@/types";
+import { LANGUAGES, SKILL_GROUPS } from "@/types";
 
 type Unknownish = Record<string, unknown>;
 
@@ -38,12 +38,6 @@ describe("dictionaries", () => {
     expect(mn).toEqual(en);
   });
 
-  it("keeps list-valued entries the same length", () => {
-    expect(dictionaries.mn.about.principles).toHaveLength(
-      dictionaries.en.about.principles.length,
-    );
-  });
-
   it("has no empty or placeholder copy", () => {
     for (const language of LANGUAGES) {
       for (const value of collectStrings(dictionaries[language])) {
@@ -54,9 +48,25 @@ describe("dictionaries", () => {
     }
   });
 
-  it("does not leave English copy in the Mongolian dictionary for headings", () => {
-    expect(dictionaries.mn.contact.title).not.toBe(dictionaries.en.contact.title);
+  it("builds the clock line around the time and the offset", () => {
+    for (const language of LANGUAGES) {
+      const line = dictionaries[language].hero.clock("14:32", "OFFSET");
+      expect(line).toContain("14:32");
+      expect(line).toContain("OFFSET");
+    }
+  });
+
+  it("names every stack group", () => {
+    for (const language of LANGUAGES) {
+      for (const group of SKILL_GROUPS) {
+        expect(dictionaries[language].stack.groups[group].trim()).not.toBe("");
+      }
+    }
+  });
+
+  it("translates the headings rather than reusing the English", () => {
     expect(dictionaries.mn.work.title).not.toBe(dictionaries.en.work.title);
-    expect(dictionaries.mn.pricing.title).not.toBe(dictionaries.en.pricing.title);
+    expect(dictionaries.mn.contact.title).not.toBe(dictionaries.en.contact.title);
+    expect(dictionaries.mn.stack.title).not.toBe(dictionaries.en.stack.title);
   });
 });

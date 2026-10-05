@@ -1,101 +1,75 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { Contact } from "@/components/sections/contact";
-import { dictionaries } from "@/lib/i18n";
+import { Testimonials } from "@/components/sections/testimonials";
+import { profile } from "@/data/profile";
 import { resetPortfolioStore, usePortfolioStore } from "@/store/portfolio-store";
-
-const en = dictionaries.en;
 
 beforeEach(() => {
   resetPortfolioStore();
 });
 
 describe("Contact", () => {
-  it("renders the contact details from the profile data", () => {
-    render(<Contact />);
-    expect(screen.getByText("bdulguunod@gmail.com")).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: en.contact.title })).toBeInTheDocument();
-  });
-
-  it("blocks submission and explains what is missing", async () => {
+  it("offers the address as a mail link and a copy button", async () => {
     const user = userEvent.setup();
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, "clipboard", { configurable: true, value: { writeText } });
+
     render(<Contact />);
-
-    await user.click(screen.getByRole("button", { name: new RegExp(en.contact.send, "i") }));
-
-    expect(await screen.findByText(en.contact.errors.name)).toBeInTheDocument();
-    expect(screen.getByText(en.contact.errors.email)).toBeInTheDocument();
-    expect(screen.getByText(en.contact.errors.message)).toBeInTheDocument();
-    expect(screen.queryByText(en.contact.sent)).not.toBeInTheDocument();
-  });
-
-  it("clears a field error as soon as it is corrected", async () => {
-    const user = userEvent.setup();
-    render(<Contact />);
-
-    await user.click(screen.getByRole("button", { name: new RegExp(en.contact.send, "i") }));
-    expect(await screen.findByText(en.contact.errors.name)).toBeInTheDocument();
-
-    await user.type(screen.getByLabelText(en.contact.name), "Duke");
-    await waitFor(() => {
-      expect(screen.queryByText(en.contact.errors.name)).not.toBeInTheDocument();
-    });
-  });
-
-  it("rejects a malformed email address", async () => {
-    const user = userEvent.setup();
-    render(<Contact />);
-
-    await user.type(screen.getByLabelText(en.contact.name), "Duke");
-    await user.type(screen.getByLabelText(en.contact.email), "not-an-email");
-    await user.type(
-      screen.getByLabelText(en.contact.message),
-      "A short brief about the project we want to build.",
+    expect(screen.getByRole("link", { name: profile.email })).toHaveAttribute(
+      "href",
+      `mailto:${profile.email}`,
     );
-    await user.click(screen.getByRole("button", { name: new RegExp(en.contact.send, "i") }));
-
-    expect(await screen.findByText(en.contact.errors.email)).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /copy email/i }));
+    expect(writeText).toHaveBeenCalledWith(profile.email);
+    expect(await screen.findByRole("button", { name: /copied/i })).toBeInTheDocument();
   });
 
-  it("confirms receipt once a valid brief is submitted", async () => {
-    const user = userEvent.setup();
+  it("shows the avatar with honest alt text", () => {
     render(<Contact />);
-
-    await user.type(screen.getByLabelText(en.contact.name), "Duke");
-    await user.type(screen.getByLabelText(en.contact.email), "duke@example.com");
-    await user.type(
-      screen.getByLabelText(en.contact.message),
-      "We want an AI newsletter pipeline for our newsroom.",
-    );
-    await user.click(screen.getByRole("button", { name: new RegExp(en.contact.send, "i") }));
-
-    expect(await screen.findByText(en.contact.sent, {}, { timeout: 3000 })).toBeInTheDocument();
-
-    await user.click(screen.getByRole("button", { name: en.contact.sendAnother }));
-    expect(await screen.findByLabelText(en.contact.name)).toHaveValue("");
+    expect(screen.getByRole("img", { name: /cat in sunglasses/i })).toBeInTheDocument();
   });
 
-  it("pulls a generated estimate into the message field", async () => {
+  it("links every profile elsewhere", () => {
     render(<Contact />);
-
-    usePortfolioStore.getState().setBriefDraft("Estimated total: $18,508");
-
-    await waitFor(() => {
-      expect(screen.getByLabelText(en.contact.message)).toHaveValue("Estimated total: $18,508");
-    });
-    expect(screen.getByText(en.contact.quoteAttached)).toBeInTheDocument();
-    // the draft is consumed so a second visit does not overwrite typing
-    expect(usePortfolioStore.getState().briefDraft).toBe("");
+    for (const social of profile.socials) {
+      expect(screen.getByRole("link", { name: new RegExp(`^${social.label}`) })).toHaveAttribute(
+        "href",
+        social.href,
+      );
+    }
   });
 
-  it("switches every label when the language changes", () => {
+  it("speaks Mongolian", () => {
     usePortfolioStore.getState().setLanguage("mn");
     render(<Contact />);
+    expect(screen.getByRole("heading", { level: 2, name: "Холбоо барих" })).toBeInTheDocument();
+    expect(screen.getByText(profile.bio.mn[0]!)).toBeInTheDocument();
+  });
+});
 
-    expect(
-      screen.getByRole("heading", { name: dictionaries.mn.contact.title }),
-    ).toBeInTheDocument();
-    expect(screen.getByLabelText(dictionaries.mn.contact.name)).toBeInTheDocument();
+describe("Testimonials", () => {
+  it("renders nothing while there are none", () => {
+    const { container } = render(<Testimonials items={[]} />);
+    expect(container).toBeEmptyDOMElement();
+  });
+
+  it("renders a quote with its author when one is added", () => {
+    render(
+      <Testimonials
+        items={[
+          {
+            id: "lead",
+            quote: { en: "Ships carefully.", mn: "Болгоомжтой гаргадаг." },
+            author: "A. Person",
+            role: { en: "Engineering lead", mn: "Ахлах инженер" },
+            company: "Example",
+          },
+        ]}
+      />,
+    );
+    expect(screen.getByText(/Ships carefully\./)).toBeInTheDocument();
+    expect(screen.getByText("A. Person")).toBeInTheDocument();
   });
 });

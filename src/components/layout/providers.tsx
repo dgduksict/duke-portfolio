@@ -19,7 +19,7 @@ export function Providers({ children }: { readonly children: ReactNode }) {
   useStoreHydration();
 
   return (
-    <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
+    <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
       <LanguageAttribute />
       {children}
     </ThemeProvider>

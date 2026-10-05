@@ -1,27 +1,26 @@
 import { describe, expect, it } from "vitest";
 import { experience } from "@/data/experience";
-import { activitySeries, domainScores, headlineStats, stackShare } from "@/data/metrics";
-import { projects } from "@/data/projects";
-import {
-  MAX_DISCOUNT_RATE,
-  SUPPORT_MONTH_OPTIONS,
-  addOns,
-  discountRules,
-  services,
-  timelineOptions,
-  volumeTiers,
-} from "@/data/services";
-import { marqueeSkills, skillGroups, skills } from "@/data/skills";
-import { profile } from "@/data/profile";
-import { testimonials } from "@/data/testimonials";
 import { navItems, SECTION_IDS } from "@/data/navigation";
-import { initialsOf, monthsBetween } from "@/lib/format";
-import { ADD_ON_IDS, LANGUAGES, PROJECT_CATEGORIES, SERVICE_IDS, SKILL_DOMAINS } from "@/types";
+import { profile } from "@/data/profile";
+import { projects } from "@/data/projects";
+import { skills } from "@/data/skills";
+import { testimonials } from "@/data/testimonials";
+import { buildEvidence, normalizeTool } from "@/lib/evidence";
+import { LANGUAGES, SKILL_GROUPS } from "@/types";
 import type { Localized } from "@/types";
 
 function expectLocalized(value: Localized, label: string): void {
   for (const language of LANGUAGES) {
     expect(value[language].trim(), `${label} (${language})`).not.toBe("");
+  }
+}
+
+function expectLocalizedList(value: Localized<readonly string[]>, label: string): void {
+  expect(value.mn.length, `${label}: both languages list the same items`).toBe(value.en.length);
+  for (const language of LANGUAGES) {
+    for (const [index, item] of value[language].entries()) {
+      expect(item.trim(), `${label}[${index}] (${language})`).not.toBe("");
+    }
   }
 }
 
@@ -33,60 +32,32 @@ function expectUnique(list: readonly string[], label: string): void {
   expect(new Set(list).size, `${label} must be unique`).toBe(list.length);
 }
 
+const isHttps = (url: string) => /^https:\/\/\S+$/.test(url);
+
 describe("profile", () => {
-  it("has translated copy everywhere", () => {
+  it("has copy in both languages", () => {
     expectLocalized(profile.name, "name");
-    expectLocalized(profile.role, "role");
-    expectLocalized(profile.tagline, "tagline");
+    expectLocalized(profile.shortName, "shortName");
+    expectLocalized(profile.headline, "headline");
+    expectLocalized(profile.intro, "intro");
     expectLocalized(profile.location, "location");
-    for (const language of LANGUAGES) {
-      expect(profile.bio[language].length).toBeGreaterThan(0);
-      expect(profile.roleRotation[language].length).toBeGreaterThan(1);
-    }
+    expectLocalizedList(profile.bio, "bio");
+    expect(profile.bio.en.length).toBeGreaterThan(0);
+    if (profile.availability !== null) expectLocalized(profile.availability, "availability");
   });
 
-  it("has unique, absolute social links", () => {
+  it("has unique, absolute links and a plausible email", () => {
     expectUnique(ids(profile.socials), "social ids");
-    for (const social of profile.socials) {
-      expect(social.href).toMatch(/^https:\/\//);
-      expect(social.handle.length).toBeGreaterThan(0);
-    }
+    for (const social of profile.socials) expect(isHttps(social.href), social.href).toBe(true);
+    expect(isHttps(profile.sourceUrl)).toBe(true);
+    expect(profile.email).toMatch(/^[^@\s]+@[^@\s]+\.[a-z]{2,}$/i);
+    if (profile.resumeUrl !== null) expect(profile.resumeUrl).toMatch(/^(https:\/\/|\/)/);
   });
 
-  it("has a plausible contact email", () => {
-    expect(profile.email).toMatch(/^[^@\s]+@[^@\s]+\.[^@\s]+$/);
-  });
-
-  it("has unique focus areas with copy in both languages", () => {
-    expectUnique(ids(profile.focusAreas), "focus area ids");
-    for (const area of profile.focusAreas) {
-      expectLocalized(area.title, `focus ${area.id} title`);
-      expectLocalized(area.description, `focus ${area.id} description`);
-    }
-  });
-});
-
-describe("skills", () => {
-  it("has unique ids and sane levels", () => {
-    expectUnique(ids(skills), "skill ids");
-    for (const skill of skills) {
-      expect(skill.level).toBeGreaterThan(0);
-      expect(skill.level).toBeLessThanOrEqual(100);
-      expect(skill.years).toBeGreaterThan(0);
-      expect(skill.url).toMatch(/^https:\/\//);
-      expect(skill.accent).toMatch(/^#[0-9a-fA-F]{6}$/);
-    }
-  });
-
-  it("groups every skill exactly once", () => {
-    const grouped = skillGroups.flatMap((group) => group.skills);
-    expect(grouped).toHaveLength(skills.length);
-    expect(skillGroups.map((group) => group.domain)).toEqual([...SKILL_DOMAINS]);
-  });
-
-  it("only marquees the strongest tools", () => {
-    expect(marqueeSkills.length).toBeGreaterThan(0);
-    expect(marqueeSkills.every((skill) => skill.level >= 80)).toBe(true);
+  it("is placed in Ulaanbaatar", () => {
+    expect(profile.timeZone).toBe("Asia/Ulaanbaatar");
+    expect(profile.coordinates.latitude).toBeCloseTo(47.92, 1);
+    expect(profile.coordinates.longitude).toBeCloseTo(106.92, 1);
   });
 });
 
@@ -94,192 +65,111 @@ describe("experience", () => {
   it("has unique ids and translated copy", () => {
     expectUnique(ids(experience), "experience ids");
     for (const entry of experience) {
-      expectLocalized(entry.role, `${entry.id} role`);
-      expectLocalized(entry.summary, `${entry.id} summary`);
-      expect(entry.stack.length).toBeGreaterThan(0);
-      for (const language of LANGUAGES) {
-        expect(entry.highlights[language].length).toBeGreaterThan(0);
-      }
+      expectLocalized(entry.role, `${entry.id}.role`);
+      expectLocalized(entry.location, `${entry.id}.location`);
+      expectLocalized(entry.summary, `${entry.id}.summary`);
+      if (entry.highlights) expectLocalizedList(entry.highlights, `${entry.id}.highlights`);
+      expect(entry.stack.length, `${entry.id}.stack`).toBeGreaterThan(0);
     }
   });
 
-  it("uses parseable month keys that run forwards", () => {
+  it("uses month keys that run forwards, newest first", () => {
+    const monthKey = /^\d{4}-(0[1-9]|1[0-2])$/;
     for (const entry of experience) {
-      expect(entry.start).toMatch(/^\d{4}-\d{2}$/);
+      expect(entry.start).toMatch(monthKey);
       if (entry.end !== null) {
-        expect(entry.end).toMatch(/^\d{4}-\d{2}$/);
-        expect(monthsBetween(entry.start, entry.end)).toBeGreaterThan(0);
+        expect(entry.end).toMatch(monthKey);
+        expect(entry.end >= entry.start, `${entry.id} ends before it starts`).toBe(true);
       }
     }
+    const starts = experience.map((entry) => entry.start);
+    expect([...starts].sort().reverse()).toEqual(starts);
   });
 
-  it("is ordered newest first", () => {
-    const starts = experience.map((entry) => entry.start);
-    expect([...starts]).toEqual([...starts].sort().reverse());
+  it("only links company sites over https", () => {
+    for (const entry of experience) {
+      if (entry.companyUrl !== null) expect(isHttps(entry.companyUrl), entry.companyUrl).toBe(true);
+    }
   });
 });
 
 describe("projects", () => {
-  it("has unique ids and slugs", () => {
+  it("has unique ids and translated copy", () => {
     expectUnique(ids(projects), "project ids");
-    expectUnique(
-      projects.map((project) => project.slug),
-      "project slugs",
-    );
-  });
-
-  it("uses known categories and local images", () => {
     for (const project of projects) {
-      expect(PROJECT_CATEGORIES).toContain(project.category);
-      expect(project.image).toMatch(/^\/[\w.-]+\.(png|jpg|jpeg|svg|webp)$/);
-      expect(project.accent).toMatch(/^#[0-9a-fA-F]{6}$/);
+      expectLocalized(project.name, `${project.id}.name`);
+      expectLocalized(project.tagline, `${project.id}.tagline`);
+      expectLocalized(project.description, `${project.id}.description`);
+      expectLocalized(project.part, `${project.id}.part`);
+      if (project.outcomes) expectLocalizedList(project.outcomes, `${project.id}.outcomes`);
+      for (const metric of project.metrics ?? []) expectLocalized(metric.label, `${project.id}.${metric.id}`);
     }
   });
 
-  it("has exactly three metrics per project with unique ids", () => {
+  it("explains how each one works in at least three stages", () => {
     for (const project of projects) {
-      expect(project.metrics).toHaveLength(3);
-      expectUnique(ids(project.metrics), `${project.id} metric ids`);
-      for (const metric of project.metrics) {
-        expectLocalized(metric.label, `${project.id}.${metric.id}`);
-        expect(metric.decimals).toBeGreaterThanOrEqual(0);
+      expect(project.stages.length, `${project.id} stages`).toBeGreaterThanOrEqual(3);
+      expectUnique(ids(project.stages), `${project.id} stage ids`);
+      for (const stage of project.stages) {
+        expectLocalized(stage.label, `${project.id}.${stage.id}`);
+        if (stage.detail) expectLocalized(stage.detail, `${project.id}.${stage.id}.detail`);
       }
     }
   });
 
-  it("has translated narrative copy", () => {
+  it("links only over https, and only to roles that exist", () => {
+    const roleIds = new Set(ids(experience));
     for (const project of projects) {
-      expectLocalized(project.tagline, `${project.id} tagline`);
-      expectLocalized(project.description, `${project.id} description`);
-      expectLocalized(project.role, `${project.id} role`);
-      for (const language of LANGUAGES) {
-        expect(project.outcomes[language].length).toBeGreaterThan(0);
-      }
-    }
-  });
-
-  it("uses absolute links when a link exists", () => {
-    for (const project of projects) {
-      if (project.demoUrl !== null) expect(project.demoUrl).toMatch(/^https:\/\//);
-      if (project.repoUrl !== null) expect(project.repoUrl).toMatch(/^https:\/\//);
-    }
-  });
-
-  it("features at least one project without featuring all of them", () => {
-    const featured = projects.filter((project) => project.featured);
-    expect(featured.length).toBeGreaterThan(0);
-    expect(featured.length).toBeLessThan(projects.length);
-  });
-});
-
-describe("metrics", () => {
-  it("covers twelve unique months", () => {
-    expect(activitySeries).toHaveLength(12);
-    expectUnique(
-      activitySeries.map((point) => point.month),
-      "activity months",
-    );
-  });
-
-  it("keeps the language mix at one hundred percent", () => {
-    expect(stackShare.reduce((sum, entry) => sum + entry.share, 0)).toBe(100);
-  });
-
-  it("scores every skill domain once", () => {
-    expect(domainScores.map((entry) => entry.domain)).toEqual([...SKILL_DOMAINS]);
-    for (const entry of domainScores) {
-      expect(entry.score).toBeGreaterThan(0);
-      expect(entry.score).toBeLessThanOrEqual(100);
-      expectLocalized(entry.label, `domain ${entry.domain}`);
-    }
-  });
-
-  it("has translated headline stats", () => {
-    expectUnique(ids(headlineStats), "headline stat ids");
-    for (const stat of headlineStats) {
-      expectLocalized(stat.label, `${stat.id} label`);
-      expectLocalized(stat.caption, `${stat.id} caption`);
+      for (const link of project.links) expect(isHttps(link.href), link.href).toBe(true);
+      if (project.roleId !== null) expect(roleIds.has(project.roleId), project.id).toBe(true);
     }
   });
 });
 
-describe("services catalogue", () => {
-  it("exposes every declared service and add-on", () => {
-    expect(ids(services)).toEqual([...SERVICE_IDS]);
-    expect(ids(addOns)).toEqual([...ADD_ON_IDS]);
-  });
-
-  it("has coherent scope bounds and positive pricing", () => {
-    for (const service of services) {
-      expect(service.maxScreens).toBeGreaterThan(service.includedScreens);
-      expect(service.basePrice).toBeGreaterThan(0);
-      expect(service.pricePerScreen).toBeGreaterThan(0);
-      expect(service.baseWeeks).toBeGreaterThan(0);
-      expectLocalized(service.name, `${service.id} name`);
-      expectLocalized(service.summary, `${service.id} summary`);
-      for (const language of LANGUAGES) {
-        expect(service.deliverables[language].length).toBeGreaterThan(0);
-      }
+describe("skills and evidence", () => {
+  it("has unique tools in known groups, and no empty group", () => {
+    expectUnique(ids(skills), "skill ids");
+    expectUnique(
+      skills.map((skill) => normalizeTool(skill.name)),
+      "skill names",
+    );
+    for (const skill of skills) expect(SKILL_GROUPS).toContain(skill.group);
+    for (const group of SKILL_GROUPS) {
+      expect(skills.some((skill) => skill.group === group), group).toBe(true);
     }
   });
 
-  it("marks exactly one service as most requested", () => {
-    expect(services.filter((service) => service.popular)).toHaveLength(1);
+  it("knows every tool a role or project lists, so the stack misses nothing", () => {
+    const known = new Set(
+      skills.flatMap((skill) => [skill.name, ...(skill.aliases ?? [])]).map(normalizeTool),
+    );
+    const listed = [...experience.flatMap((entry) => entry.stack), ...projects.flatMap((entry) => entry.stack)];
+    expect(listed.filter((tool) => !known.has(normalizeTool(tool)))).toEqual([]);
   });
 
-  it("charges something for every add-on", () => {
-    for (const addOn of addOns) {
-      expect(addOn.flatPrice + addOn.basePercent).toBeGreaterThan(0);
-      expect(addOn.weeks).toBeGreaterThan(0);
-      expectLocalized(addOn.name, `${addOn.id} name`);
+  it("points every piece of evidence at a role or project that exists", () => {
+    const anchors = new Set([
+      ...experience.map((entry) => `#role-${entry.id}`),
+      ...projects.map((entry) => `#project-${entry.id}`),
+    ]);
+    for (const { places } of buildEvidence(skills, experience, projects)) {
+      for (const place of places) expect(anchors.has(place.href), place.href).toBe(true);
     }
-  });
-
-  it("keeps pace multipliers ordered and anchored at standard", () => {
-    const standard = timelineOptions.find((option) => option.id === "standard");
-    expect(standard?.priceMultiplier).toBe(1);
-    expect(standard?.durationMultiplier).toBe(1);
-
-    const prices = timelineOptions.map((option) => option.priceMultiplier);
-    const durations = timelineOptions.map((option) => option.durationMultiplier);
-    expect([...prices]).toEqual([...prices].sort((a, b) => a - b));
-    expect([...durations]).toEqual([...durations].sort((a, b) => b - a));
-  });
-
-  it("orders volume tiers and keeps every rate under the cap", () => {
-    const thresholds = volumeTiers.map((tier) => tier.threshold);
-    expect([...thresholds]).toEqual([...thresholds].sort((a, b) => a - b));
-    for (const tier of volumeTiers) {
-      expect(tier.rate).toBeGreaterThan(0);
-      expect(tier.rate).toBeLessThan(MAX_DISCOUNT_RATE);
-    }
-    for (const rule of discountRules) {
-      expect(rule.rate).toBeGreaterThan(0);
-      expect(rule.rate).toBeLessThanOrEqual(MAX_DISCOUNT_RATE);
-    }
-  });
-
-  it("offers no support as an explicit option", () => {
-    expect(SUPPORT_MONTH_OPTIONS[0]).toBe(0);
-    expect(SUPPORT_MONTH_OPTIONS.length).toBeGreaterThan(1);
   });
 });
 
 describe("navigation and testimonials", () => {
   it("keeps nav items aligned with the section ids", () => {
     expect(navItems.map((item) => item.id)).toEqual([...SECTION_IDS]);
-    expectUnique(
-      navItems.map((item) => item.shortcut),
-      "nav shortcuts",
-    );
+    for (const item of navItems) expectLocalized(item.label, `nav.${item.id}`);
   });
 
   it("has translated testimonials with unique ids", () => {
     expectUnique(ids(testimonials), "testimonial ids");
-    for (const entry of testimonials) {
-      expectLocalized(entry.quote, `${entry.id} quote`);
-      expectLocalized(entry.role, `${entry.id} role`);
-      expect(initialsOf(entry.author)).toHaveLength(2);
+    for (const testimonial of testimonials) {
+      expectLocalized(testimonial.quote, `${testimonial.id}.quote`);
+      expectLocalized(testimonial.role, `${testimonial.id}.role`);
+      expect(testimonial.author.trim()).not.toBe("");
     }
   });
 });

@@ -1,109 +1,87 @@
 import type { ExperienceEntry } from "@/types";
 
-/** Newest first. `end: null` marks a role that is still running. */
+/**
+ * Newest first. `end: null` marks a role that is still running. Copy follows
+ * Duke's own work history; add `highlights` only for things that can be checked.
+ */
 export const experience: readonly ExperienceEntry[] = [
   {
     id: "mongol-content",
     role: { en: "Software Developer", mn: "Программ хангамжийн хөгжүүлэгч" },
-    company: "Mongol Content LLC",
-    companyUrl: "https://gogo.mn",
-    location: { en: "Ulaanbaatar, Mongolia", mn: "Улаанбаатар, Монгол" },
+    company: "Mongol Content",
+    companyUrl: "https://mongolcontent.mn",
+    location: { en: "Ulaanbaatar", mn: "Улаанбаатар" },
     start: "2026-02",
     end: null,
     summary: {
-      en: "Full-stack and AI work across the Gogo media group: news delivery, newsletters and editorial automation.",
-      mn: "Gogo медиа группын full-stack болон AI ажил: мэдээ хүргэлт, мэдээллийн товхимол, редакцын автоматжуулалт.",
+      en: "Full-stack, AI and DevOps work on Gogo.mn and Sonsy: scalable applications, and AI features running in production.",
+      mn: "Gogo.mn болон Sonsy дээр full-stack, AI, DevOps чиглэлээр ажиллаж, өргөтгөх боломжтой аппликейшн бүтээж, AI боломжуудыг продакшнд ажиллуулдаг.",
     },
-    highlights: {
-      en: [
-        "Rebuilt the newsletter delivery engine around a queue-driven FastAPI service with idempotent sends.",
-        "Shipped an article monitoring pipeline that classifies and de-duplicates incoming wire content.",
-        "Moved the reader-facing app to a typed Next.js frontend backed by NestJS APIs.",
-      ],
-      mn: [
-        "Мэдээллийн товхимлын систем дараалалд суурилсан FastAPI сервис болгон дахин бүтээж, давхардалгүй илгээлт хийсэн.",
-        "Ирж буй мэдээг ангилж, давхардлыг арилгадаг хяналтын урсгалыг нэвтрүүлсэн.",
-        "Уншигчийн апп-ыг NestJS API-тай холбогдсон типтэй Next.js frontend рүү шилжүүлсэн.",
-      ],
-    },
-    stack: ["Next.js", "NestJS", "Laravel", "FastAPI", "PostgreSQL", "Redis", "Docker"],
+    stack: [
+      "Next.js",
+      "NestJS",
+      "Laravel",
+      "Python",
+      "FastAPI",
+      "MySQL",
+      "Qdrant",
+      "OpenAI",
+      "TensorFlow",
+      "Docker",
+      "AWS",
+    ],
   },
   {
     id: "mobicom",
     role: { en: "Software Developer", mn: "Программ хангамжийн хөгжүүлэгч" },
-    company: "MobiCom Corporation",
+    company: "MobiCom",
     companyUrl: "https://www.mobicom.mn",
-    location: { en: "Ulaanbaatar, Mongolia", mn: "Улаанбаатар, Монгол" },
+    location: { en: "Ulaanbaatar", mn: "Улаанбаатар" },
     start: "2026-01",
     end: null,
     summary: {
-      en: "Enterprise systems for telecom infrastructure — internal tooling, ML forecasting and delivery pipelines.",
-      mn: "Телеком дэд бүтцийн корпорацийн систем — дотоод хэрэгсэл, ML урьдчилсан таамаглал, deploy урсгал.",
+      en: "Full-stack, machine learning and DevOps work on enterprise systems for telecom infrastructure.",
+      mn: "Телеком дэд бүтцийн байгууллагын системүүд дээр full-stack, машин сургалт, DevOps чиглэлээр ажилладаг.",
     },
-    highlights: {
-      en: [
-        "Built forecasting models for network capacity planning and exposed them through an internal API.",
-        "Standardised CI/CD across services so releases stopped depending on individual laptops.",
-        "Introduced typed contracts between legacy Laravel services and new Next.js dashboards.",
-      ],
-      mn: [
-        "Сүлжээний багтаамжийн төлөвлөлтөд зориулж таамаглалын загвар бүтээж, дотоод API болгон нээсэн.",
-        "Сервис бүрт CI/CD-г нэгтгэж, релиз хувь хүний компьютерээс хамаарахаа болиулсан.",
-        "Хуучин Laravel сервис болон шинэ Next.js dashboard хооронд типтэй гэрээ нэвтрүүлсэн.",
-      ],
-    },
-    stack: ["Laravel", "Next.js", "Python", "Kubernetes", "GitHub Actions", "Grafana"],
+    stack: ["Laravel", "Next.js", "NestJS", "Python", "Kubernetes"],
   },
   {
     id: "erchimlabs",
-    role: { en: "Blockchain & AI Engineer", mn: "Блокчейн & AI инженер" },
+    role: { en: "Blockchain & AI Expert", mn: "Блокчейн & AI мэргэжилтэн" },
     company: "ErchimLabs",
-    companyUrl: "https://github.com/dgduksict",
+    companyUrl: null,
     location: { en: "Hybrid", mn: "Хосолсон" },
     start: "2025-01",
     end: "2026-01",
     summary: {
-      en: "Hybrid web2/web3 product work with an automation layer built on top of open models.",
-      mn: "Web2/web3 хосолсон бүтээгдэхүүн, нээлттэй загвар дээр суурилсан автоматжуулалтын давхарга.",
+      en: "Blockchain and backend development across web3 and web2, designing products that combine the two, and automating the work around them with AI.",
+      mn: "Web3 болон web2 дээр блокчейн, backend хөгжүүлэлт хийж, хоёуланг хослуулсан шийдэл зохион бүтээж, эргэн тойрны ажлыг AI-аар автоматжуулсан.",
     },
-    highlights: {
-      en: [
-        "Designed contract + indexer pairs so on-chain state could be queried like an ordinary database.",
-        "Automated report generation for token operations, cutting a weekly manual routine to minutes.",
-        "Ran the internal review process for every contract change before mainnet deploys.",
-      ],
-      mn: [
-        "Гэрээ болон индексерийг хослуулан зохион байгуулж, on-chain өгөгдлийг энгийн мэдээллийн сан шиг асуух боломжтой болгосон.",
-        "Токены үйл ажиллагааны тайланг автоматжуулж, долоо хоногийн гар ажлыг минут болгон багасгасан.",
-        "Mainnet deploy бүрийн өмнөх дотоод хяналтын процессыг удирдсан.",
-      ],
-    },
-    stack: ["Solidity", "Hardhat", "viem", "Node.js", "Python", "Hugging Face"],
+    stack: [
+      "Solidity",
+      "Ethereum",
+      "Hardhat",
+      "Web3.js",
+      "Node.js",
+      "Bitcoin.js",
+      "PostgreSQL",
+      "Python",
+      "TensorFlow",
+      "Hugging Face",
+    ],
   },
   {
     id: "numadlabs",
     role: { en: "Backend Developer", mn: "Backend хөгжүүлэгч" },
     company: "NumadLabs",
-    companyUrl: "https://www.numadlabs.com",
+    companyUrl: null,
     location: { en: "Hybrid", mn: "Хосолсон" },
     start: "2024-01",
     end: "2025-01",
     summary: {
-      en: "Backend and smart-contract development for consumer web3 products bridging Bitcoin and EVM chains.",
-      mn: "Bitcoin болон EVM сүлжээг холбосон хэрэглэгчийн web3 бүтээгдэхүүний backend, ухаалаг гэрээний хөгжүүлэлт.",
+      en: "Blockchain and backend development across web3 and web2, designing products that combine the two.",
+      mn: "Web3 болон web2 дээр блокчейн, backend хөгжүүлэлт хийж, хоёуланг хослуулсан шийдэл зохион бүтээсэн.",
     },
-    highlights: {
-      en: [
-        "Implemented PSBT-based Bitcoin flows alongside EVM minting in a single typed backend.",
-        "Modelled ownership and royalty rules in Postgres so the app never queried a node on the hot path.",
-        "Wrote the regression suite that gated every release of the contract package.",
-      ],
-      mn: [
-        "PSBT дээр суурилсан Bitcoin урсгалыг EVM mint-тэй нэг типтэй backend дотор нэгтгэсэн.",
-        "Эзэмшил, royalty дүрмийг Postgres-д загварчилж, апп нь hot path дээр node руу хандахаа больсон.",
-        "Гэрээний багц релиз бүрийг хамгаалдаг regression тестийн багц бичсэн.",
-      ],
-    },
-    stack: ["Node.js", "TypeScript", "Solidity", "bitcoinjs-lib", "PostgreSQL", "AWS"],
+    stack: ["Solidity", "Ethereum", "Hardhat", "Web3.js", "Node.js", "Bitcoin.js", "PostgreSQL"],
   },
 ];
