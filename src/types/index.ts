@@ -9,9 +9,6 @@ export type Language = (typeof LANGUAGES)[number];
 
 export type Localized<T = string> = Readonly<Record<Language, T>>;
 
-export const CURRENCIES = ["USD", "MNT"] as const;
-export type CurrencyCode = (typeof CURRENCIES)[number];
-
 /* ------------------------------------------------------------------ profile */
 
 export interface SocialLink {
@@ -19,55 +16,28 @@ export interface SocialLink {
   readonly label: string;
   readonly href: string;
   readonly handle: string;
-  readonly icon: "github" | "linkedin" | "instagram" | "facebook" | "mail";
+  readonly icon: "github" | "linkedin" | "instagram" | "facebook";
 }
 
 export interface Profile {
   readonly name: Localized;
   readonly shortName: Localized;
-  readonly role: Localized;
-  readonly roleRotation: Localized<readonly string[]>;
-  readonly tagline: Localized;
+  /** One line under the name: what and where. */
+  readonly headline: Localized;
+  /** Two sentences in the hero: current and past work. */
+  readonly intro: Localized;
   readonly bio: Localized<readonly string[]>;
   readonly email: string;
-  readonly phone: string;
+  readonly phone: string | null;
   readonly location: Localized;
-  readonly timezone: string;
-  readonly availability: Localized;
-  readonly availableFrom: string;
-  readonly yearsExperience: number;
+  readonly timeZone: "Asia/Ulaanbaatar";
+  readonly coordinates: { readonly latitude: number; readonly longitude: number };
+  /** Shown in the hero when set, e.g. "Open to new roles". */
+  readonly availability: Localized | null;
+  /** A PDF in /public or an absolute URL; the résumé link appears once this is set. */
+  readonly resumeUrl: string | null;
+  readonly sourceUrl: string;
   readonly socials: readonly SocialLink[];
-  readonly focusAreas: readonly FocusArea[];
-}
-
-export interface FocusArea {
-  readonly id: string;
-  readonly icon: "brain" | "blocks" | "server" | "sparkles";
-  readonly title: Localized;
-  readonly description: Localized;
-}
-
-/* ------------------------------------------------------------------- skills */
-
-export const SKILL_DOMAINS = ["ai", "blockchain", "backend", "frontend", "devops"] as const;
-export type SkillDomain = (typeof SKILL_DOMAINS)[number];
-
-export interface Skill {
-  readonly id: string;
-  readonly name: string;
-  readonly domain: SkillDomain;
-  /** Self-assessed proficiency, 0-100, deterministic mock data. */
-  readonly level: number;
-  readonly years: number;
-  readonly url: string;
-  readonly accent: string;
-}
-
-export interface SkillGroup {
-  readonly domain: SkillDomain;
-  readonly title: Localized;
-  readonly summary: Localized;
-  readonly skills: readonly Skill[];
 }
 
 /* --------------------------------------------------------------- experience */
@@ -76,19 +46,30 @@ export interface ExperienceEntry {
   readonly id: string;
   readonly role: Localized;
   readonly company: string;
-  readonly companyUrl: string;
+  /** Only set when the site actually resolves. */
+  readonly companyUrl: string | null;
   readonly location: Localized;
+  /** `YYYY-MM`. */
   readonly start: string;
+  /** `YYYY-MM`, or `null` while the role is current. */
   readonly end: string | null;
   readonly summary: Localized;
-  readonly highlights: Localized<readonly string[]>;
+  readonly highlights?: Localized<readonly string[]>;
   readonly stack: readonly string[];
 }
 
 /* ----------------------------------------------------------------- projects */
 
-export const PROJECT_CATEGORIES = ["fullstack", "ai", "blockchain", "platform"] as const;
-export type ProjectCategory = (typeof PROJECT_CATEGORIES)[number];
+export interface PipelineStage {
+  readonly id: string;
+  readonly label: Localized;
+  readonly detail?: Localized;
+}
+
+export interface ProjectLink {
+  readonly kind: "live" | "source";
+  readonly href: string;
+}
 
 export interface ProjectMetric {
   readonly id: string;
@@ -100,112 +81,43 @@ export interface ProjectMetric {
 
 export interface Project {
   readonly id: string;
-  readonly slug: string;
-  readonly title: string;
-  readonly category: ProjectCategory;
+  readonly name: Localized;
   readonly year: number;
-  readonly featured: boolean;
+  /** The experience entry this was built under, when known. */
+  readonly roleId: string | null;
   readonly tagline: Localized;
   readonly description: Localized;
-  readonly role: Localized;
-  readonly outcomes: Localized<readonly string[]>;
+  /** What Duke did on it, as opposed to what the team shipped. */
+  readonly part: Localized;
+  /** How it works, in order — drawn as the pipeline diagram. */
+  readonly stages: readonly PipelineStage[];
   readonly stack: readonly string[];
-  readonly metrics: readonly ProjectMetric[];
-  readonly image: string;
-  readonly accent: string;
-  readonly demoUrl: string | null;
-  readonly repoUrl: string | null;
+  /** Empty for internal tools. */
+  readonly links: readonly ProjectLink[];
+  /** Add only verified results. Nothing renders while these are absent. */
+  readonly outcomes?: Localized<readonly string[]>;
+  readonly metrics?: readonly ProjectMetric[];
 }
 
-/* ------------------------------------------------------------------ metrics */
+/* ------------------------------------------------------------------- skills */
 
-export interface ActivityPoint {
-  readonly month: string;
-  readonly shipped: number;
-  readonly reviewed: number;
-  readonly automated: number;
-}
+export const SKILL_GROUPS = ["ai", "backend", "web3", "frontend", "infra"] as const;
+export type SkillGroupId = (typeof SKILL_GROUPS)[number];
 
-export interface StackShare {
-  readonly name: string;
-  readonly share: number;
-  readonly accent: string;
-}
-
-export interface DomainScore {
-  readonly domain: SkillDomain;
-  readonly label: Localized;
-  readonly score: number;
-}
-
-export interface HeadlineStat {
+export interface Skill {
   readonly id: string;
-  readonly label: Localized;
-  readonly value: number;
-  readonly suffix: string;
-  readonly decimals: number;
-  readonly caption: Localized;
+  readonly name: string;
+  readonly group: SkillGroupId;
+  /** Other spellings used in role and project stacks. */
+  readonly aliases?: readonly string[];
 }
 
-/* ----------------------------------------------------------------- services */
+/* ------------------------------------------------------------- testimonials */
 
-export const SERVICE_IDS = ["landing", "webapp", "ai", "blockchain", "audit"] as const;
-export type ServiceId = (typeof SERVICE_IDS)[number];
-
-export const ADD_ON_IDS = ["designSystem", "i18n", "analytics", "cms", "handover"] as const;
-export type AddOnId = (typeof ADD_ON_IDS)[number];
-
-export const TIMELINE_IDS = ["standard", "priority", "rush"] as const;
-export type TimelineId = (typeof TIMELINE_IDS)[number];
-
-export const DISCOUNT_IDS = ["nonprofit", "openSource"] as const;
-export type DiscountId = (typeof DISCOUNT_IDS)[number];
-
-export interface Service {
-  readonly id: ServiceId;
-  readonly name: Localized;
-  readonly summary: Localized;
-  readonly icon: "layout" | "layers" | "brain" | "blocks" | "search";
-  /** Base fee in USD covering the included scope. */
-  readonly basePrice: number;
-  readonly includedScreens: number;
-  readonly maxScreens: number;
-  readonly pricePerScreen: number;
-  readonly baseWeeks: number;
-  readonly weeksPerScreen: number;
-  readonly deliverables: Localized<readonly string[]>;
-  readonly popular: boolean;
-}
-
-export interface AddOn {
-  readonly id: AddOnId;
-  readonly name: Localized;
-  readonly description: Localized;
-  /** Flat fee in USD. Combined with `basePercent` when both are non-zero. */
-  readonly flatPrice: number;
-  /** Percentage of the service base fee, expressed 0-1. */
-  readonly basePercent: number;
-  readonly weeks: number;
-}
-
-export interface TimelineOption {
-  readonly id: TimelineId;
-  readonly name: Localized;
-  readonly description: Localized;
-  /** Multiplier applied to the scoped subtotal. */
-  readonly priceMultiplier: number;
-  /** Multiplier applied to the estimated duration. */
-  readonly durationMultiplier: number;
-}
-
-export interface DiscountRule {
-  readonly id: DiscountId;
-  readonly name: Localized;
-  readonly description: Localized;
-  readonly rate: number;
-}
-
-export interface VolumeTier {
-  readonly threshold: number;
-  readonly rate: number;
+export interface Testimonial {
+  readonly id: string;
+  readonly quote: Localized;
+  readonly author: string;
+  readonly role: Localized;
+  readonly company: string;
 }

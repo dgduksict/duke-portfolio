@@ -1,37 +1,26 @@
-import { BackToTop } from "@/components/layout/back-to-top";
-import { CommandPalette } from "@/components/layout/command-palette";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
-import { About } from "@/components/sections/about";
 import { Contact } from "@/components/sections/contact";
 import { Experience } from "@/components/sections/experience";
 import { Hero } from "@/components/sections/hero";
-import { Impact } from "@/components/sections/impact";
-import { Pricing } from "@/components/sections/pricing";
-import { Skills } from "@/components/sections/skills";
+import { Stack } from "@/components/sections/stack";
 import { Testimonials } from "@/components/sections/testimonials";
 import { Work } from "@/components/sections/work";
-import { Aurora } from "@/components/visual/aurora";
+import { testimonials } from "@/data/testimonials";
 
 export default function HomePage() {
   return (
     <>
-      <Aurora />
       <SiteHeader />
-      <main id="main">
+      <main id="main" tabIndex={-1} className="outline-none">
         <Hero />
-        <About />
-        <Skills />
         <Experience />
         <Work />
-        <Impact />
-        <Testimonials />
-        <Pricing />
+        <Stack />
+        <Testimonials items={testimonials} />
         <Contact />
       </main>
       <SiteFooter />
-      <CommandPalette />
-      <BackToTop />
     </>
   );
 }

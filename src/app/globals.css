@@ -4,170 +4,75 @@
 
 /* ------------------------------------------------------------------ tokens */
 
+/*
+ * The page is the ground under the Ulaanbaatar sky: snow in light mode, the
+ * night side of the ridge in dark mode. The sky itself is computed (sky.ts)
+ * and never follows the theme.
+ */
 :root {
-  --background: oklch(0.985 0.003 250);
-  --surface: oklch(1 0 0);
-  --surface-muted: oklch(0.968 0.004 250);
-  --foreground: oklch(0.21 0.015 260);
-  --muted-foreground: oklch(0.5 0.014 260);
-  --border: oklch(0.905 0.006 260);
-  --border-strong: oklch(0.855 0.008 260);
-  --primary: oklch(0.58 0.13 165);
-  --primary-foreground: oklch(0.99 0.005 165);
-  --accent-cyan: oklch(0.62 0.12 215);
-  --accent-violet: oklch(0.58 0.17 295);
-  --accent-amber: oklch(0.72 0.15 70);
-  --accent-rose: oklch(0.65 0.18 10);
-  --ring: oklch(0.58 0.13 165 / 0.45);
-  --glow-a: oklch(0.85 0.13 165 / 0.35);
-  --glow-b: oklch(0.82 0.11 215 / 0.28);
-  --glow-c: oklch(0.78 0.14 295 / 0.22);
-  --grid-line: oklch(0.21 0.015 260 / 0.055);
-  --card-shine: oklch(1 0 0 / 0.75);
-  --radius: 0.875rem;
+  --ground: #f3f5f8;
+  --ink: #0e1a2b;
+  --ink-soft: #556175;
+  --rule: #d6dde7;
+  --accent: #1f56c9;
+  --sun: #e39a2d;
+  /* What shows before the sky has a time to paint; keeps white header text legible. */
+  --sky-base: #0e1b3a;
+  color-scheme: light;
 }
 
 .dark {
-  --background: oklch(0.155 0.012 260);
-  --surface: oklch(0.196 0.014 262);
-  --surface-muted: oklch(0.228 0.014 262);
-  --foreground: oklch(0.975 0.004 250);
-  --muted-foreground: oklch(0.7 0.014 258);
-  --border: oklch(0.31 0.014 262);
-  --border-strong: oklch(0.4 0.018 262);
-  --primary: oklch(0.8 0.15 165);
-  --primary-foreground: oklch(0.17 0.02 165);
-  --accent-cyan: oklch(0.82 0.12 205);
-  --accent-violet: oklch(0.74 0.16 295);
-  --accent-amber: oklch(0.83 0.14 78);
-  --accent-rose: oklch(0.75 0.16 10);
-  --ring: oklch(0.8 0.15 165 / 0.5);
-  --glow-a: oklch(0.72 0.16 165 / 0.3);
-  --glow-b: oklch(0.62 0.15 250 / 0.26);
-  --glow-c: oklch(0.6 0.18 300 / 0.22);
-  --grid-line: oklch(0.98 0.004 250 / 0.055);
-  --card-shine: oklch(1 0 0 / 0.08);
+  --ground: #0b1322;
+  --ink: #e7ecf4;
+  --ink-soft: #93a0b5;
+  --rule: #1d2a40;
+  --accent: #8cb6ff;
+  --sun: #f2b45a;
+  color-scheme: dark;
 }
 
 @theme inline {
-  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
-  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+  --font-sans: var(--font-geologica), ui-sans-serif, system-ui, sans-serif;
 
-  --color-background: var(--background);
-  --color-surface: var(--surface);
-  --color-surface-muted: var(--surface-muted);
-  --color-foreground: var(--foreground);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-border: var(--border);
-  --color-border-strong: var(--border-strong);
-  --color-primary: var(--primary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-cyan-accent: var(--accent-cyan);
-  --color-violet-accent: var(--accent-violet);
-  --color-amber-accent: var(--accent-amber);
-  --color-rose-accent: var(--accent-rose);
-  --color-ring: var(--ring);
-
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 0.375rem);
-  --radius-2xl: calc(var(--radius) + 0.75rem);
-
-  --animate-marquee: marquee 42s linear infinite;
-  --animate-marquee-reverse: marquee-reverse 42s linear infinite;
-  --animate-pulse-ring: pulse-ring 2.4s ease-out infinite;
-  --animate-caret: caret 1.05s step-end infinite;
-}
-
-@keyframes marquee {
-  from {
-    transform: translate3d(0, 0, 0);
-  }
-  to {
-    transform: translate3d(-50%, 0, 0);
-  }
-}
-
-@keyframes marquee-reverse {
-  from {
-    transform: translate3d(-50%, 0, 0);
-  }
-  to {
-    transform: translate3d(0, 0, 0);
-  }
-}
-
-@keyframes pulse-ring {
-  0% {
-    transform: scale(0.85);
-    opacity: 0.7;
-  }
-  80%,
-  100% {
-    transform: scale(2.1);
-    opacity: 0;
-  }
-}
-
-@keyframes caret {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0;
-  }
+  --color-ground: var(--ground);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-rule: var(--rule);
+  --color-accent: var(--accent);
+  --color-sun: var(--sun);
 }
 
 /* -------------------------------------------------------------------- base */
 
 @layer base {
   * {
-    border-color: var(--border);
+    border-color: var(--rule);
   }
 
   html {
     scroll-behavior: smooth;
-    scroll-padding-top: 6rem;
+    scroll-padding-top: 5rem;
     -webkit-text-size-adjust: 100%;
   }
 
   body {
-    background-color: var(--background);
-    color: var(--foreground);
-    font-feature-settings: "cv02", "cv03", "cv04", "ss01";
+    background-color: var(--ground);
+    color: var(--ink);
+    font-family: var(--font-sans);
+    font-size: 1.0625rem;
+    line-height: 1.6;
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
   }
 
   ::selection {
-    background-color: color-mix(in oklab, var(--primary) 30%, transparent);
-    color: var(--foreground);
+    background-color: color-mix(in oklab, var(--accent) 28%, transparent);
   }
 
   :focus-visible {
-    outline: 2px solid var(--primary);
-    outline-offset: 2px;
-  }
-
-  ::-webkit-scrollbar {
-    width: 10px;
-    height: 10px;
-  }
-
-  ::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
-  ::-webkit-scrollbar-thumb {
-    background: color-mix(in oklab, var(--muted-foreground) 30%, transparent);
-    border-radius: 999px;
-    border: 3px solid transparent;
-    background-clip: content-box;
-  }
-
-  ::-webkit-scrollbar-thumb:hover {
-    background: color-mix(in oklab, var(--primary) 55%, transparent);
-    background-clip: content-box;
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+    border-radius: 2px;
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -185,68 +90,573 @@
   }
 }
 
-/* -------------------------------------------------------------- utilities */
+/* -------------------------------------------------------------- components */
 
-@utility text-gradient {
-  background-image: linear-gradient(
-    100deg,
-    var(--foreground) 0%,
-    var(--primary) 45%,
-    var(--accent-cyan) 72%,
-    var(--foreground) 100%
-  );
-  background-size: 220% 100%;
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-}
+@layer components {
+  .container-page {
+    width: 100%;
+    max-width: 76rem;
+    margin-inline: auto;
+    padding-inline: 1rem;
+  }
 
-@utility text-balance-tight {
-  text-wrap: balance;
-  letter-spacing: -0.03em;
-}
+  @media (width >= 48rem) {
+    .container-page {
+      padding-inline: 2rem;
+    }
+  }
 
-@utility surface-panel {
-  background:
-    linear-gradient(
-      160deg,
-      color-mix(in oklab, var(--surface) 92%, transparent),
-      color-mix(in oklab, var(--surface-muted) 88%, transparent)
+  /* Type. One family; the display sizes get Geologica's sharpened joins. */
+  /* Sized so the full name sits on one line from tablets up, like a horizon. */
+  .display-name {
+    font-size: clamp(3rem, 9.4vw, 8.25rem);
+    font-weight: 800;
+    line-height: 0.88;
+    letter-spacing: -0.045em;
+    font-variation-settings: "SHRP" 60;
+    text-wrap: balance;
+  }
+
+  .type-title {
+    font-size: clamp(1.75rem, 3.6vw, 2.75rem);
+    font-weight: 650;
+    line-height: 1.05;
+    letter-spacing: -0.03em;
+    font-variation-settings: "SHRP" 40;
+  }
+
+  .type-project {
+    font-size: clamp(1.5rem, 2.6vw, 2.125rem);
+    font-weight: 650;
+    line-height: 1.1;
+    letter-spacing: -0.025em;
+    font-variation-settings: "SHRP" 40;
+  }
+
+  .type-lead {
+    font-size: clamp(1.125rem, 1.6vw, 1.3125rem);
+    line-height: 1.5;
+    letter-spacing: -0.01em;
+    text-wrap: pretty;
+  }
+
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+
+  .measure {
+    max-width: 68ch;
+    text-wrap: pretty;
+  }
+
+  /* Links inside running text. */
+  .link {
+    color: var(--accent);
+    text-decoration-line: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.22em;
+    text-decoration-color: color-mix(in oklab, var(--accent) 45%, transparent);
+    transition: text-decoration-color 150ms ease-out;
+  }
+
+  .link:hover {
+    text-decoration-color: var(--accent);
+  }
+
+  /* Dense lists (the stack index): ink until hovered, so the page isn't a wall of blue. */
+  .link-quiet {
+    text-decoration-line: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.22em;
+    text-decoration-color: var(--rule);
+    transition:
+      color 150ms ease-out,
+      text-decoration-color 150ms ease-out;
+  }
+
+  .link-quiet:hover {
+    color: var(--accent);
+    text-decoration-color: var(--accent);
+  }
+
+  /* Buttons. The primary is ink on ground: one solid, calm action per view. */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    min-height: 2.75rem;
+    padding-inline: 1.125rem;
+    border-radius: 0.5rem;
+    font-size: 0.9375rem;
+    font-weight: 550;
+    white-space: nowrap;
+    transition:
+      background-color 150ms ease-out,
+      border-color 150ms ease-out,
+      color 150ms ease-out;
+  }
+
+  .btn-primary {
+    background-color: var(--ink);
+    color: var(--ground);
+  }
+
+  .btn-primary:hover {
+    background-color: color-mix(in oklab, var(--ink) 86%, var(--accent));
+  }
+
+  .btn-quiet {
+    border: 1px solid var(--rule);
+    color: var(--ink);
+  }
+
+  .btn-quiet:hover {
+    border-color: var(--ink-soft);
+  }
+
+  /* Pointer-tracking eyes in the wordmark, kept from the first version of the site. */
+  .eyes {
+    display: inline-flex;
+    gap: 0.18em;
+  }
+
+  .eye {
+    display: grid;
+    place-items: center;
+    width: var(--eye);
+    height: var(--eye);
+    border-radius: 50%;
+    border: 1.5px solid currentColor;
+    background: #fff;
+  }
+
+  .pupil {
+    width: 46%;
+    height: 46%;
+    border-radius: 50%;
+    background: #0e1a2b;
+    transform: translate(
+      calc(var(--look-x, 0) * var(--eye) * 0.2),
+      calc(var(--look-y, 0) * var(--eye) * 0.2)
     );
-  border: 1px solid var(--border);
-  box-shadow:
-    0 1px 0 0 var(--card-shine) inset,
-    0 24px 48px -32px oklch(0.2 0.03 260 / 0.55);
-  backdrop-filter: blur(12px);
+    transition: transform 120ms ease-out;
+  }
 }
 
-@utility grid-backdrop {
-  background-image:
-    linear-gradient(to right, var(--grid-line) 1px, transparent 1px),
-    linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px);
-  background-size: 56px 56px;
+/* ------------------------------------------------------------------- print */
+
+/* Printing or saving as PDF gives a plain CV: no sky, no chrome, black on white. */
+@media print {
+  :root,
+  .dark {
+    --ground: #fff;
+    --ink: #000;
+    --ink-soft: #333;
+    --rule: #bbb;
+    --accent: #000;
+    color-scheme: light;
+  }
+
+  html {
+    font-size: 11pt;
+  }
+
+  [data-print="hide"] {
+    display: none !important;
+  }
+
+  .display-name {
+    font-size: 30pt;
+    padding-top: 0;
+  }
+
+  section {
+    padding-block: 1.25rem !important;
+  }
+
+  a[href^="tel:"] {
+    border: 0;
+    padding: 0;
+    min-height: 0;
+  }
+
+  section,
+  article,
+  li {
+    break-inside: avoid;
+  }
+
+  a[href^="http"]::after {
+    content: " (" attr(href) ")";
+    font-size: 0.85em;
+    color: var(--ink-soft);
+  }
 }
 
-@utility dot-backdrop {
-  background-image: radial-gradient(var(--grid-line) 1px, transparent 1px);
-  background-size: 22px 22px;
+@layer components {
+  /* --------------------------------------------------------------------- sky */
+
+  /*
+   * Layers, back to front: gradient, stars, glow, sun (all inside .sky-paint,
+   * which fades in once the time is known), then the far and near ridges. The
+   * near ridge is the page's own ground colour, so the content below reads as
+   * the land under this sky.
+   */
+  .sky {
+    --sky-zenith: #060b1e;
+    --sky-mid: #0b1531;
+    --sky-horizon: #1a2246;
+    --sky-glow: #3a3060;
+    --glow-strength: 0;
+    --glow-x: 0.5;
+    --glow-y: 0.84;
+    --glow-size: 1;
+    --stars: 0;
+    --sun-opacity: 0;
+
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    height: clamp(14rem, 42svh, 34rem);
+    background: var(--sky-base);
+  }
+
+  @media (width >= 48rem) {
+    .sky {
+      height: clamp(15rem, 50svh, 34rem);
+    }
+  }
+
+  .sky-paint {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    transition: opacity 700ms ease-out;
+    background: linear-gradient(
+      to bottom,
+      var(--sky-zenith) 0%,
+      var(--sky-mid) 55%,
+      var(--sky-horizon) 90%
+    );
+  }
+
+  .sky[data-ready="true"] .sky-paint {
+    opacity: 1;
+  }
+
+  .sky-stars {
+    position: absolute;
+    inset: 0;
+    opacity: var(--stars);
+  }
+
+  .sky-glow {
+    position: absolute;
+    left: calc(var(--glow-x) * 100%);
+    top: calc(var(--glow-y) * 100%);
+    width: calc(var(--glow-size) * 100%);
+    max-width: 96rem;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    background: radial-gradient(
+      closest-side,
+      color-mix(in srgb, var(--sky-glow) 78%, transparent),
+      color-mix(in srgb, var(--sky-glow) 24%, transparent) 48%,
+      transparent
+    );
+    opacity: var(--glow-strength);
+    mix-blend-mode: screen;
+  }
+
+  .sky-sun {
+    position: absolute;
+    left: calc(var(--glow-x) * 100%);
+    top: calc(var(--glow-y) * 100%);
+    width: clamp(1.25rem, 2.2vw, 2.25rem);
+    aspect-ratio: 1;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    background: radial-gradient(
+      circle,
+      #fffef8 0 50%,
+      color-mix(in srgb, var(--sky-glow) 60%, #fff) 68%,
+      transparent 72%
+    );
+    box-shadow: 0 0 2.5rem 0.75rem color-mix(in srgb, var(--sky-glow) 50%, transparent);
+    opacity: var(--sun-opacity);
+  }
+
+  .sky-ridges {
+    position: absolute;
+    inset-inline: 0;
+    bottom: -1px;
+    width: 100%;
+    height: clamp(6rem, 15vw, 12.5rem);
+  }
+
+  .ridge-far {
+    fill: color-mix(in oklab, var(--sky-horizon) 52%, var(--ground));
+    transition: fill 700ms ease-out;
+  }
+
+  .ridge-near {
+    fill: var(--ground);
+  }
+
+  /* ---------------------------------------------------------------- pipeline */
+
+  /*
+   * A project's stages, in order. Phones: a vertical list on a line. From 48rem:
+   * one column per stage, nodes on a horizontal line. While the project is
+   * hovered or focused, a token runs the line and each node lights as it passes;
+   * node delays are derived from the token's duration so the two stay in step.
+   */
+  .pipeline {
+    --node: 10px;
+    --gap: 1rem;
+    --duration: calc((var(--stages) - 1) * 0.85s + 0.6s);
+    --travel: 0.8;
+
+    position: relative;
+    margin-block: 2rem 2.25rem;
+  }
+
+  .pipeline-stages {
+    position: relative;
+    display: grid;
+    gap: 1.1rem;
+  }
+
+  .pipeline-stages::before {
+    content: "";
+    position: absolute;
+    left: calc(var(--node) / 2 - 0.5px);
+    top: 0.5rem;
+    bottom: 0.5rem;
+    width: 1px;
+    background: var(--rule);
+  }
+
+  .pipeline-stage {
+    position: relative;
+    display: grid;
+    grid-template-columns: var(--node) minmax(0, 1fr);
+    column-gap: 0.875rem;
+    row-gap: 0.15rem;
+    align-items: center;
+    align-content: start;
+  }
+
+  .pipeline-node {
+    width: var(--node);
+    height: var(--node);
+    border-radius: 50%;
+    border: 1.5px solid var(--ink-soft);
+    background: var(--ground);
+  }
+
+  .pipeline-label {
+    font-size: 0.9375rem;
+    font-weight: 550;
+    line-height: 1.3;
+  }
+
+  .pipeline-detail {
+    grid-column: 2;
+    font-size: 0.8125rem;
+    line-height: 1.35;
+    color: var(--ink-soft);
+  }
+
+  .pipeline-track {
+    display: none;
+  }
+
+  @media (width >= 48rem) {
+    .pipeline-stages {
+      grid-template-columns: repeat(var(--stages), minmax(0, 1fr));
+      gap: var(--gap);
+    }
+
+    /* From the first node's centre to the last one's. */
+    .pipeline-stages::before {
+      top: calc(var(--node) / 2 - 0.5px);
+      bottom: auto;
+      left: calc(var(--node) / 2);
+      right: calc((100% - (var(--stages) - 1) * var(--gap)) / var(--stages) - var(--node) / 2);
+      width: auto;
+      height: 1px;
+    }
+
+    .pipeline-stage {
+      grid-template-columns: minmax(0, 1fr);
+      align-items: start;
+      row-gap: 0.25rem;
+    }
+
+    .pipeline-node {
+      margin-bottom: 0.75rem;
+    }
+
+    .pipeline-detail {
+      grid-column: 1;
+    }
+  }
+
+  @media (width >= 48rem) and (prefers-reduced-motion: no-preference) {
+    .pipeline-track {
+      display: block;
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 200ms ease-out;
+    }
+
+    .pipeline-token {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: var(--node);
+      height: var(--node);
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 0 4px color-mix(in oklab, var(--accent) 22%, transparent);
+      animation: pipeline-travel var(--duration) linear infinite paused;
+    }
+
+    .pipeline-node {
+      animation: pipeline-pulse var(--duration) linear infinite paused;
+      animation-delay: calc(var(--duration) * var(--travel) * var(--i) / (var(--stages) - 1));
+    }
+
+    .project:is(:hover, :focus-within) .pipeline-track {
+      opacity: 1;
+    }
+
+    .project:is(:hover, :focus-within) :is(.pipeline-token, .pipeline-node) {
+      animation-play-state: running;
+    }
+  }
+
+  /* ------------------------------------------------------------------ header */
+
+  /* White over the sky, ground-coloured once the sky has scrolled away. */
+  .site-header {
+    color: var(--ink);
+    background-color: var(--ground);
+    border-bottom: 1px solid var(--rule);
+    transition:
+      background-color 200ms ease-out,
+      color 200ms ease-out,
+      border-color 200ms ease-out;
+  }
+
+  .site-header[data-over-sky="true"] {
+    color: #fff;
+    background-color: transparent;
+    border-bottom-color: transparent;
+  }
+
+  .nav-link {
+    display: block;
+    padding: 0.375rem 0.75rem;
+    border-radius: 0.375rem;
+    font-size: 0.9375rem;
+    opacity: 0.8;
+    transition: opacity 150ms ease-out;
+  }
+
+  .nav-link:hover,
+  .nav-link[aria-current="true"] {
+    opacity: 1;
+  }
+
+  .nav-link[aria-current="true"] {
+    text-decoration-line: underline;
+    text-decoration-thickness: 2px;
+    text-underline-offset: 0.5em;
+  }
+
+  .header-control {
+    display: inline-grid;
+    place-items: center;
+    min-width: 2.5rem;
+    height: 2.5rem;
+    padding-inline: 0.5rem;
+    border-radius: 0.375rem;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    transition:
+      background-color 150ms ease-out,
+      opacity 150ms ease-out;
+  }
+
+  .header-control:hover {
+    background-color: color-mix(in oklab, currentColor 10%, transparent);
+  }
+
+  .lang-option {
+    min-width: 2.25rem;
+    opacity: 0.6;
+  }
+
+  .lang-option[aria-pressed="true"] {
+    opacity: 1;
+    background-color: color-mix(in oklab, currentColor 12%, transparent);
+  }
+
+  .skip-link {
+    position: absolute;
+    left: 1rem;
+    top: -4rem;
+    z-index: 60;
+    padding: 0.5rem 0.875rem;
+    border-radius: 0.375rem;
+    background: var(--ink);
+    color: var(--ground);
+    font-weight: 600;
+  }
+
+  .skip-link:focus {
+    top: 0.75rem;
+  }
 }
 
-@utility mask-fade-x {
-  mask-image: linear-gradient(to right, transparent, black 8%, black 92%, transparent);
+/* -------------------------------------------------------------- keyframes */
+
+@keyframes pipeline-travel {
+  0% {
+    left: 0;
+    opacity: 0;
+  }
+  6% {
+    opacity: 1;
+  }
+  80% {
+    left: calc(100% - (100% - (var(--stages) - 1) * var(--gap)) / var(--stages));
+    opacity: 1;
+  }
+  92%,
+  100% {
+    left: calc(100% - (100% - (var(--stages) - 1) * var(--gap)) / var(--stages));
+    opacity: 0;
+  }
 }
 
-@utility mask-fade-b {
-  mask-image: linear-gradient(to bottom, black 60%, transparent);
-}
-
-/* Recharts leaves a focus outline on the SVG wrapper; we handle focus ourselves. */
-.recharts-wrapper:focus,
-.recharts-surface:focus {
-  outline: none;
-}
-
-.recharts-cartesian-axis-tick text {
-  fill: var(--muted-foreground);
-  font-size: 11px;
+@keyframes pipeline-pulse {
+  0%,
+  22%,
+  100% {
+    border-color: var(--ink-soft);
+    background: var(--ground);
+    box-shadow: 0 0 0 0 transparent;
+  }
+  4% {
+    border-color: var(--accent);
+    background: var(--accent);
+    box-shadow: 0 0 0 5px color-mix(in oklab, var(--accent) 22%, transparent);
+  }
 }
