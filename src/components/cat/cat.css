@@ -34,9 +34,6 @@
   /* zzz: on the page ground (the ruler cat) */
   --cat-zzz-a: #1f56c9;
   --cat-zzz-b: #e39a2d;
-
-  display: block;
-  overflow: visible;
 }
 
 /* The dark ground: the ink lifts just off the page and the edge turns into a visible pale outline. */

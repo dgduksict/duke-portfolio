@@ -26,7 +26,7 @@ export function CatArt(props: CatArtProps) {
         height="200"
         aria-hidden="true"
         focusable="false"
-        className={cn("cat-art", props.className)}
+        className={cn("cat-art block overflow-visible", props.className)}
         data-state={props.state}
       >
         <Hoodie id={id} x1={52} y1={92} x2={128} y2={194} />
@@ -42,7 +42,7 @@ export function CatArt(props: CatArtProps) {
       overflow="visible"
       aria-hidden="true"
       focusable="false"
-      className={cn("cat-art", props.className)}
+      className={cn("cat-art block overflow-visible", props.className)}
       data-pose={props.pose}
     >
       <Hoodie id={id} x1={10} y1={28} x2={34} y2={48} />

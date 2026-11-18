@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { render } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { CatArt } from "@/components/cat/cat-art";
@@ -93,5 +94,38 @@ describe("CatArt markup", () => {
       expect(markup).not.toContain(foreign);
     }
     expect(markup.length).toBeLessThan(15 * 1024);
+  });
+});
+
+describe("cat.css (where every colour lives)", () => {
+  const css = readFileSync("src/components/cat/cat.css", "utf8");
+  /** The declarations of the base `.cat-art { ... }` rule (the light-theme variable set). */
+  const base = /^\.cat-art \{([^}]*)\}/m.exec(css)?.[1] ?? "";
+
+  it("holds no foreign brand paint", () => {
+    for (const foreign of FOREIGN_PAINT) {
+      expect(css.toLowerCase()).not.toContain(foreign.toLowerCase());
+    }
+    expect(css).not.toMatch(/gradient\(/);
+  });
+
+  it("defines every --cat-* variable it uses in the base .cat-art block", () => {
+    const defined = new Set([...base.matchAll(/(--cat-[a-z0-9-]+)\s*:/g)].map((match) => match[1]));
+    const used = new Set([...css.matchAll(/var\((--cat-[a-z0-9-]+)\)/g)].map((match) => match[1]));
+    expect(defined.size).toBeGreaterThan(0);
+    expect(used.size).toBeGreaterThan(0);
+    for (const name of used) {
+      expect(defined, `${name} is used but not defined in the base block`).toContain(name);
+    }
+  });
+
+  it("leaves display and overflow to the component, so consumer utilities can override them", () => {
+    expect(base).not.toBe("");
+    expect(base).not.toMatch(/(display|overflow)\s*:/);
+    const { container } = render(<CatArt variant="mini" pose="sit" className="hidden overflow-hidden" />);
+    const svg = container.querySelector("svg");
+    expect(svg).toHaveClass("cat-art", "hidden", "overflow-hidden");
+    expect(svg).not.toHaveClass("block");
+    expect(svg).not.toHaveClass("overflow-visible");
   });
 });
