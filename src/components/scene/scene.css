@@ -1,0 +1,366 @@
+/*
+ * The hero's pixel window scene (components/scene/window-scene.tsx). Hard pixels only: flat fills, one-unit borders,
+ * no gradients (the sky's bands are separate rects in the SVG), no blur, no soft shadows, no rounding, and motion in
+ * steps() alone.
+ *
+ * The room's colours follow the theme: the light theme is the reference's warm day room (cream wall, wood, a lit
+ * amber lamp), the dark theme its navy night room (the lamp off, a mug on the sill, the window the only light). They
+ * live in plain `--name: #rrggbb;` declarations below so window-scene.test.tsx can hold the header's ink on the wall
+ * to AA. The glass ignores the theme: it shows the real sky (pixel-sky.tsx).
+ */
+
+:root {
+  --scene-wall: #f0dcb2;
+  --scene-wall-shade: #dcc08c;
+  --scene-wainscot: #e2c48e;
+  --scene-wood: #9a6a3c;
+  --scene-wood-hi: #c48e55;
+  --scene-wood-dark: #744a26;
+  --scene-wood-deep: #4a2c16;
+  --scene-leaf: #4d7a38;
+  --scene-leaf-hi: #79a64e;
+  --scene-leaf-dark: #2f5226;
+  --scene-pot: #b8643a;
+  --scene-pot-dark: #8a4428;
+  --scene-lamp: #e9a420;
+  --scene-lamp-hi: #ffd45c;
+  --scene-lamp-dark: #b9770f;
+  --scene-glow: #ffc94a;
+  --scene-metal: #f3e9d2;
+  --scene-metal-shade: #cbb88f;
+  --scene-paper: #fff6e0;
+  --scene-book: #3b4f8a;
+  --scene-mug: #e9a420;
+  --scene-mug-dark: #b9770f;
+  --scene-coffee: #5a3a22;
+  --scene-steam: #e9e4d6;
+}
+
+.dark {
+  --scene-wall: #16224a;
+  --scene-wall-shade: #0c1430;
+  --scene-wainscot: #111a3d;
+  --scene-wood: #6e4a2c;
+  --scene-wood-hi: #8e6440;
+  --scene-wood-dark: #4c321d;
+  --scene-wood-deep: #24170c;
+  --scene-leaf: #3f7a46;
+  --scene-leaf-hi: #5f9e5a;
+  --scene-leaf-dark: #24492c;
+  --scene-pot: #8a4a2e;
+  --scene-pot-dark: #5e321f;
+  --scene-lamp: #7a5c24;
+  --scene-lamp-hi: #9c7a36;
+  --scene-lamp-dark: #4e3a16;
+  --scene-glow: #ffc94a;
+  --scene-metal: #4a5682;
+  --scene-metal-shade: #333e66;
+  --scene-paper: #c9c2ae;
+  --scene-book: #2a3a6a;
+  --scene-mug: #e9a420;
+  --scene-mug-dark: #b9770f;
+  --scene-coffee: #5a3a22;
+  --scene-steam: #c9c8d6;
+}
+
+@layer components {
+  /*
+   * Geometry, in pixel units (--u) unless named otherwise. The window wall starts under the fixed header
+   * (--scene-top). The frame is 74 units tall (1 outline + 3 wood + 1 recess, 64 rows of glass, the same below), the
+   * sill 5 more, then --below units of wall down to the floor (the room's 95 rows on wide screens).
+   */
+  .scene {
+    --u: var(--px);
+    --scene-top: 5rem;
+    --glass-w: calc(var(--u) * 128);
+    --sill-out: 6;
+    --below: 16;
+    --cat-size: 168px;
+
+    position: relative;
+    overflow: hidden;
+    container-type: inline-size;
+    padding-top: var(--scene-top);
+    background-color: var(--scene-wall);
+    image-rendering: pixelated;
+  }
+
+  .scene-header-zone {
+    position: absolute;
+    inset-inline: 0;
+    top: 0;
+    height: var(--scene-top);
+  }
+
+  .scene-window {
+    position: relative;
+    width: fit-content;
+    margin-inline: auto;
+    padding-bottom: calc(var(--u) * var(--below));
+  }
+
+  .scene-window > * {
+    position: relative;
+  }
+
+  .scene-px {
+    display: block;
+    width: calc(var(--u) * var(--cols));
+    height: calc(var(--u) * var(--rows));
+  }
+
+  /* ---------------------------------------------------------------- the room */
+
+  .scene-window > .scene-wainscot,
+  .scene-window > .scene-skirting,
+  .scene-window > .scene-left,
+  .scene-window > .scene-right,
+  .scene-window > .scene-radiator,
+  .scene-window > .scene-sill-plant,
+  .scene-window > .scene-mug {
+    position: absolute;
+  }
+
+  /* Panelling below the chair rail, and the skirting board on the floor line, across the whole wall. */
+  .scene-wainscot {
+    left: -100vw;
+    right: -100vw;
+    top: calc(var(--u) * 82);
+    bottom: calc(var(--u) * 3);
+    background-color: var(--scene-wainscot);
+    border-top: var(--u) solid var(--scene-wood);
+  }
+
+  .scene-skirting {
+    left: -100vw;
+    right: -100vw;
+    bottom: 0;
+    height: calc(var(--u) * 3);
+    background-color: var(--scene-wood-dark);
+    border-top: var(--u) solid var(--scene-wood);
+  }
+
+  /* The desk side ends at the frame's left edge, the shelf side starts at its right edge. */
+  .scene-left {
+    top: 0;
+    right: 100%;
+  }
+
+  .scene-right {
+    top: 0;
+    left: 100%;
+  }
+
+  .scene-radiator {
+    top: calc(var(--u) * 81);
+    left: calc(50% - var(--u) * 28);
+  }
+
+  /* ---------------------------------------------------------------- the window */
+
+  /* Outline, wood with a lit top edge, then a one-unit recess round the glass. */
+  .scene-frame {
+    padding: calc(var(--u) * 3);
+    background-color: var(--scene-wood);
+    border: var(--u) solid var(--scene-wood-deep);
+  }
+
+  .scene-frame::before {
+    content: "";
+    position: absolute;
+    inset-inline: 0;
+    top: 0;
+    height: var(--u);
+    background-color: var(--scene-wood-hi);
+  }
+
+  .scene-sky {
+    position: relative;
+    overflow: hidden;
+    width: var(--glass-w);
+    height: calc(var(--u) * 64);
+    background-color: var(--sky-base);
+    border: var(--u) solid var(--scene-wood-dark);
+    box-sizing: content-box;
+  }
+
+  /* The picture is 128 x 64 cells, pinned to the bottom centre: a narrower glass crops its sides. */
+  .scene-sky-art {
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    width: calc(var(--u) * 128);
+    height: calc(var(--u) * 64);
+    margin-left: calc(var(--u) * -64);
+    max-width: none;
+  }
+
+  /* The sill: a lit top face, wood, a dark underside, and a one-unit shadow on the wall below it. */
+  .scene-sill {
+    height: calc(var(--u) * 5);
+    margin-inline: calc(var(--u) * var(--sill-out) * -1);
+    background-color: var(--scene-wood);
+    border-top: var(--u) solid var(--scene-wood-hi);
+    border-bottom: var(--u) solid var(--scene-wood-deep);
+  }
+
+  .scene-sill::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    inset-inline: calc(var(--u) * 2);
+    height: var(--u);
+    background-color: var(--scene-wall-shade);
+  }
+
+  /* On the sill (its top is 74 units down): two plants on the left, the night mug beside the cat's spot. */
+  .scene-sill-plant-a {
+    top: calc(var(--u) * 61);
+    left: calc(var(--u) * 3);
+  }
+
+  .scene-sill-plant-b {
+    top: calc(var(--u) * 59);
+    left: calc(var(--u) * 15);
+  }
+
+  .scene-mug {
+    display: none;
+    top: calc(var(--u) * 60);
+    right: calc(var(--u) * 7 + var(--cat-size));
+  }
+
+  .dark .scene-mug {
+    display: block;
+  }
+
+  /* The sleeping cat brings his own mug (cat-art.tsx), so the scene's steps aside for him. */
+  .scene:has([data-cat-slot] [data-state="night"]) .scene-mug {
+    display: none;
+  }
+
+  /* By night the lamp is off: no glow (its colours dim in the .dark block above). */
+  .dark .scene-lamp-glow {
+    display: none;
+  }
+
+  .scene-steam-2 {
+    opacity: 0;
+  }
+
+  /*
+   * The cat slot: a --cat-size square standing on the sill (bottom edge on the sill's top), its right edge four units
+   * inside the frame's. The frame is centred, `--glass-w` + 10 units wide; the slot is placed from the scene's own
+   * box so it can sit outside the aria-hidden art.
+   */
+  .scene-cat-slot {
+    position: absolute;
+    top: calc(var(--scene-top) + var(--u) * 74 - var(--cat-size));
+    left: calc(50% + var(--glass-w) / 2 + var(--u) - var(--cat-size));
+    width: var(--cat-size);
+    height: var(--cat-size);
+  }
+
+  /* -------------------------------------------------------- narrow: window only */
+
+  @media (width < 760px) {
+    .scene {
+      --glass-w: min(calc(var(--u) * 128), calc(100cqw - 2rem - var(--u) * 16));
+      --sill-out: 3;
+      --below: 3;
+    }
+
+    .scene-left,
+    .scene-right,
+    .scene-radiator,
+    .scene-wainscot,
+    .scene-skirting {
+      display: none;
+    }
+  }
+
+  /* Keep the glass a whole, even number of units so the picture's centre lands on a pixel. */
+  @supports (width: round(down, 10px, 4px)) {
+    @media (width < 760px) {
+      .scene {
+        --glass-w: min(calc(var(--u) * 128), round(down, 100cqw - 2rem - var(--u) * 16, var(--u) * 2));
+      }
+    }
+  }
+
+  @media (width < 30rem) {
+    .scene {
+      --cat-size: 112px;
+    }
+  }
+
+  /* -------------------------------------------------------------------- motion */
+
+  @media (prefers-reduced-motion: no-preference) {
+    .scene-twinkle {
+      animation: scene-twinkle 4.2s steps(1, end) infinite;
+    }
+
+    .scene-twinkle-1 {
+      animation-delay: -1.4s;
+    }
+
+    .scene-twinkle-2 {
+      animation-delay: -2.8s;
+    }
+
+    .scene-steam-1 {
+      animation: scene-steam-a 1.2s steps(1, end) infinite;
+    }
+
+    .scene-steam-2 {
+      animation: scene-steam-b 1.2s steps(1, end) infinite;
+    }
+  }
+
+  /* Reduced motion: a still picture, one steam frame, nothing looping. */
+  @media (prefers-reduced-motion: reduce) {
+    .scene *,
+    .scene *::before,
+    .scene *::after {
+      animation: none !important;
+    }
+
+    .scene-steam-2 {
+      opacity: 0;
+    }
+  }
+}
+
+@keyframes scene-twinkle {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  70% {
+    opacity: 0.3;
+  }
+  78% {
+    opacity: 1;
+  }
+}
+
+@keyframes scene-steam-a {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+
+@keyframes scene-steam-b {
+  0%,
+  100% {
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+}
