@@ -131,8 +131,8 @@
 
   /* -------------------------------------------------------------- focus ring */
 
-  /* A block outline one unit thick, one unit off the element, in --focus. */
-  .px-focus,
+  /* A block outline one unit thick, one unit off the element, in --focus. .px-focus is focus-only. */
+  .px-focus:focus-visible,
   :focus-visible {
     outline: var(--px) solid var(--focus);
     outline-offset: var(--px);
