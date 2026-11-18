@@ -87,4 +87,14 @@ describe("SiteHeader", () => {
     await user.click(screen.getAllByRole("link", { name: "Work" }).at(-1)!);
     expect(usePortfolioStore.getState().mobileNavOpen).toBe(false);
   });
+
+  it("closes the phone menu with Escape and returns focus to its button", async () => {
+    const user = userEvent.setup();
+    render(<SiteHeader />);
+    await user.click(screen.getByRole("button", { name: "Menu" }));
+    expect(usePortfolioStore.getState().mobileNavOpen).toBe(true);
+    await user.keyboard("{Escape}");
+    expect(usePortfolioStore.getState().mobileNavOpen).toBe(false);
+    expect(screen.getByRole("button", { name: "Menu" })).toHaveFocus();
+  });
 });
