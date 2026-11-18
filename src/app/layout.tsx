@@ -1,19 +1,11 @@
 import type { Metadata, Viewport } from "next";
-import { Geologica } from "next/font/google";
 import type { ReactNode } from "react";
 import { Providers } from "@/components/layout/providers";
 import { LoaderGate } from "@/components/loader/loader-gate";
 import { LoadingScreen } from "@/components/loader/loading-screen";
 import { profile } from "@/data/profile";
+import { fontVariables } from "@/lib/fonts";
 import "./globals.css";
-
-/** Cyrillic-ext carries Mongolian Ө and Ү, which most display faces lack. */
-const geologica = Geologica({
-  subsets: ["latin", "latin-ext", "cyrillic", "cyrillic-ext"],
-  axes: ["SHRP"],
-  display: "swap",
-  variable: "--font-geologica",
-});
 
 const title = `${profile.name.en} – ${profile.headline.en.replace(/\.$/, "")}`;
 const description = profile.intro.en;
@@ -50,8 +42,8 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f3f5f8" },
-    { media: "(prefers-color-scheme: dark)", color: "#0b1322" },
+    { media: "(prefers-color-scheme: light)", color: "#f6ead2" },
+    { media: "(prefers-color-scheme: dark)", color: "#0d1530" },
   ],
   width: "device-width",
   initialScale: 1,
@@ -59,7 +51,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { readonly children: ReactNode }) {
   return (
-    <html lang="en" suppressHydrationWarning className={geologica.variable}>
+    <html lang="en" suppressHydrationWarning className={fontVariables}>
       <body>
         <LoaderGate />
         <Providers>
