@@ -18,7 +18,7 @@ vi.mock("next/navigation", () => ({ usePathname: () => route.pathname }));
 // `forceNull` pretends the client does not know the time yet (the cat's state is unknown).
 const clock = vi.hoisted(() => ({ forceNull: false }));
 vi.mock("@/hooks/use-now", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@/hooks/use-now")>();
+  const actual = await importOriginal<{ useNow: () => Date | null }>();
   return {
     ...actual,
     useNow: () => {
@@ -564,7 +564,7 @@ describe("Ruler: the cat on the needle", () => {
     window.history.replaceState(null, "", DAY_URL);
     mount();
     expect(cat()).toBeNull();
-    // The needle is already up (>= 3 %), but the cat on it would reach above the header's bottom edge (64 px).
+    // The needle is already up (>= 3 %), but the cat on it would reach above the header's bottom edge (68 px: the bar and its edge).
     scrollToProgress(0.04);
     expect(needle()).toHaveAttribute("data-show");
     expect(cat()).toBeNull();
@@ -579,7 +579,7 @@ describe("Ruler: the cat on the needle", () => {
     mount();
     // 62 px: the cat's top edge above the needle line (26 plate + 32 art) and the arrival hop's apex (4).
     const reach = 62;
-    const header = 64;
+    const header = 68;
     let seen = 0;
     for (let step = 0; step <= 100; step += 1) {
       scrollToProgress(step / 100);
@@ -639,9 +639,18 @@ describe("Ruler: the cat on the needle", () => {
     expect(vi.getTimerCount()).toBe(0);
     expect(scrollListeners()).toBe(1);
 
-    // The next scroll wakes him again.
+    // The next scroll wakes him again, and he settles again 150 ms after it (not at the old, later mark).
     nudge(40);
     expect(catPose()).toBe("type");
+    wait(160);
+    expect(catPose()).toBe("sit");
+    nudge(40);
+    wait(60);
+    nudge(40);
+    wait(100);
+    expect(catPose()).toBe("type");
+    wait(60);
+    expect(catPose()).toBe("sit");
   });
 
   it("naps at the bottom of the page and wakes when the page scrolls back up", () => {
