@@ -1,0 +1,145 @@
+import { readFileSync } from "node:fs";
+import { render, screen } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
+import { WindowScene } from "@/components/scene/window-scene";
+import { contrastRatio, parseTokens } from "@/lib/contrast";
+
+/** Noon and midnight in Ulaanbaatar (UTC+8) on an autumn day. */
+const NOON = new Date("2026-10-05T04:50:00Z");
+const MIDNIGHT = new Date("2026-10-05T16:00:00Z");
+/** Shortly after sunset: the sun is a few degrees down. */
+const DUSK = new Date("2026-10-05T10:45:00Z");
+
+/** The reference site's brand colours; the portfolio must never wear them. */
+const FOREIGN_PAINT = ["#ef4445", "#eb4397", "#8253a2", "#3f5fac", "#3ea3db", "--c-pink", "--grad"];
+
+const skyOf = (container: HTMLElement) => container.querySelector<HTMLElement>("[data-ready]");
+
+describe("WindowScene", () => {
+  it("paints nothing time-dependent before the time is known", () => {
+    const { container } = render(<WindowScene now={null} />);
+    const sky = skyOf(container);
+    expect(sky).not.toBeNull();
+    expect(sky).toHaveAttribute("data-ready", "false");
+    expect(sky).not.toHaveAttribute("data-phase");
+    expect(container.querySelectorAll('[data-window="lit"]')).toHaveLength(0);
+    expect(container.querySelector("[data-star]")).toBeNull();
+    expect(container.querySelector("[data-band]")).toBeNull();
+    expect(container.querySelector("[data-sun]")).toBeNull();
+    expect(container.querySelector("[data-moon]")).toBeNull();
+  });
+
+  it("shows the day sky at noon: flat bands, no lit windows", () => {
+    const { container } = render(<WindowScene now={NOON} />);
+    const sky = skyOf(container);
+    expect(sky).toHaveAttribute("data-ready", "true");
+    expect(sky).toHaveAttribute("data-phase", "day");
+    const bands = container.querySelectorAll("[data-band]");
+    expect(bands.length).toBeGreaterThanOrEqual(10);
+    for (const band of bands) expect(band.getAttribute("fill")).toMatch(/^#[0-9a-f]{6}$/);
+    expect(container.querySelectorAll('[data-window="lit"]')).toHaveLength(0);
+    expect(container.querySelector("[data-sun]")).not.toBeNull();
+  });
+
+  it("lights the skyline and the stars at night", () => {
+    const { container } = render(<WindowScene now={MIDNIGHT} />);
+    expect(skyOf(container)).toHaveAttribute("data-phase", "night");
+    expect(container.querySelectorAll('[data-window="lit"]').length).toBeGreaterThan(10);
+    expect(container.querySelectorAll("[data-star]").length).toBeGreaterThan(10);
+    expect(container.querySelector("[data-moon]")).not.toBeNull();
+  });
+
+  it("lights fewer windows at dusk than at night", () => {
+    const dusk = render(<WindowScene now={DUSK} />).container;
+    const phase = skyOf(dusk)?.getAttribute("data-phase");
+    expect(["twilight", "golden"]).toContain(phase);
+    const atDusk = dusk.querySelectorAll('[data-window="lit"]').length;
+    const night = render(<WindowScene now={MIDNIGHT} />).container;
+    expect(atDusk).toBeLessThan(night.querySelectorAll('[data-window="lit"]').length);
+  });
+
+  it("is the same picture for the same minute", () => {
+    const a = render(<WindowScene now={MIDNIGHT} />).container.innerHTML;
+    const b = render(<WindowScene now={new Date(MIDNIGHT)} />).container.innerHTML;
+    expect(a).toBe(b);
+  });
+
+  it("keeps a cat slot on the sill that renders its children and stays accessible", () => {
+    const { container } = render(
+      <WindowScene now={NOON}>
+        <button type="button">Pet the cat</button>
+      </WindowScene>,
+    );
+    const slot = container.querySelector("[data-cat-slot]");
+    expect(slot).not.toBeNull();
+    const button = screen.getByRole("button", { name: "Pet the cat" });
+    expect(slot).toContainElement(button);
+    expect(slot?.closest('[aria-hidden="true"]')).toBeNull();
+  });
+
+  it("hides every decorative layer from assistive tech and print", () => {
+    const { container } = render(<WindowScene now={MIDNIGHT} />);
+    const root = container.firstElementChild as HTMLElement;
+    expect(root).toHaveAttribute("data-print", "hide");
+    expect(root).not.toHaveAttribute("aria-hidden");
+    expect(container).toHaveTextContent("");
+    // Everything drawn sits under an aria-hidden layer; only the cat slot is outside one.
+    for (const drawn of container.querySelectorAll("svg, [data-layer]")) {
+      expect(drawn.closest('[aria-hidden="true"]'), drawn.outerHTML.slice(0, 80)).not.toBeNull();
+    }
+    for (const child of root.children) {
+      if (child.hasAttribute("data-cat-slot")) continue;
+      expect(child).toHaveAttribute("aria-hidden", "true");
+    }
+  });
+
+  it("gives the header a zone to watch above the window", () => {
+    const { container } = render(<WindowScene now={null} />);
+    expect(container.querySelector("[data-header-zone]")).not.toBeNull();
+  });
+
+  it("wears no foreign brand colours", () => {
+    for (const now of [null, NOON, DUSK, MIDNIGHT]) {
+      const html = render(<WindowScene now={now} />).container.innerHTML.toLowerCase();
+      for (const paint of FOREIGN_PAINT) expect(html).not.toContain(paint);
+    }
+  });
+});
+
+describe("scene.css", () => {
+  const css = readFileSync("src/components/scene/scene.css", "utf8");
+  const code = css.replace(/\/\*[\s\S]*?\*\//g, "");
+
+  it("draws with hard pixels only: no gradients, blur, soft shadows or rounding", () => {
+    expect(code).not.toMatch(/gradient\(/);
+    expect(code).not.toMatch(/blur\(/);
+    expect(code).not.toMatch(/border-radius:\s*(?!0)/);
+    expect(code).not.toMatch(/box-shadow/);
+  });
+
+  it("animates in steps only and stops everything under reduced motion", () => {
+    const timings = [...code.matchAll(/animation(?:-timing-function)?:([^;]+);/g)].map((m) => m[1] ?? "");
+    const running = timings.filter((value) => !/^\s*none\s*$/.test(value) && !/!important/.test(value));
+    expect(running.length).toBeGreaterThan(0);
+    for (const value of running) expect(value).toMatch(/steps\(/);
+    const reduced = code.slice(code.indexOf("prefers-reduced-motion: reduce"));
+    expect(code).toContain("prefers-reduced-motion: reduce");
+    expect(reduced).toMatch(/animation:\s*none/);
+  });
+
+  it("has day and night room colours, and the header ink reads on the wall in both", () => {
+    const globals = readFileSync("src/app/globals.css", "utf8");
+    for (const selector of [":root", ".dark"] as const) {
+      const scene = parseTokens(css, selector);
+      const theme = parseTokens(globals, selector);
+      expect(scene["--scene-wall"], selector).toMatch(/^#[0-9a-f]{6}$/);
+      expect(contrastRatio(theme["--ink"]!, scene["--scene-wall"]!)).toBeGreaterThanOrEqual(7);
+    }
+  });
+
+  it("is imported by globals.css after the other stylesheets", () => {
+    const globals = readFileSync("src/app/globals.css", "utf8");
+    const imports = [...globals.matchAll(/@import\s+"([^"]+)"/g)].map((m) => m[1]);
+    expect(imports.at(-1)).toBe("../components/scene/scene.css");
+  });
+});

@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it } from "vitest";
 import { SiteHeader } from "@/components/layout/site-header";
@@ -38,6 +38,43 @@ describe("SiteHeader", () => {
     expect(usePortfolioStore.getState().language).toBe("mn");
     expect(screen.getByRole("button", { name: "МН" })).toHaveAttribute("aria-pressed", "true");
     expect(screen.getAllByRole("link", { name: "Туршлага" })[0]).toHaveAttribute("href", "#experience");
+  });
+
+  it("sits bare on the hero's wall until the window scene's top has scrolled under it", () => {
+    let observed: Element | null = null;
+    let notify: IntersectionObserverCallback = () => undefined;
+    const Original = window.IntersectionObserver;
+    window.IntersectionObserver = class {
+      constructor(callback: IntersectionObserverCallback) {
+        notify = callback;
+      }
+      observe(target: Element) {
+        observed = target;
+      }
+      disconnect() {}
+      unobserve() {}
+      takeRecords() {
+        return [];
+      }
+    } as unknown as typeof IntersectionObserver;
+    try {
+      const { container } = render(
+        <>
+          <SiteHeader />
+          <section id="top">
+            <div data-header-zone="" />
+          </section>
+        </>,
+      );
+      const zone = container.querySelector("#top [data-header-zone]");
+      const header = container.querySelector("header");
+      expect(observed).toBe(zone);
+      expect(header).toHaveAttribute("data-over-sky", "true");
+      act(() => notify([{ isIntersecting: false } as IntersectionObserverEntry], {} as IntersectionObserver));
+      expect(header).toHaveAttribute("data-over-sky", "false");
+    } finally {
+      window.IntersectionObserver = Original;
+    }
   });
 
   it("opens and closes the phone menu", async () => {

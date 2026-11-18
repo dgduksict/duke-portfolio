@@ -13,12 +13,16 @@ import { getDictionary } from "@/lib/i18n";
 import { usePortfolioStore } from "@/store/portfolio-store";
 import { LANGUAGES } from "@/types";
 
-/** True while the hero's sky is still under the header. */
+/**
+ * True while the header still sits on the hero scene's wall: the strip above the window (`data-header-zone`, see
+ * components/scene/window-scene.tsx). Once that strip has scrolled under the header, the window would be next, so the
+ * header becomes the solid beam.
+ */
 function useOverSky(): boolean {
   const [overSky, setOverSky] = useState(true);
 
   useEffect(() => {
-    const sky = document.querySelector("#top .sky");
+    const sky = document.querySelector("#top [data-header-zone]");
     if (!sky) return;
     const observer = new IntersectionObserver(
       ([entry]) => setOverSky(entry?.isIntersecting ?? false),

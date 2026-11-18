@@ -37,6 +37,19 @@ describe("Hero", () => {
     expect(await screen.findByText(/in Ulaanbaatar,/)).toBeInTheDocument();
   });
 
+  it("opens on the pixel window scene, with the text below it", async () => {
+    const { container } = render(<Hero />);
+    const scene = container.querySelector("#top [data-scene]");
+    expect(scene).not.toBeNull();
+    expect(scene?.querySelector("[data-cat-slot]")).not.toBeNull();
+    expect(container.querySelector("#top .sky")).toBeNull();
+    const heading = screen.getByRole("heading", { level: 1 });
+    expect(scene!.compareDocumentPosition(heading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(scene).not.toContainElement(heading);
+    await screen.findByText(/in Ulaanbaatar,/);
+    expect(scene?.querySelector("[data-ready]")).toHaveAttribute("data-ready", "true");
+  });
+
   it("switches to Mongolian", () => {
     usePortfolioStore.getState().setLanguage("mn");
     render(<Hero />);
