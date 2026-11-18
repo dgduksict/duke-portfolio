@@ -70,7 +70,7 @@ export function Contact() {
           </div>
 
           <h3 className="type-label mt-10">{dict.contact.elsewhere}</h3>
-          <ul className="mt-3 flex flex-wrap gap-x-6 gap-y-3">
+          <ul role="list" className="mt-3 flex flex-wrap gap-x-6 gap-y-3">
             {profile.socials.map((social) => {
               const Icon = SOCIAL_ICONS[social.icon];
               return (

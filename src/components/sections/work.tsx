@@ -70,7 +70,7 @@ export function Work() {
                     <div>
                       <dt className="text-accent-text">{dict.work.outcomes}</dt>
                       <dd className="mt-1">
-                        <ul className="px-list space-y-1 text-ink-soft">
+                        <ul role="list" className="px-list space-y-1 text-ink-soft">
                           {outcomes.map((outcome) => (
                             <li key={outcome}>{outcome}</li>
                           ))}
@@ -81,7 +81,7 @@ export function Work() {
                   <div>
                     <dt className="text-accent-text">{dict.work.builtWith}</dt>
                     <dd className="mt-1">
-                      <ul className="flex flex-wrap gap-x-3 gap-y-3">
+                      <ul role="list" className="flex flex-wrap gap-x-3 gap-y-3">
                         {project.stack.map((tool) => (
                           <li key={tool} className="px-chip">
                             {tool}

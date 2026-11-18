@@ -1,4 +1,6 @@
 import { readFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { contrastRatio, parseTokens } from "./contrast";
 
@@ -45,7 +47,7 @@ describe("parseTokens", () => {
 });
 
 describe("theme tokens in src/app/globals.css", () => {
-  const css = readFileSync("src/app/globals.css", "utf8");
+  const css = readFileSync(resolve(dirname(fileURLToPath(import.meta.url)), "../app/globals.css"), "utf8");
 
   for (const selector of [":root", ".dark"] as const) {
     describe(selector, () => {

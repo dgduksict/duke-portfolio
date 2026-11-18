@@ -85,7 +85,7 @@ export function SiteHeader() {
         </a>
 
         <nav aria-label={dict.nav.primary} className="hidden md:block">
-          <ul className="flex items-center gap-1">
+          <ul role="list" className="flex items-center gap-1">
             {links.map((link) => (
               <li key={link.id}>
                 <a href={link.href} aria-current={link.current ? "true" : undefined} className="nav-link">
@@ -126,7 +126,7 @@ export function SiteHeader() {
 
       {mobileNavOpen ? (
         <nav id="mobile-nav" aria-label={dict.nav.primary} className="site-menu md:hidden">
-          <ul className="container-page grid py-3">
+          <ul role="list" className="container-page grid py-3">
             {links.map((link) => (
               <li key={link.id}>
                 <a
