@@ -60,6 +60,10 @@ export interface Dictionary {
   readonly footer: {
     readonly source: string;
   };
+  readonly loader: {
+    /** Announced to screen readers while the loading screen is up; never shown. */
+    readonly label: string;
+  };
   readonly notFound: {
     readonly title: string;
     readonly body: string;
@@ -124,6 +128,9 @@ const en: Dictionary = {
   footer: {
     source: "Source on GitHub",
   },
+  loader: {
+    label: "Loading",
+  },
   notFound: {
     title: "Nothing here",
     body: "This page doesn't exist. Everything lives on the one page.",
@@ -187,6 +194,9 @@ const mn: Dictionary = {
   },
   footer: {
     source: "Эх код GitHub дээр",
+  },
+  loader: {
+    label: "Ачаалж байна",
   },
   notFound: {
     title: "Энд юу ч алга",

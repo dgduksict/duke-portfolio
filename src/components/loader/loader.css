@@ -1,0 +1,136 @@
+/*
+ * The first-visit loading screen (components/loader/loading-screen.tsx). The portfolio's own live sky fills the
+ * screen, the near ridge's top edge is drawn as a line that fills with progress, and the cat stands on the ridge.
+ *
+ * It is part of the server HTML and hidden unless the gate marked <html data-loader="on"> (or the component took
+ * over and marked itself run / exit), so it is up in the first paint and never shows without JavaScript. Like the
+ * sky it does not follow the light/dark theme: its ground is always the night side of the ridge.
+ */
+
+.loader {
+  /* The overlay's own ground, whatever the theme: the night side of the ridge, as in the dark theme's tokens. */
+  --ground: #0b1322;
+  --ink: #e7ecf4;
+  --ink-soft: #93a0b5;
+  --rule: #1d2a40;
+  --accent: #8cb6ff;
+  --sun: #f2b45a;
+  /* Progress, 0 to 1, written by the component each frame; the ridge line and nothing else reads it. */
+  --loader-p: 0;
+  /* Where along the ridge line the screen's left edge is, and how much of it the screen shows (0 to 1). */
+  --loader-from: 0;
+  --loader-span: 1;
+  /* The ridge strip's height: taller than the hero's, so the cat has a hill to stand on. */
+  --loader-ridge-h: clamp(11rem, 36svh, 26rem);
+
+  display: none;
+  position: fixed;
+  /* 100vw, not inset-0: the width stays put when scrolling is locked or released and a classic scrollbar comes or goes. */
+  inset: 0 auto 0 0;
+  width: 100vw;
+  z-index: 100;
+  flex-direction: column;
+  background: var(--sky-base);
+  color: var(--ink);
+  color-scheme: dark;
+  overscroll-behavior: none;
+  touch-action: none;
+}
+
+html[data-loader="on"] .loader,
+html[data-loader="run"] .loader,
+.loader[data-phase="run"],
+.loader[data-phase="exit"] {
+  display: flex;
+}
+
+@media (width >= 48rem) {
+  .loader {
+    --loader-ridge-h: clamp(16rem, 44svh, 30rem);
+  }
+}
+
+/* The sky part: everything above the ground strip. */
+.loader-stage {
+  position: relative;
+  flex: 1 1 0;
+  min-height: 0;
+}
+
+/* The hero's ridges, resized for this screen (same viewBox and alignment, so the edge line below lands exactly). */
+.loader .sky-ridges,
+.loader-edge {
+  position: absolute;
+  inset-inline: 0;
+  bottom: -1px;
+  width: 100%;
+  height: var(--loader-ridge-h);
+}
+
+.loader-edge {
+  overflow: visible;
+}
+
+.loader-edge-line {
+  fill: none;
+  stroke: var(--sun);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  /* pathLength is 1: the dash fills the visible part of the line by --loader-p. Only stroke-dashoffset changes. */
+  stroke-dasharray: 1 2;
+  stroke-dashoffset: calc(1 - var(--loader-from) - var(--loader-p) * var(--loader-span));
+}
+
+.loader[data-motion="reduced"] .loader-edge-line {
+  stroke-dashoffset: 0;
+}
+
+/* The cat waits for the sky to have a time (so he never shows awake and then falls asleep). */
+.loader-cat {
+  opacity: 0;
+  transition: opacity 360ms ease-out;
+}
+
+.loader[data-ready="true"] .loader-cat {
+  opacity: 1;
+}
+
+/* The ground strip under the ridge, with the percent. Same colour as the ridge's fill, so they read as one. */
+.loader-ground {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: calc(clamp(3rem, 8svh, 4.5rem) + env(safe-area-inset-bottom, 0px));
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  background: var(--ground);
+}
+
+.loader-percent {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-soft);
+}
+
+/* Lifting away: the whole layer goes up. */
+.loader[data-phase="exit"] {
+  transform: translateY(-100%);
+  transition: transform 520ms cubic-bezier(0.7, 0, 0.84, 0);
+  will-change: transform;
+}
+
+/* Reduced motion: a quick fade, no travel. */
+@media (prefers-reduced-motion: reduce) {
+  .loader[data-phase="exit"] {
+    transform: none;
+    opacity: 0;
+    transition: opacity 220ms ease-out;
+  }
+
+  .loader-cat {
+    transition: none;
+  }
+}

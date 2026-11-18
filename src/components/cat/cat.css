@@ -36,8 +36,9 @@
   --cat-zzz-b: #e39a2d;
 }
 
-/* The dark ground: the ink lifts just off the page and the edge turns into a visible pale outline. */
-.dark .cat-art {
+/* The dark ground (the dark theme, and the loading screen, which always has the night side of the ridge): the ink lifts just off the page and the edge turns into a visible pale outline. */
+.dark .cat-art,
+.loader .cat-art {
   --cat-ink: #131f33;
   --cat-ink-2: #2b3a52;
   --cat-edge: #e7ecf4;
