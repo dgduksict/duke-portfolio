@@ -1,8 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
+import { usePathname } from "next/navigation";
+import { useEffect, useLayoutEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
+import { RulerCat } from "@/components/cat/ruler-cat";
+import { useCatState } from "@/components/cat/use-cat-state";
 import { navItems } from "@/data/navigation";
 import { useI18n } from "@/hooks/use-i18n";
+import { useNow } from "@/hooks/use-now";
+import { GROOM_AFTER_MS, type RulerPose, rulerCatPose, TYPING_WINDOW_MS } from "@/lib/cat";
 import {
   RAIL_BOTTOM,
   RAIL_TOP,
@@ -40,6 +45,17 @@ const DRAG_SLOP = 3;
 const NEAR_PX = 22;
 /** A document must be taller than the viewport by this much (px) to go live, and only taller to stay live. */
 const LIVE_SLACK_PX = 1;
+/** The site header's height (px): nothing of the cat may ever reach above its bottom edge. */
+const HEADER_PX = 64;
+/**
+ * How far the cat's box reaches above the needle's line (px): the readout plate's top edge (26) and his 32 px box on
+ * it, plus the 4 px apex of his arrival hop (cat.css). Under the page's first few percent the needle is too close to
+ * the header for that, so he stays away until his top clears the header with a little air (CAT_MIN_Y, in needle px).
+ */
+const CAT_REACH_PX = 62;
+const CAT_MIN_Y = HEADER_PX + CAT_REACH_PX - RAIL_TOP + 4;
+/** A pause longer than this counts as this long: the pose maths only ever sees a finite number. */
+const IDLE_CAP_MS = 60_000;
 
 type Behavior = "smooth" | "instant";
 
@@ -50,6 +66,12 @@ interface Written {
   shown: boolean | null;
   hidden: boolean | null;
   marks: string[];
+}
+
+/** What the cat's props were when his pose last changed: the only thing React ever hears from the scroll. */
+interface CatSnapshot {
+  ms: number;
+  progress: number;
 }
 
 const freshWritten = (): Written => ({
@@ -72,10 +94,16 @@ interface Press {
 /** `smooth` for a click, unless the visitor prefers reduced motion. */
 const clickBehavior = (): Behavior => (window.matchMedia(REDUCED).matches ? "instant" : "smooth");
 
-/** Scrolls the page to the point of the rail under `clientY`. */
-function scrollToRail(clientY: number, behavior: Behavior) {
-  const vh = window.innerHeight;
-  const docHeight = document.documentElement.scrollHeight;
+/** What the last measuring pass found (the pointer handlers reuse it instead of asking the layout again). */
+interface Metrics {
+  viewport: number;
+  docHeight: number;
+}
+
+/** Scrolls the page to the point of the rail under `clientY`, on the cached measurements. */
+function scrollToRail(clientY: number, behavior: Behavior, metrics: Metrics) {
+  const vh = metrics.viewport > 0 ? metrics.viewport : window.innerHeight;
+  const docHeight = metrics.viewport > 0 ? metrics.docHeight : document.documentElement.scrollHeight;
   const top = progressToScrollTop(pointerToProgress(clientY, railBox(vh)), docHeight, vh);
   window.scrollTo({ top, behavior });
 }
@@ -94,7 +122,11 @@ function scrollToSection(index: number) {
  * on hover or when the needle is near. A click or a drag on the panel scrolls the page there. Native scrolling is
  * never intercepted (no wheel, touch or key listeners); the ruler is a pointer convenience, hidden from assistive tech.
  *
- * The needle is one element moved with `transform`; it has an empty stretch above its readout for the ruler cat.
+ * The needle is one element moved with `transform`; the ruler cat (components/cat/ruler-cat.tsx) rides it, on top of
+ * its readout. He shows with the needle but only once he would clear the header (CAT_MIN_Y), and by day his pose
+ * follows the scroll: the same rAF pass notes when the page last moved (no second scroll listener) and one timeout,
+ * re-armed after the last scroll, wakes the pass at the 150 ms and 1200 ms marks. React hears about the cat only when
+ * his pose changes (or he shows or hides), never per frame.
  * All visible text (marker names, the readout's digits) is drawn by CSS from `data-*` attributes, so find-in-page
  * never lands on it.
  *
@@ -116,7 +148,15 @@ export function Ruler() {
   const colRefs = useRef<(HTMLSpanElement | null)[]>([]);
   const markRefs = useRef<(HTMLSpanElement | null)[]>([]);
   const refreshRef = useRef<() => void>(() => {});
+  const syncRef = useRef<() => void>(() => {});
   const press = useRef<Press | null>(null);
+  const metrics = useRef<Metrics>({ viewport: 0, docHeight: 0 });
+  const pathname = usePathname();
+
+  // The cat: awake or asleep from the sky, and the snapshot the rendered cat works its pose out from (null = hidden).
+  const catState = useCatState(useNow());
+  const catStateRef = useRef(catState);
+  const [cat, setCat] = useState<CatSnapshot | null>(null);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -129,11 +169,18 @@ export function Ruler() {
     let viewport = 0;
     let docHeight = 0;
     let sectionTops: (number | null)[] = SECTION_IDS.map(() => null);
+    // The cat: where the page was last time (to see it move), when it moved, the pose React last heard of, the one
+    // timeout that wakes a pass at the next threshold.
+    let lastY = window.scrollY;
+    let movedAt = Number.NEGATIVE_INFINITY;
+    let catPose: RulerPose | null = null;
+    let timer: ReturnType<typeof setTimeout> | undefined;
 
     const measure = () => {
       dirty = false;
       viewport = window.innerHeight;
       docHeight = root.scrollHeight;
+      metrics.current = { viewport, docHeight };
       const y = window.scrollY;
       sectionTops = SECTION_IDS.map((id) => {
         const section = document.getElementById(id);
@@ -157,6 +204,36 @@ export function Ruler() {
       if (!on && root.dataset.ruler !== undefined) delete root.dataset.ruler;
     };
 
+    const clearTimer = () => {
+      if (timer !== undefined) clearTimeout(timer);
+      timer = undefined;
+    };
+
+    // Called once per pass while the ruler shows: stamps a scroll, works the pose out from the clock (so a late timeout
+    // is harmless), tells React only when it changed, and keeps at most one timeout pending for the next threshold.
+    const updateCat = (progress: number, show: boolean) => {
+      const now = performance.now();
+      const y = window.scrollY;
+      if (y !== lastY) {
+        lastY = y;
+        movedAt = now;
+      }
+      const ms = Math.min(now - movedAt, IDLE_CAP_MS);
+      const state = catStateRef.current;
+      const pose = show && state !== null ? rulerCatPose({ state, msSinceScroll: ms, progress }) : null;
+      if (pose !== catPose) {
+        catPose = pose;
+        setCat(pose === null ? null : { ms, progress });
+      }
+      if (pose !== "type" && pose !== "sit") return clearTimer();
+      if (timer !== undefined) return;
+      const next = ms < TYPING_WINDOW_MS ? TYPING_WINDOW_MS - ms : GROOM_AFTER_MS - ms;
+      timer = setTimeout(() => {
+        timer = undefined;
+        schedule();
+      }, next + 1);
+    };
+
     const pass = () => {
       raf = 0;
       if (dirty) measure();
@@ -165,6 +242,13 @@ export function Ruler() {
       if (on !== isLive) {
         isLive = on;
         setLive(on);
+      }
+      if (!on) {
+        clearTimer();
+        if (catPose !== null) {
+          catPose = null;
+          setCat(null);
+        }
       }
       const box = rootRef.current;
       const needle = needleRef.current;
@@ -183,6 +267,8 @@ export function Ruler() {
         written.hidden = locked;
         box.style.visibility = locked ? "hidden" : "";
       }
+      if (locked) clearTimer();
+      else updateCat(progress, shown && needleY >= CAT_MIN_Y);
 
       if (needleY !== written.needleY) {
         written.needleY = needleY;
@@ -250,6 +336,11 @@ export function Ruler() {
 
     // Take over at once, before the next paint: a StrictMode remount or a client-side navigation must not flash the
     // native scrollbar for a frame.
+    syncRef.current = () => {
+      measure();
+      claim(wanted());
+      remeasure();
+    };
     window.__rulerLive = true;
     measure();
     claim(wanted());
@@ -267,12 +358,14 @@ export function Ruler() {
 
     return () => {
       cancelAnimationFrame(raf);
+      clearTimer();
       window.removeEventListener("scroll", schedule);
       window.removeEventListener("resize", remeasure);
       media.removeEventListener("change", remeasure);
       bodyObserver?.disconnect();
       lockObserver.disconnect();
       refreshRef.current = () => {};
+      syncRef.current = () => {};
       delete root.dataset.ruler;
       window.__rulerLive = false;
     };
@@ -282,6 +375,18 @@ export function Ruler() {
   useEffect(() => {
     refreshRef.current();
   }, [live, language]);
+
+  // The sky flipped (or the time became known): the pass works the cat's pose out again.
+  useEffect(() => {
+    catStateRef.current = catState;
+    refreshRef.current();
+  }, [catState]);
+
+  // The layout mounts the ruler on every route, so a client navigation never remounts it: it takes the native bar
+  // back, or claims it again, in the very commit that changes the page (before anything paints), not a frame later.
+  useLayoutEffect(() => {
+    syncRef.current();
+  }, [pathname]);
 
   const onPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
     if (event.button !== 0) return;
@@ -295,7 +400,7 @@ export function Ruler() {
     const markEl = (event.target as Element).closest<HTMLElement>("[data-mark]");
     const mark = markEl ? Number(markEl.dataset.mark) : null;
     press.current = { id: event.pointerId, startY: event.clientY, dragging: false, mark };
-    if (mark === null) scrollToRail(event.clientY, clickBehavior());
+    if (mark === null) scrollToRail(event.clientY, clickBehavior(), metrics.current);
   };
 
   const onPointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
@@ -306,7 +411,7 @@ export function Ruler() {
       current.dragging = true;
       if (rootRef.current) rootRef.current.dataset.dragging = "";
     }
-    scrollToRail(event.clientY, "instant");
+    scrollToRail(event.clientY, "instant", metrics.current);
   };
 
   const endPress = (event: ReactPointerEvent<HTMLDivElement>, released: boolean) => {
@@ -357,6 +462,7 @@ export function Ruler() {
 
           <div ref={needleRef} className="ruler-needle">
             <span className="ruler-needle-line" />
+            {cat !== null ? <RulerCat state={catState} msSinceScroll={cat.ms} progress={cat.progress} /> : null}
             <span ref={readoutRef} className="ruler-readout" data-value="0">
               {COLUMNS.map((i) => (
                 <span

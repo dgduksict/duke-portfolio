@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import { act, fireEvent, render } from "@testing-library/react";
+import { Profiler } from "react";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Ruler } from "@/components/ruler/ruler";
@@ -9,6 +10,23 @@ import { dictionaries } from "@/lib/i18n";
 import { progressToScrollTop, RAIL_BOTTOM, RAIL_TOP } from "@/lib/ruler";
 import { rulerGateScript } from "@/lib/ruler-gate";
 import { resetPortfolioStore, usePortfolioStore } from "@/store/portfolio-store";
+
+// The layout mounts the Ruler on every route; a test changes the route by changing what this returns.
+const route = vi.hoisted(() => ({ pathname: "/" }));
+vi.mock("next/navigation", () => ({ usePathname: () => route.pathname }));
+
+// `forceNull` pretends the client does not know the time yet (the cat's state is unknown).
+const clock = vi.hoisted(() => ({ forceNull: false }));
+vi.mock("@/hooks/use-now", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/hooks/use-now")>();
+  return {
+    ...actual,
+    useNow: () => {
+      const now = actual.useNow();
+      return clock.forceNull ? null : now;
+    },
+  };
+});
 
 const html = document.documentElement;
 const VIEWPORT = 800;
@@ -150,6 +168,9 @@ beforeEach(() => {
   html.style.overflow = "";
   window.__rulerLive = undefined;
   window.history.replaceState(null, "", "/");
+  route.pathname = "/";
+  clock.forceNull = false;
+  commits = 0;
   resetPortfolioStore();
   installPage();
   installMedia();
@@ -165,6 +186,9 @@ afterEach(() => {
   window.__rulerLive = undefined;
 });
 
+/** How many times React committed the ruler: the cat must not cost a render per scroll frame. */
+let commits = 0;
+
 /** The sections the ruler measures, in a document of their own. */
 function Page() {
   return (
@@ -172,7 +196,9 @@ function Page() {
       {IDS.map((id) => (
         <section key={id} id={id} />
       ))}
-      <Ruler />
+      <Profiler id="ruler" onRender={() => (commits += 1)}>
+        <Ruler />
+      </Profiler>
     </>
   );
 }
@@ -479,6 +505,251 @@ describe("Ruler: pointer", () => {
       fireEvent.pointerDown(rail() as Element, { clientY: railY(0.5), button: 2, pointerId: 1 });
     });
     expect(scrollTo()).not.toHaveBeenCalled();
+  });
+});
+
+describe("Ruler: the cat on the needle", () => {
+  const DAY_URL = "/?time=13:00";
+  const NIGHT_URL = "/?time=01:30";
+  const RANGE = 4000 - VIEWPORT;
+
+  beforeEach(() => {
+    // Only the clocks: the tests step requestAnimationFrame by hand.
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "setInterval", "clearInterval", "Date", "performance"] });
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  const cat = () => document.querySelector<HTMLElement>(".ruler-cat");
+  const catPose = () => cat()?.querySelector("svg")?.getAttribute("data-pose") ?? null;
+
+  /** Scrolls to a progress (0..1) and runs the frame that notices. */
+  function scrollToProgress(progress: number) {
+    page.scrollY = progress * RANGE;
+    act(() => {
+      window.dispatchEvent(new Event("scroll"));
+    });
+    flushFrames();
+  }
+
+  /** One more scroll event of `by` px, and the frame that notices. */
+  function nudge(by: number) {
+    page.scrollY += by;
+    act(() => {
+      window.dispatchEvent(new Event("scroll"));
+    });
+    flushFrames();
+  }
+
+  /** Lets time pass, then runs the frame the timeout asked for. */
+  function wait(ms: number) {
+    act(() => {
+      vi.advanceTimersByTime(ms);
+    });
+    flushFrames();
+  }
+
+  /** The MutationObserver on <html> reports in a microtask. */
+  async function settle() {
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    flushFrames();
+  }
+
+  it("has no cat at the top, where only the hero cat shows, nor while he would sit under the header", () => {
+    window.history.replaceState(null, "", DAY_URL);
+    mount();
+    expect(cat()).toBeNull();
+    // The needle is already up (>= 3 %), but the cat on it would reach above the header's bottom edge (64 px).
+    scrollToProgress(0.04);
+    expect(needle()).toHaveAttribute("data-show");
+    expect(cat()).toBeNull();
+    scrollToProgress(0.5);
+    expect(cat()).not.toBeNull();
+    scrollToProgress(0);
+    expect(cat()).toBeNull();
+  });
+
+  it("never lets the cat's box, hop included, reach above the header's bottom edge", () => {
+    window.history.replaceState(null, "", DAY_URL);
+    mount();
+    // 62 px: the cat's top edge above the needle line (26 plate + 32 art) and the arrival hop's apex (4).
+    const reach = 62;
+    const header = 64;
+    let seen = 0;
+    for (let step = 0; step <= 100; step += 1) {
+      scrollToProgress(step / 100);
+      if (cat() === null) continue;
+      seen += 1;
+      const needleY = Number.parseFloat(/translate3d\(0,(-?[\d.]+)px/.exec(needle()?.style.transform ?? "")?.[1] ?? "NaN");
+      expect(RAIL_TOP + needleY - reach, `at ${step} %`).toBeGreaterThanOrEqual(header);
+    }
+    expect(seen).toBeGreaterThan(80);
+  });
+
+  it("is absent while the cat's state is unknown", () => {
+    clock.forceNull = true;
+    window.history.replaceState(null, "", DAY_URL);
+    mount();
+    scrollToProgress(0.5);
+    expect(needle()).toHaveAttribute("data-show");
+    expect(cat()).toBeNull();
+  });
+
+  it("sits on the needle, ahead of the readout plate, and ignores the pointer", () => {
+    window.history.replaceState(null, "", DAY_URL);
+    mount();
+    scrollToProgress(0.5);
+    expect(needle()?.contains(cat())).toBe(true);
+    expect(cat()).toHaveClass("pointer-events-none");
+    const children = [...(needle()?.children ?? [])];
+    expect(children.indexOf(cat() as Element)).toBeLessThan(children.indexOf(readout() as Element));
+  });
+
+  it("types while scrolling, sits after 150 ms and grooms after 1200 ms, off one scroll listener and a bounded number of renders", () => {
+    window.history.replaceState(null, "", DAY_URL);
+    const add = vi.spyOn(window, "addEventListener");
+    mount();
+    const scrollListeners = () => add.mock.calls.filter(([type]) => type === "scroll").length;
+    scrollToProgress(0.5);
+    expect(catPose()).toBe("type");
+    expect(scrollListeners()).toBe(1);
+    const settled = commits;
+
+    // A fast scroll: twenty frames, each moving the page. The pose stays `type` and React is not asked to render.
+    for (let i = 1; i <= 20; i += 1) {
+      nudge(7);
+      wait(10);
+    }
+    expect(catPose()).toBe("type");
+    expect(commits).toBe(settled);
+
+    wait(150);
+    expect(catPose()).toBe("sit");
+    expect(commits).toBe(settled + 1);
+    wait(1100);
+    expect(catPose()).toBe("groom");
+    expect(commits).toBe(settled + 2);
+    wait(5000);
+    expect(commits).toBe(settled + 2);
+    expect(vi.getTimerCount()).toBe(0);
+    expect(scrollListeners()).toBe(1);
+
+    // The next scroll wakes him again.
+    nudge(40);
+    expect(catPose()).toBe("type");
+  });
+
+  it("naps at the bottom of the page and wakes when the page scrolls back up", () => {
+    window.history.replaceState(null, "", DAY_URL);
+    mount();
+    scrollToProgress(0.99);
+    expect(catPose()).toBe("nap");
+    wait(3000);
+    expect(catPose()).toBe("nap");
+    scrollToProgress(0.5);
+    expect(catPose()).toBe("type");
+  });
+
+  it("sleeps at night through scrolling, idling and the bottom, without a render for any of it", () => {
+    window.history.replaceState(null, "", NIGHT_URL);
+    mount();
+    scrollToProgress(0.5);
+    expect(catPose()).toBe("sleep");
+    const settled = commits;
+    for (let i = 1; i <= 10; i += 1) {
+      nudge(9);
+      wait(40);
+    }
+    wait(2000);
+    scrollToProgress(0.99);
+    expect(catPose()).toBe("sleep");
+    expect(commits).toBe(settled);
+  });
+
+  it("clears its timeout when the ruler hides behind a scroll lock, and again on unmount", async () => {
+    window.history.replaceState(null, "", DAY_URL);
+    const { unmount } = mount();
+    scrollToProgress(0.5);
+    expect(vi.getTimerCount()).toBe(1);
+    html.style.overflow = "hidden";
+    await settle();
+    expect(vi.getTimerCount()).toBe(0);
+    html.style.overflow = "";
+    await settle();
+    scrollToProgress(0.6);
+    expect(vi.getTimerCount()).toBe(1);
+    unmount();
+    expect(vi.getTimerCount()).toBe(0);
+    expect(frames.size).toBe(0);
+  });
+
+  it("works the pose out from the clock, so a timeout that fires late (a background tab) is harmless", () => {
+    window.history.replaceState(null, "", DAY_URL);
+    mount();
+    scrollToProgress(0.5);
+    expect(catPose()).toBe("type");
+    wait(10_000);
+    expect(catPose()).toBe("groom");
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it("drops the cat, and its timeout, when the ruler goes away", () => {
+    window.history.replaceState(null, "", DAY_URL);
+    mount();
+    scrollToProgress(0.5);
+    expect(cat()).not.toBeNull();
+    media.wide = false;
+    act(() => media.queries[0]?.fire());
+    flushFrames();
+    expect(cat()).toBeNull();
+    expect(vi.getTimerCount()).toBe(0);
+  });
+});
+
+describe("Ruler: client navigation", () => {
+  it("claims data-ruler in the same commit when a navigation lands on the homepage, with no resize or frame", () => {
+    const view = mount();
+    expect(html.dataset.ruler).toBe("on");
+
+    // Away: the native bar comes back at once.
+    window.history.replaceState(null, "", "/missing");
+    route.pathname = "/missing";
+    view.rerender(<Page />);
+    expect(html.dataset.ruler).toBeUndefined();
+    expect(window.__rulerLive).toBe(false);
+
+    // Back: the claim happens in the commit, before anything can paint a native bar.
+    window.history.replaceState(null, "", "/");
+    route.pathname = "/";
+    view.rerender(<Page />);
+    expect(html.dataset.ruler).toBe("on");
+    expect(window.__rulerLive).toBe(true);
+    flushFrames();
+    flushFrames();
+    expect(rulerRoot()).not.toBeNull();
+    expect(html.dataset.ruler).toBe("on");
+  });
+});
+
+describe("Ruler: pointer reads", () => {
+  it("scrubs with the cached viewport and document height instead of measuring on every move", () => {
+    mount();
+    let reads = 0;
+    defineOn(window, "innerHeight", { get: () => ((reads += 1), VIEWPORT) }, "innerHeight:counted");
+    defineOn(html, "scrollHeight", { get: () => ((reads += 1), page.docHeight) }, "scrollHeight:counted");
+    press("pointerDown", railY(0.2));
+    for (let i = 1; i <= 10; i += 1) press("pointerMove", railY(0.2) + i * 10);
+    press("pointerUp", railY(0.5));
+    expect(reads).toBe(0);
+    expect(scrollTo()).toHaveBeenLastCalledWith({
+      top: progressToScrollTop((railY(0.2) + 100 - RAIL_TOP) / railHeight, 4000, VIEWPORT),
+      behavior: "instant",
+    });
   });
 });
 

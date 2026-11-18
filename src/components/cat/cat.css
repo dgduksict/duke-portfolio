@@ -240,3 +240,112 @@
     opacity: 0;
   }
 }
+
+/*
+ * ---------- MINI-CAT-RULES: the ruler cat (components/cat/ruler-cat.tsx) ----------
+ * The same pixel discipline as the hero cat: every animation is stepped (steps()), every move is a whole sprite cell
+ * and only transform and opacity move. A cell is `--cu` inside the drawing (the 48-unit viewBox, 3 per sprite pixel)
+ * and `--hu` on the screen, where the drawing is shown at 32px (a cell is 2px, so everything stays on whole pixels).
+ *
+ * He rides the ruler's needle, inside its 40px lane: centred on the readout (x 20), his feet on the readout plate's top
+ * edge, 26px above the needle's line. The drawings face right and the page is to the left of the rail, so the wrapper
+ * mirrors them; the z's are mirrored back so they read. The wrapper never takes the pointer. Every loop waits out the
+ * arrival hop (400ms); nothing moves under reduced motion.
+ */
+.ruler-cat {
+  --cu: 3px;
+  --hu: 2px;
+
+  position: absolute;
+  left: calc(var(--px) * 5 - 16px);
+  bottom: calc(var(--px) * 4.5 + 8px);
+  width: 32px;
+  height: 32px;
+  transform: scaleX(-1);
+  pointer-events: none;
+}
+
+.ruler-cat .cat-art {
+  width: 32px;
+  height: 32px;
+}
+
+/* The z's keep reading left to right: mirrored back about their own middle. */
+.ruler-cat .cat-zzz > g {
+  transform: scaleX(-1);
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+/* He arrives with a short hop in frames: down in place, up two cells, down again (never higher than the lane allows). */
+.ruler-cat-hop {
+  width: 100%;
+  height: 100%;
+  animation: ruler-cat-arrive 400ms steps(1, end) both;
+}
+
+@keyframes ruler-cat-arrive {
+  0% { opacity: 0; transform: translate(0, 0); }
+  20% { opacity: 1; transform: translate(0, calc(var(--hu) * -1)); }
+  40% { transform: translate(0, calc(var(--hu) * -2)); }
+  60% { transform: translate(0, calc(var(--hu) * -1)); }
+  80%, 100% { opacity: 1; transform: translate(0, 0); }
+}
+
+/* Typing: the paws take turns on the tiny laptop (two frames, out of step), the screen's lines blink. */
+.ruler-cat .cat-art[data-pose="type"] .cat-paw-l { animation: mini-type 360ms steps(1, end) 400ms infinite; }
+.ruler-cat .cat-art[data-pose="type"] .cat-paw-r { animation: mini-type 360ms steps(1, end) 580ms infinite; }
+.ruler-cat .cat-art[data-pose="type"] .cat-screen { animation: mini-blink 1.4s steps(1, end) 400ms infinite; }
+
+/* Sitting: still, the tail twitching now and then. */
+.ruler-cat .cat-art[data-pose="sit"] .cat-tail { animation: mini-flick 4s steps(1, end) 800ms infinite; }
+
+/* Grooming: the raised paw goes to the mouth and back (two frames), the tail tip lifting between licks. */
+.ruler-cat .cat-art[data-pose="groom"] .cat-paw-r { animation: mini-lick 640ms steps(1, end) 400ms infinite; }
+.ruler-cat .cat-art[data-pose="groom"] .cat-tail { animation: mini-flick 5s steps(1, end) 1s infinite; }
+
+/* Asleep: breathing (the head sinks one cell onto the curl and rises) and a z drifting up and away in cell steps. */
+.ruler-cat .cat-art[data-pose="sleep"] .cat-head { animation: mini-breathe 3.2s steps(1, end) 400ms infinite; }
+.ruler-cat .cat-art[data-pose="sleep"] .cat-zzz { animation: mini-drift 3.2s steps(1, end) 400ms infinite; }
+
+/* Napping at the end of the page: the same slow breath, a little slower. */
+.ruler-cat .cat-art[data-pose="nap"] .cat-head { animation: mini-breathe 4.4s steps(1, end) 400ms infinite; }
+
+@keyframes mini-type {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(calc(var(--cu) * -1)); }
+}
+@keyframes mini-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+@keyframes mini-flick {
+  0%, 70%, 100% { transform: translateY(0); }
+  74% { transform: translateY(calc(var(--cu) * -1)); }
+  80% { transform: translateY(0); }
+  84% { transform: translateY(calc(var(--cu) * -1)); }
+  90% { transform: translateY(0); }
+}
+@keyframes mini-lick {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(calc(var(--cu) * -1), 0); }
+}
+@keyframes mini-breathe {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(calc(var(--cu) * 1)); }
+}
+@keyframes mini-drift {
+  0% { opacity: 0; transform: translate(0, calc(var(--cu) * 1)); }
+  20% { opacity: 1; transform: translate(0, 0); }
+  60% { opacity: 1; transform: translate(0, calc(var(--cu) * -1)); }
+  85%, 100% { opacity: 0; transform: translate(calc(var(--cu) * 1), calc(var(--cu) * -1)); }
+}
+
+/* Reduced motion: the pose stands still (the drawing for each data-pose), no hop and no loops. */
+@media (prefers-reduced-motion: reduce) {
+  .ruler-cat-hop,
+  .ruler-cat .cat-art,
+  .ruler-cat .cat-art * {
+    animation: none !important;
+  }
+}

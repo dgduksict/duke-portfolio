@@ -204,7 +204,6 @@ describe("cat.css", () => {
     expect(css).not.toMatch(/\b(blur|drop-shadow)\(/);
     expect(css).not.toMatch(/border-radius:\s*[1-9]/);
     const animations = css.match(/\banimation\s*:[^;]+;/g) ?? [];
-    process.stderr.write(`DBG ${css.length} ${animations.length} ${JSON.stringify(css.slice(0, 80))}\n`);
     expect(animations.length).toBeGreaterThan(8);
     for (const rule of animations) {
       if (/none/.test(rule)) continue;
