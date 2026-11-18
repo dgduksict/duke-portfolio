@@ -1,0 +1,269 @@
+/*
+ * The pixel ruler scrollbar (components/ruler/ruler.tsx; the gate is components/ruler/ruler-gate.tsx).
+ *
+ * While <html data-ruler="on"> the native scrollbar is hidden, because the ruler draws its own on the right edge.
+ * The gate sets the attribute while the HTML is parsed, so the page never shifts sideways when the ruler mounts.
+ * Without JavaScript, on narrow or touch screens and on any other page the attribute is never set.
+ */
+html[data-ruler="on"] {
+  scrollbar-width: none;
+}
+
+html[data-ruler="on"]::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
+}
+
+/*
+ * Hard pixels only: flat token fills, one-unit stair-step outlines (zero-blur box-shadows with the corners left
+ * out), no rounding, no gradients, and motion in steps() alone. Everything snaps to --px (4px on the screens the
+ * ruler shows on).
+ *
+ * The root is the rail's own box: fixed to the right edge from RAIL_TOP to RAIL_BOTTOM (inline style), ten units
+ * wide, with no gutter in the page, above the page content and the hero scene and below the header (50), the loader
+ * (100) and an open menu. Only the panel takes the pointer. The panel reaches two units past the rail at both ends
+ * (grab room, and the 0 and 100 % markers stay inside it); the track inside it is exactly the rail, so a tick, a
+ * marker and the needle share one scale with the click position.
+ *
+ * Lanes, from the left of the root (x in px): panel 4 to 40; section markers 8 to 20; ticks end at 36 (2 units
+ * long, 3 for every tenth); the needle's readout is centred on x 20 with the arrow under it. A section's name is a
+ * plate left of the panel, shown on hover or while the needle is near.
+ */
+@layer components {
+  .ruler {
+    position: fixed;
+    right: 0;
+    width: calc(var(--px) * 10);
+    z-index: 41;
+    pointer-events: none;
+    -webkit-user-select: none;
+    user-select: none;
+    font-family: var(--font-pixel);
+  }
+
+  .ruler-rail {
+    --rail-edge: var(--edge);
+
+    position: absolute;
+    top: calc(var(--px) * -2);
+    bottom: calc(var(--px) * -2);
+    left: var(--px);
+    right: 0;
+    pointer-events: auto;
+    cursor: pointer;
+    touch-action: none;
+    background-color: var(--panel);
+    /* A raised panel (the .px-box outline without its right side, which is the screen edge) and a shaded inner left strip. */
+    box-shadow:
+      calc(var(--px) * -1) 0 0 0 var(--rail-edge),
+      0 calc(var(--px) * -1) 0 0 var(--rail-edge),
+      0 var(--px) 0 0 var(--rail-edge),
+      inset var(--px) 0 0 0 var(--shade);
+  }
+
+  .ruler-rail:hover {
+    --rail-edge: var(--ink);
+  }
+
+  .ruler[data-dragging] .ruler-rail {
+    --rail-edge: var(--ink);
+
+    cursor: grabbing;
+  }
+
+  .ruler-track {
+    position: absolute;
+    top: calc(var(--px) * 2);
+    bottom: calc(var(--px) * 2);
+    left: calc(var(--px) * -1);
+    right: 0;
+  }
+
+  /* ----------------------------------------------------------------- ticks */
+
+  .ruler-tick {
+    position: absolute;
+    right: var(--px);
+    width: calc(var(--px) * 2);
+    height: var(--px);
+    margin-top: calc(var(--px) / -2);
+    background-color: var(--ink-soft);
+  }
+
+  .ruler-tick[data-major] {
+    width: calc(var(--px) * 3);
+    background-color: var(--ink);
+  }
+
+  /* --------------------------------------------------------------- markers */
+
+  .ruler-mark {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: calc(var(--px) * 3);
+    margin-top: calc(var(--px) * -1.5);
+  }
+
+  .ruler-mark:not([data-on]) {
+    display: none;
+  }
+
+  /* A hollow square ahead of the needle, filled with the lamp colour once the page has passed the section. */
+  .ruler-mark-box {
+    position: absolute;
+    left: calc(var(--px) * 2);
+    top: 0;
+    box-sizing: border-box;
+    width: calc(var(--px) * 3);
+    height: calc(var(--px) * 3);
+    border: calc(var(--px) / 2) solid var(--ink);
+    background-color: var(--panel);
+  }
+
+  .ruler-mark[data-passed] .ruler-mark-box {
+    background-color: var(--accent);
+  }
+
+  .ruler-mark:hover .ruler-mark-box,
+  .ruler-mark[data-near] .ruler-mark-box {
+    background-color: var(--accent-hi);
+  }
+
+  /* The section's name: a small panel left of the rail, drawn from the data attribute (no text in the DOM). */
+  .ruler-mark-label {
+    position: absolute;
+    right: calc(100% + var(--px) * 2);
+    top: 50%;
+    z-index: 3;
+    padding: calc(var(--px) * 2) calc(var(--px) * 3);
+    background-color: var(--panel);
+    color: var(--ink);
+    font-size: 1rem;
+    line-height: 1rem;
+    letter-spacing: 0;
+    white-space: nowrap;
+    pointer-events: none;
+    box-shadow:
+      calc(var(--px) * -1) 0 0 0 var(--edge),
+      var(--px) 0 0 0 var(--edge),
+      0 calc(var(--px) * -1) 0 0 var(--edge),
+      0 var(--px) 0 0 var(--edge);
+    opacity: 0;
+    transform: translate(calc(var(--px) * 2), -50%);
+    transition:
+      opacity 120ms steps(2),
+      transform 120ms steps(2);
+  }
+
+  .ruler-mark-label::after {
+    content: attr(data-label);
+  }
+
+  .ruler-mark:hover .ruler-mark-label,
+  .ruler-mark[data-near] .ruler-mark-label {
+    opacity: 1;
+    transform: translate(0, -50%);
+  }
+
+  /* ---------------------------------------------------------------- needle */
+
+  /*
+   * One element moved with transform: its top edge is the page's position on the rail. It draws a lamp-coloured
+   * line across the panel, and over it an arrow pointing at that line with the readout above the arrow. The
+   * readout's top edge is 26px above the line; the ruler cat will stand on it, in the 48px of free lane above.
+   */
+  .ruler-needle {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    height: 0;
+    z-index: 2;
+    opacity: 0;
+    transition: opacity 120ms steps(2);
+    will-change: transform;
+  }
+
+  .ruler-needle[data-show] {
+    opacity: 1;
+  }
+
+  .ruler-needle-line {
+    position: absolute;
+    left: var(--px);
+    right: 0;
+    top: calc(var(--px) / -2);
+    height: var(--px);
+    background-color: var(--accent-deep);
+  }
+
+  /* The readout: the digits sit on a plate of the ink colour whose outline is the same colour, so the corners are notched. */
+  .ruler-readout {
+    position: absolute;
+    left: calc(var(--px) * 5);
+    bottom: calc(var(--px) * 3.5);
+    display: flex;
+    transform: translateX(-50%);
+    background-color: var(--ink);
+    color: var(--ground);
+    font-size: 8px;
+    line-height: 8px;
+    box-shadow:
+      calc(var(--px) * -1) 0 0 0 var(--ink),
+      var(--px) 0 0 0 var(--ink),
+      0 calc(var(--px) * -1) 0 0 var(--ink),
+      0 var(--px) 0 0 var(--ink);
+  }
+
+  /* The arrow: two rows under the plate (three units wide, then one) that end on the needle's line. */
+  .ruler-readout::after {
+    content: "";
+    position: absolute;
+    left: calc(50% - var(--px) / 2);
+    top: calc(100% + var(--px) * 2);
+    width: var(--px);
+    height: var(--px);
+    background-color: var(--ink);
+    box-shadow:
+      calc(var(--px) * -1) calc(var(--px) * -1) 0 0 var(--ink),
+      0 calc(var(--px) * -1) 0 0 var(--ink),
+      var(--px) calc(var(--px) * -1) 0 0 var(--ink);
+  }
+
+  /* Each digit is a window onto a strip of 0 to 9 that rolls in four steps. */
+  .ruler-col {
+    display: block;
+    width: 8px;
+    height: 8px;
+    overflow: hidden;
+  }
+
+  .ruler-col[data-col="0"]:not([data-on]) {
+    display: none;
+  }
+
+  .ruler-strip {
+    display: block;
+    transition: transform 160ms steps(4);
+  }
+
+  .ruler-strip > span {
+    display: block;
+    height: 8px;
+    text-align: center;
+  }
+
+  .ruler-strip > span::after {
+    content: attr(data-d);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .ruler *,
+    .ruler *::before,
+    .ruler *::after {
+      transition: none !important;
+    }
+  }
+}

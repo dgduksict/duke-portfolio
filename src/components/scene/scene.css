@@ -81,8 +81,23 @@
     overflow: hidden;
     container-type: inline-size;
     padding-top: var(--scene-top);
+    /* Air between the floor line and the name below, which sits on the page ground. */
+    margin-bottom: 2rem;
     background-color: var(--scene-wall);
     image-rendering: pixelated;
+  }
+
+  /*
+   * The compact scene (the loading screen): the window and its sill only, standing free on whatever is behind it. No
+   * header strip, no floor below the sill, no wall colour of its own. The cat slot keeps its place, from the same box.
+   */
+  .scene.scene-compact {
+    --scene-top: 0px;
+    --below: 0;
+
+    overflow: visible;
+    margin-bottom: 0;
+    background-color: transparent;
   }
 
   .scene-header-zone {

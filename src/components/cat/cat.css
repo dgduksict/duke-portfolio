@@ -1,8 +1,8 @@
 /*
- * The pixel cat (components/cat/cat-art.tsx, drawn from the bitmaps in sprites.ts). Static paint only: the colour of
- * every legend character of the sprites (PALETTE maps each one to a variable here), then the transform box/origin of
- * every part a later animation moves. The values are fixed rather than read from the live tokens, so neither the theme
- * flip nor the sky behind the hero ever repaints him: he stays a black cat with a 1-pixel rim, amber and cream accents.
+ * The pixel cat (components/cat/cat-art.tsx, drawn from the bitmaps in sprites.ts): the colour of every legend
+ * character of the sprites (PALETTE maps each one to a variable here), then the hero cat's motion and speech box. The
+ * values are fixed rather than read from the live tokens, so neither the theme flip nor the sky behind the hero ever
+ * repaints him: he stays a black cat with a 1-pixel rim, amber and cream accents.
  */
 
 .cat-art {
@@ -33,7 +33,6 @@
  * silhouette keeps its edge, and the z turns to window light.
  */
 .dark .cat-art,
-.loader .cat-art,
 .cat-art[data-state="night"] {
   --cat-rim: #59639a;
   --cat-zzz: #ffe58a;
@@ -44,162 +43,191 @@
   opacity: 0;
 }
 
-/* ---------- animated parts: each pivots on its own box ---------- */
-.cat-art .cat-head,
-.cat-art .cat-eye,
-.cat-art .cat-ear-l,
-.cat-art .cat-ear-r,
-.cat-art .cat-tail,
-.cat-art .cat-paw-l,
-.cat-art .cat-paw-r,
-.cat-art .cat-screen,
-.cat-art .cat-zzz,
-.cat-art .cat-body {
-  transform-box: fill-box;
-}
-/* The head nods from the neck, the eyes blink down from the lid, the ears swivel on their base. */
-.cat-art .cat-head { transform-origin: 45% 95%; }
-.cat-art .cat-eye { transform-origin: 50% 0%; }
-.cat-art .cat-ear-l { transform-origin: 75% 100%; }
-.cat-art .cat-ear-r { transform-origin: 25% 100%; }
-/* The tail swings from its root, at the bottom right of its box (it curls out to the left). */
-.cat-art .cat-tail { transform-origin: 100% 100%; }
-.cat-art .cat-paw-l,
-.cat-art .cat-paw-r { transform-origin: 50% 100%; }
-.cat-art .cat-screen { transform-origin: 50% 50%; }
-.cat-art .cat-zzz { transform-origin: 0% 100%; }
-/* Breathing scales the body up from where it rests. */
-.cat-art .cat-body { transform-origin: 50% 100%; }
-
-/* The night cat's tail hangs from its top right (it dangles over the laptop's edge), not from the bottom right. */
-.cat-art[data-state="night"] .cat-tail { transform-origin: 100% 0%; }
-
-/* ---------- the hero cat (components/cat/hero-cat.tsx) ----------
- * Only transform and opacity move. Every loop waits out the hop (about 1 s); nothing moves under reduced motion.
- * The whole layer ignores the pointer; the button inside it is the one thing that takes it.
+/*
+ * ---------- the hero cat (components/cat/hero-cat.tsx) ----------
+ * Pixel motion only: every animation is stepped (steps()) and every move is a whole sprite unit. Inside the drawing
+ * (an SVG of 168 units, 6 per sprite pixel) a part moves by multiples of 6px; the hop, which moves the HTML wrapper,
+ * counts in --cu, the same unit at the slot's size. Only transform and opacity move. Every loop waits out the hop
+ * (about 1 s); nothing moves under reduced motion. The layer ignores the pointer; the button is the one thing that
+ * takes it.
  */
-.hero-cat-hop {
-  transform-origin: 50% 100%;
-  animation: cat-hop 1000ms linear both;
+.hero-cat {
+  --cu: calc(var(--cat-size, 168px) / 28);
 }
 
-/* An arc in from the left onto the ridge: up and over (ease-out going up, ease-in coming down), a little squash on landing. */
+/* In from the left onto the sill in frames: up two units, over, down, a little settle. */
+.hero-cat-hop {
+  animation: cat-hop 1000ms steps(1, end) both;
+}
+
 @keyframes cat-hop {
-  0% { opacity: 0; transform: translate(-110px, 18px) scale(0.92); animation-timing-function: ease-out; }
-  10% { opacity: 1; }
-  45% { opacity: 1; transform: translate(-48px, -78px) rotate(-6deg); animation-timing-function: ease-in; }
-  72% { opacity: 1; transform: translate(0, 0) scale(1.05, 0.92); animation-timing-function: ease-out; }
-  86% { transform: translate(0, -8px) scale(0.99, 1.02); animation-timing-function: ease-in-out; }
-  100% { opacity: 1; transform: translate(0, 0); }
+  0% { opacity: 0; transform: translate(calc(var(--cu) * -5), 0); }
+  12% { opacity: 1; transform: translate(calc(var(--cu) * -4), calc(var(--cu) * -2)); }
+  30% { transform: translate(calc(var(--cu) * -2), calc(var(--cu) * -3)); }
+  48% { transform: translate(calc(var(--cu) * -1), calc(var(--cu) * -2)); }
+  66% { transform: translate(0, 0); }
+  80% { transform: translate(0, calc(var(--cu) * -1)); }
+  90%, 100% { opacity: 1; transform: translate(0, 0); }
 }
 
 .hero-cat-button {
   padding: 0;
   border: 0;
-  border-radius: 1.25rem;
+  border-radius: 0;
   background: none;
   -webkit-tap-highlight-color: transparent;
 }
 
-/* A two-tone ring (ink inside, white outside) reads on the dark sky and on the pale one; the box never clips it. */
+/*
+ * The focus ring is the site's pixel block outline (--focus, one unit thick and one unit off, from pixel.css) with a
+ * one-unit halo of the panel colour inside it, so it reads over the glass by night as well as over the wall. The box
+ * sits well inside the scene, so overflow never clips it.
+ */
 .hero-cat-button:focus-visible {
-  outline: 2px solid #ffffff;
-  outline-offset: 3px;
-  border-radius: 1.25rem;
-  box-shadow: 0 0 0 2px #0e1a2b;
+  box-shadow: 0 0 0 var(--px) var(--panel);
 }
 
-/* Day and night drawings cross-fade (about 600 ms) when the sky flips under an open page. */
-.hero-cat-layer[data-fade="in"] { animation: cat-fade-in 600ms ease-out both; }
-.hero-cat-layer[data-fade="out"] { animation: cat-fade-out 600ms ease-out both; }
+/* Day and night drawings cross-fade in six steps over 600 ms when the sky flips under an open page. */
+.hero-cat-layer[data-fade="in"] { animation: cat-fade-in 600ms steps(6, end) both; }
+.hero-cat-layer[data-fade="out"] { animation: cat-fade-out 600ms steps(6, end) both; }
 @keyframes cat-fade-in { from { opacity: 0; } }
 @keyframes cat-fade-out { to { opacity: 0; } }
 
-/* Day: paws on the keys, a tail flick now and then, a smug glance, the screen's lines blinking. */
-.hero-cat .cat-art[data-state="day"] .cat-paw-l { animation: cat-type 420ms ease-in-out 1s infinite alternate; }
-.hero-cat .cat-art[data-state="day"] .cat-paw-r { animation: cat-type 380ms ease-in-out 1.15s infinite alternate; }
-.hero-cat .cat-art[data-state="day"] .cat-tail { animation: cat-flick 6s ease-in-out 1.6s infinite; }
-.hero-cat .cat-art[data-state="day"] .cat-eye { animation: cat-glance 8s ease-in-out 2.4s infinite; }
-.hero-cat .cat-art[data-state="day"] .cat-head { animation: cat-nod 8s ease-in-out 2.4s infinite; }
+/*
+ * Day: paws take turns on the keys (two frames, out of step), the tail flicks now and then, a smug glance (the eye one
+ * unit to the side) and the screen's lines blink.
+ */
+.hero-cat .cat-art[data-state="day"] .cat-paw-l { animation: cat-type 560ms steps(1, end) 1s infinite; }
+.hero-cat .cat-art[data-state="day"] .cat-paw-r { animation: cat-type 560ms steps(1, end) 1.28s infinite; }
+.hero-cat .cat-art[data-state="day"] .cat-tail { animation: cat-flick 6s steps(1, end) 1.6s infinite; }
+.hero-cat .cat-art[data-state="day"] .cat-eye { animation: cat-glance 8s steps(1, end) 2.4s infinite; }
 .hero-cat .cat-art[data-state="day"] .cat-screen { animation: cat-blink 4.4s steps(1, end) 1.2s infinite; }
 
-@keyframes cat-type { to { transform: translateY(-2.4px); } }
+@keyframes cat-type {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
 @keyframes cat-flick {
-  0%, 76%, 100% { transform: rotate(0deg); }
-  82% { transform: rotate(10deg); }
-  88% { transform: rotate(-7deg); }
-  94% { transform: rotate(4deg); }
+  0%, 76%, 100% { transform: translateX(0); }
+  78% { transform: translateX(-6px); }
+  82% { transform: translateX(0); }
+  86% { transform: translateX(-6px); }
+  90% { transform: translateX(0); }
 }
 @keyframes cat-glance {
   0%, 58%, 80%, 100% { transform: translateX(0); }
-  64%, 74% { transform: translateX(2.4px); }
-}
-@keyframes cat-nod {
-  0%, 58%, 82%, 100% { transform: rotate(0deg); }
-  64%, 74% { transform: rotate(-2.6deg); }
+  64% { transform: translateX(6px); }
 }
 @keyframes cat-blink {
   0%, 84%, 88%, 94%, 100% { opacity: 1; }
-  86% { opacity: 0.4; }
-  91% { opacity: 0.65; }
+  86% { opacity: 0.5; }
+  91% { opacity: 0.7; }
 }
 
-/* Night: slow breathing, a tail that barely sways, and the zzz drifting up and away. */
-.hero-cat .cat-art[data-state="night"] .cat-body { animation: cat-breathe 4.6s ease-in-out 1s infinite alternate; }
-.hero-cat .cat-art[data-state="night"] .cat-head { animation: cat-bob 4.6s ease-in-out 1s infinite alternate; }
-.hero-cat .cat-art[data-state="night"] .cat-tail { animation: cat-sway 5.4s ease-in-out 1s infinite alternate; }
-.hero-cat .cat-art[data-state="night"] .cat-zzz { animation: cat-drift 4s ease-out 1s infinite; }
+/*
+ * Night: breathing (the head sinks one unit onto the loaf and rises again), the tip of the tail lifting, the z's
+ * drifting up and away in unit steps, and the mug's steam in two frames.
+ */
+.hero-cat .cat-art[data-state="night"] .cat-head { animation: cat-breathe 4.6s steps(1, end) 1s infinite; }
+.hero-cat .cat-art[data-state="night"] .cat-tail { animation: cat-tip 5.4s steps(1, end) 1s infinite; }
+.hero-cat .cat-art[data-state="night"] .cat-zzz { animation: cat-drift 4s steps(1, end) 1s infinite; }
+.hero-cat .cat-art[data-state="night"] .cat-steam[data-layer="steam-1"] { animation: cat-steam-a 1.2s steps(1, end) infinite; }
+.hero-cat .cat-art[data-state="night"] .cat-steam[data-layer="steam-2"] { animation: cat-steam-b 1.2s steps(1, end) infinite; }
 
-@keyframes cat-breathe { to { transform: scale(1, 1.03); } }
-@keyframes cat-bob { to { transform: translateY(-1px); } }
-@keyframes cat-sway { from { transform: rotate(-4deg); } to { transform: rotate(5deg); } }
+@keyframes cat-breathe {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(6px); }
+}
+@keyframes cat-tip {
+  0%, 70%, 100% { transform: translateY(0); }
+  74% { transform: translateY(-6px); }
+  86% { transform: translateY(0); }
+}
 @keyframes cat-drift {
-  0% { opacity: 0; transform: translate(0, 8px); }
-  22% { opacity: 1; }
-  100% { opacity: 0; transform: translate(6px, -16px); }
+  0% { opacity: 0; transform: translate(0, 12px); }
+  15% { opacity: 1; transform: translate(0, 6px); }
+  40% { opacity: 1; transform: translate(6px, 0); }
+  65% { opacity: 1; transform: translate(6px, -6px); }
+  85%, 100% { opacity: 0; transform: translate(12px, -12px); }
+}
+@keyframes cat-steam-a {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+@keyframes cat-steam-b {
+  0%, 100% { opacity: 0; }
+  50% { opacity: 1; }
 }
 
-/* The speech bubble, to the left of his head: the site's own ground, ink and rule, so it reads in both themes. */
+/*
+ * The speech box, left of the cat: a pixel box (.px-box, from pixel.css: the panel fill, a stepped outline, square
+ * corners) with a stair-step tail on its right edge pointing at him, in the body face at 20px. It carries its own
+ * ground (--panel) and ink (--ink, held to AA on it in both themes), so it reads over the wall and over the glass
+ * alike. By day it sits level with his head, by night above the loaf, left of his ears. Empty, it takes no room.
+ */
 .hero-cat-bubble {
   position: absolute;
-  top: 6%;
-  right: 76%;
+  top: calc(var(--cu) * 3);
+  right: calc(100% - var(--cu) * 2);
   width: max-content;
-  max-width: 15rem;
-  padding: 0.5rem 0.8rem;
-  border: 1px solid var(--rule);
-  border-radius: 0.9rem;
-  background: var(--ground);
-  color: var(--ink);
-  font-size: 0.875rem;
-  font-weight: 500;
-  line-height: 1.35;
+  max-width: 14rem;
+  padding: calc(var(--px) * 2) calc(var(--px) * 3);
+  font-size: 20px;
+  line-height: 24px;
   text-wrap: balance;
-  box-shadow: 0 8px 20px -10px rgb(0 0 0 / 0.5);
   pointer-events: none;
-  transform-origin: 100% 55%;
-  transition: opacity 180ms ease-out, transform 180ms ease-out;
 }
+
+.hero-cat[data-mood="night"] .hero-cat-bubble {
+  top: auto;
+  right: calc(100% - var(--cu) * 15);
+  bottom: calc(100% - var(--cu) * 13);
+}
+
 .hero-cat-bubble:empty {
   padding: 0;
-  border-width: 0;
+  background: none;
   box-shadow: none;
-  opacity: 0;
-  transform: scale(0.94);
 }
+
+/*
+ * The tail: a stair of unit squares on the right edge, five tall at the box, then three, then one, pointing at him.
+ * One square (its top unit) and its shadows draw it: the fill in the panel colour (cutting a gap in the outline), the
+ * stepped edge in --edge.
+ */
 .hero-cat-bubble::after {
   content: "";
   position: absolute;
-  top: 0.85rem;
-  right: -0.38rem;
-  width: 0.7rem;
-  height: 0.7rem;
-  border: solid var(--rule);
-  border-width: 1px 1px 0 0;
-  background: var(--ground);
-  transform: rotate(45deg);
+  top: calc(var(--px) * 2);
+  left: 100%;
+  width: var(--px);
+  height: var(--px);
+  background-color: var(--panel);
+  box-shadow:
+    0 var(--px) 0 0 var(--panel),
+    0 calc(var(--px) * 2) 0 0 var(--panel),
+    0 calc(var(--px) * 3) 0 0 var(--panel),
+    0 calc(var(--px) * 4) 0 0 var(--panel),
+    var(--px) var(--px) 0 0 var(--panel),
+    var(--px) calc(var(--px) * 2) 0 0 var(--panel),
+    var(--px) calc(var(--px) * 3) 0 0 var(--panel),
+    calc(var(--px) * 2) calc(var(--px) * 2) 0 0 var(--panel),
+    var(--px) 0 0 0 var(--edge),
+    var(--px) calc(var(--px) * 4) 0 0 var(--edge),
+    calc(var(--px) * 2) var(--px) 0 0 var(--edge),
+    calc(var(--px) * 2) calc(var(--px) * 3) 0 0 var(--edge),
+    calc(var(--px) * 3) calc(var(--px) * 2) 0 0 var(--edge);
 }
 
+.hero-cat[data-mood="night"] .hero-cat-bubble::after {
+  top: calc(100% - var(--px) * 8);
+}
+
+.hero-cat-bubble:empty::after {
+  display: none;
+}
+
+/* Reduced motion: a still pose, no hop, no loops, and a flip between day and night swaps the drawings at once. */
 @media (prefers-reduced-motion: reduce) {
   .hero-cat-hop,
   .hero-cat-layer,
@@ -207,11 +235,117 @@
   .hero-cat .cat-art * {
     animation: none !important;
   }
-  /* A flip between day and night swaps the drawings at once. */
+
   .hero-cat-layer[data-fade="out"] {
     opacity: 0;
   }
-  .hero-cat-bubble {
-    transition: none;
+}
+
+/*
+ * ---------- MINI-CAT-RULES: the ruler cat (components/cat/ruler-cat.tsx) ----------
+ * The same pixel discipline as the hero cat: every animation is stepped (steps()), every move is a whole sprite cell
+ * and only transform and opacity move. A cell is `--cu` inside the drawing (the 48-unit viewBox, 3 per sprite pixel)
+ * and `--hu` on the screen, where the drawing is shown at 32px (a cell is 2px, so everything stays on whole pixels).
+ *
+ * He rides the ruler's needle, inside its 40px lane: centred on the readout (x 20), his feet on the readout plate's top
+ * edge, 26px above the needle's line. The drawings face right and the page is to the left of the rail, so the wrapper
+ * mirrors them; the z's are mirrored back so they read. The wrapper never takes the pointer. Every loop waits out the
+ * arrival hop (400ms); nothing moves under reduced motion.
+ */
+.ruler-cat {
+  --cu: 3px;
+  --hu: 2px;
+
+  position: absolute;
+  left: calc(var(--px) * 5 - 16px);
+  bottom: calc(var(--px) * 4.5 + 8px);
+  width: 32px;
+  height: 32px;
+  transform: scaleX(-1);
+  pointer-events: none;
+}
+
+.ruler-cat .cat-art {
+  width: 32px;
+  height: 32px;
+}
+
+/* The z's keep reading left to right: mirrored back about their own middle. */
+.ruler-cat .cat-zzz > g {
+  transform: scaleX(-1);
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+/* He arrives with a short hop in frames: down in place, up two cells, down again (never higher than the lane allows). */
+.ruler-cat-hop {
+  width: 100%;
+  height: 100%;
+  animation: ruler-cat-arrive 400ms steps(1, end) both;
+}
+
+@keyframes ruler-cat-arrive {
+  0% { opacity: 0; transform: translate(0, 0); }
+  20% { opacity: 1; transform: translate(0, calc(var(--hu) * -1)); }
+  40% { transform: translate(0, calc(var(--hu) * -2)); }
+  60% { transform: translate(0, calc(var(--hu) * -1)); }
+  80%, 100% { opacity: 1; transform: translate(0, 0); }
+}
+
+/* Typing: the paws take turns on the tiny laptop (two frames, out of step), the screen's lines blink. */
+.ruler-cat .cat-art[data-pose="type"] .cat-paw-l { animation: mini-type 360ms steps(1, end) 400ms infinite; }
+.ruler-cat .cat-art[data-pose="type"] .cat-paw-r { animation: mini-type 360ms steps(1, end) 580ms infinite; }
+.ruler-cat .cat-art[data-pose="type"] .cat-screen { animation: mini-blink 1.4s steps(1, end) 400ms infinite; }
+
+/* Sitting: still, the tail twitching now and then. */
+.ruler-cat .cat-art[data-pose="sit"] .cat-tail { animation: mini-flick 4s steps(1, end) 800ms infinite; }
+
+/* Grooming: the raised paw goes to the mouth and back (two frames), the tail tip lifting between licks. */
+.ruler-cat .cat-art[data-pose="groom"] .cat-paw-r { animation: mini-lick 640ms steps(1, end) 400ms infinite; }
+.ruler-cat .cat-art[data-pose="groom"] .cat-tail { animation: mini-flick 5s steps(1, end) 1s infinite; }
+
+/* Asleep: breathing (the head sinks one cell onto the curl and rises) and a z drifting up and away in cell steps. */
+.ruler-cat .cat-art[data-pose="sleep"] .cat-head { animation: mini-breathe 3.2s steps(1, end) 400ms infinite; }
+.ruler-cat .cat-art[data-pose="sleep"] .cat-zzz { animation: mini-drift 3.2s steps(1, end) 400ms infinite; }
+
+/* Napping at the end of the page: the same slow breath, a little slower. */
+.ruler-cat .cat-art[data-pose="nap"] .cat-head { animation: mini-breathe 4.4s steps(1, end) 400ms infinite; }
+
+@keyframes mini-type {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(calc(var(--cu) * -1)); }
+}
+@keyframes mini-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+@keyframes mini-flick {
+  0%, 70%, 100% { transform: translateY(0); }
+  74% { transform: translateY(calc(var(--cu) * -1)); }
+  80% { transform: translateY(0); }
+  84% { transform: translateY(calc(var(--cu) * -1)); }
+  90% { transform: translateY(0); }
+}
+@keyframes mini-lick {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(calc(var(--cu) * -1), 0); }
+}
+@keyframes mini-breathe {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(calc(var(--cu) * 1)); }
+}
+@keyframes mini-drift {
+  0% { opacity: 0; transform: translate(0, calc(var(--cu) * 1)); }
+  20% { opacity: 1; transform: translate(0, 0); }
+  60% { opacity: 1; transform: translate(0, calc(var(--cu) * -1)); }
+  85%, 100% { opacity: 0; transform: translate(calc(var(--cu) * 1), calc(var(--cu) * -1)); }
+}
+
+/* Reduced motion: the pose stands still (the drawing for each data-pose), no hop and no loops. */
+@media (prefers-reduced-motion: reduce) {
+  .ruler-cat-hop,
+  .ruler-cat .cat-art,
+  .ruler-cat .cat-art * {
+    animation: none !important;
   }
 }

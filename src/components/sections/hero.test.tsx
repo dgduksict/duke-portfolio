@@ -50,6 +50,12 @@ describe("Hero", () => {
     expect(scene?.querySelector("[data-ready]")).toHaveAttribute("data-ready", "true");
   });
 
+  it("stands the cat in the scene's cat slot once the time is known", async () => {
+    const { container } = render(<Hero />);
+    const button = await screen.findByRole("button", { name: /cat/i });
+    expect(container.querySelector("#top [data-cat-slot]")).toContainElement(button);
+  });
+
   it("switches to Mongolian", () => {
     usePortfolioStore.getState().setLanguage("mn");
     render(<Hero />);

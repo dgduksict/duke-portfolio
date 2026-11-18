@@ -11,6 +11,11 @@ export interface WindowSceneProps {
   readonly now: Date | null;
   /** Rendered in the cat slot: standing on the sill, in front of the glass (the hero cat). */
   readonly children?: ReactNode;
+  /**
+   * Just the window and its sill (no room, no header zone, no wall or floor of its own): the loading screen's variant.
+   * Same glass, frame, sill, plants and cat slot, so the cat's feet land on the sill exactly as in the hero.
+   */
+  readonly compact?: boolean;
 }
 
 /**
@@ -27,28 +32,32 @@ export interface WindowSceneProps {
  * Decorative layers are `aria-hidden` and hidden in print; the slot is not, so the cat's button stays reachable. The
  * empty strip above the window (`data-header-zone`) is what the fixed header watches to know it sits on the wall.
  */
-export function WindowScene({ now, children }: WindowSceneProps) {
+export function WindowScene({ now, children, compact = false }: WindowSceneProps) {
   const sun =
     now === null ? null : sunPosition(now, profile.coordinates.latitude, profile.coordinates.longitude);
   const sky = sun === null ? null : skyAt(sun);
   const moon = sun === null ? null : moonSpot(sun);
 
   return (
-    <div className="scene" data-scene="" data-print="hide">
-      <div className="scene-header-zone" data-header-zone="" aria-hidden="true" />
+    <div className={compact ? "scene scene-compact" : "scene"} data-scene="" data-print="hide">
+      {compact ? null : <div className="scene-header-zone" data-header-zone="" aria-hidden="true" />}
       <div className="scene-art" aria-hidden="true">
         <div className="scene-window">
-          <div className="scene-wainscot" />
-          <div className="scene-skirting" />
-          <RoomLeft />
-          <RoomRight />
-          <Radiator />
+          {compact ? null : (
+            <>
+              <div className="scene-wainscot" />
+              <div className="scene-skirting" />
+              <RoomLeft />
+              <RoomRight />
+              <Radiator />
+            </>
+          )}
           <div className="scene-frame">
             <PixelSky sky={sky} moon={moon} />
           </div>
           <div className="scene-sill" />
           <SillPlants />
-          <Mug />
+          {compact ? null : <Mug />}
         </div>
       </div>
       <div className="scene-cat-slot" data-cat-slot="">

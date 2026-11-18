@@ -2,6 +2,8 @@
 @import "./pixel.css";
 @import "../components/cat/cat.css";
 @import "../components/loader/loader.css";
+@import "../components/ruler/ruler.css";
+@import "../components/scene/scene.css";
 
 @custom-variant dark (&:where(.dark, .dark *));
 
@@ -713,8 +715,10 @@
   /* ------------------------------------------------------------------ header */
 
   /*
-   * Over the sky the header is bare with white text; once the sky has scrolled away it
-   * becomes a wooden beam: ground fill, a one-unit edge below. Instant swaps, no fades.
+   * Over the hero scene's wall (the strip above the window, see scene.css) the header is
+   * bare: no fill, no edge, the theme's ink on the room wall (AA in both themes, checked in
+   * window-scene.test.tsx). Once that strip has scrolled under it, the header becomes a
+   * wooden beam: ground fill, a one-unit edge below. Instant swaps, no fades.
    */
   .site-header {
     color: var(--ink);
@@ -723,10 +727,6 @@
   }
 
   .site-header[data-over-sky="true"] {
-    /* Read by the focus ring in pixel.css: white stays visible on the blue sky in both themes. */
-    --focus: #fff;
-
-    color: #fff;
     background-color: transparent;
     border-bottom-color: transparent;
   }
@@ -771,10 +771,6 @@
     background-repeat: repeat-x;
     background-origin: content-box;
     background-clip: content-box;
-  }
-
-  .site-header[data-over-sky="true"] .nav-link[aria-current="true"] {
-    --dash: #fff;
   }
 
   .header-control {

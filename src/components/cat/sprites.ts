@@ -348,7 +348,9 @@ export const HERO_DAY_PARTS: readonly PartBox[] = [
 export const HERO_NIGHT_PARTS: readonly PartBox[] = [
   { part: "ear-l", x0: 18, y0: 14, x1: 20, y1: 15 },
   { part: "ear-r", x0: 22, y0: 14, x1: 24, y1: 15 },
-  { part: "tail", x0: 17, y0: 25, x1: 27, y1: 27 },
+  // Only the curl of the tail that pokes out past the loaf (x26-27, the last four rows of the right edge): a wider box
+  // swallowed a strip of the belly, which a flick of the tail would then drag along.
+  { part: "tail", x0: 26, y0: 24, x1: 27, y1: 27 },
   { part: "head", x0: 17, y0: 14, x1: 27, y1: 24 },
 ];
 

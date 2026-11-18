@@ -1,7 +1,9 @@
+import { readFileSync } from "node:fs";
 import { act, fireEvent, render, renderHook, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { HeroCat } from "@/components/cat/hero-cat";
 import { useCatState } from "@/components/cat/use-cat-state";
+import { WindowScene } from "@/components/scene/window-scene";
 import { dictionaries } from "@/lib/i18n";
 import { LANGUAGES } from "@/types";
 import { resetPortfolioStore, usePortfolioStore } from "@/store/portfolio-store";
@@ -11,6 +13,10 @@ const root = document.documentElement;
 const DAY = new Date("2026-10-05T04:50:00Z");
 const NIGHT = new Date("2026-10-05T16:00:00Z");
 const en = dictionaries.en;
+
+/** cat.css with its comments removed, so the checks read rules, not prose. */
+const css = readFileSync("src/components/cat/cat.css", "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
+const heroSource = readFileSync("src/components/cat/hero-cat.tsx", "utf8");
 
 function setLoader(value: string | null) {
   if (value === null) delete root.dataset.loader;
@@ -75,6 +81,42 @@ describe("HeroCat", () => {
     const { container } = render(<HeroCat now={DAY} />);
     expect(container.firstElementChild).toHaveClass("pointer-events-none", "hidden", "min-[760px]:block");
     expect(screen.getByRole("button")).toHaveClass("pointer-events-auto");
+  });
+
+  it("stands in the scene's cat slot when mounted as the window scene's child", () => {
+    const { container } = render(
+      <WindowScene now={DAY}>
+        <HeroCat now={DAY} />
+      </WindowScene>,
+    );
+    const slot = container.querySelector("[data-cat-slot]");
+    expect(slot).not.toBeNull();
+    expect(slot).toContainElement(screen.getByRole("button", { name: en.cat.label }));
+    expect(slot).not.toHaveAttribute("aria-hidden");
+  });
+
+  it("keeps data-state=night on the sleeping cat: the scene hides its own mug by that mark", () => {
+    const { container } = render(
+      <WindowScene now={NIGHT}>
+        <HeroCat now={NIGHT} />
+      </WindowScene>,
+    );
+    expect(container.querySelector('[data-cat-slot] [data-state="night"]')).not.toBeNull();
+    expect(container.querySelector('[data-cat-slot] [data-state="day"]')).toBeNull();
+  });
+
+  it("is placed by the slot's static CSS: no measured inline left, top or size, no ridge", () => {
+    const { container } = render(<HeroCat now={DAY} />);
+    expect(container.querySelectorAll("[style]")).toHaveLength(0);
+    expect(heroSource).not.toMatch(/ridge|nearRidgeY|getBoundingClientRect|ANCHOR|NIGHT_SHIFT|fonts\.ready/i);
+    expect(heroSource).not.toMatch(/addEventListener\(["']resize/);
+  });
+
+  it("speaks from a pixel box: stepped outline class, no radius, blur or shadow utilities", () => {
+    render(<HeroCat now={DAY} />);
+    const bubble = screen.getByRole("status");
+    expect(bubble).toHaveClass("px-box", "hero-cat-bubble");
+    expect(bubble.className).not.toMatch(/rounded|blur|shadow-/);
   });
 
   it("answers a click with the next smug line, rotating through all of them", () => {
@@ -151,6 +193,42 @@ describe("HeroCat", () => {
     });
     expect(container.querySelector('svg[data-state="day"]')).toBeNull();
     expect(container.querySelector('svg[data-state="night"]')).not.toBeNull();
+  });
+});
+
+describe("cat.css", () => {
+  it("animates in steps only: no easing curves, no gradients, no transitions", () => {
+    expect(css).not.toMatch(/\b(ease|ease-in|ease-out|ease-in-out|linear|cubic-bezier)\b/);
+    expect(css).not.toMatch(/gradient\(/);
+    expect(css).not.toMatch(/\btransition\s*:/);
+    expect(css).not.toMatch(/\b(blur|drop-shadow)\(/);
+    expect(css).not.toMatch(/border-radius:\s*[1-9]/);
+    const animations = css.match(/\banimation\s*:[^;]+;/g) ?? [];
+    expect(animations.length).toBeGreaterThan(8);
+    for (const rule of animations) {
+      if (/none/.test(rule)) continue;
+      expect(rule, rule).toMatch(/steps\(/);
+    }
+  });
+
+  it("moves parts by whole sprite units (6px, never a fraction) with CSS transforms", () => {
+    const moves = css.match(/translate[XY]?\([^)]*\)/g) ?? [];
+    expect(moves.length).toBeGreaterThan(5);
+    for (const move of moves) {
+      if (move.includes("--cu")) continue;
+      for (const n of move.match(/-?\d+(\.\d+)?px/g) ?? []) {
+        expect(Math.abs(Number.parseFloat(n)) % 6, move).toBe(0);
+      }
+    }
+    expect(css).not.toMatch(/rotate\(|scale\(/);
+  });
+
+  it("switches every hero animation off under reduced motion", () => {
+    const block = css.slice(css.indexOf("@media (prefers-reduced-motion: reduce)"));
+    expect(block).toContain("animation: none !important");
+    for (const selector of [".hero-cat-hop", ".hero-cat-layer", ".hero-cat .cat-art"]) {
+      expect(block).toContain(selector);
+    }
   });
 });
 

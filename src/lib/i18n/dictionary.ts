@@ -64,6 +64,10 @@ export interface Dictionary {
     /** Announced to screen readers while the loading screen is up; never shown. */
     readonly label: string;
   };
+  readonly ruler: {
+    /** The ruler's marker for the hero, the top of the page (the other markers use the nav labels). */
+    readonly top: string;
+  };
   readonly cat: {
     /** The accessible name of the hero cat's button. */
     readonly label: string;
@@ -138,6 +142,9 @@ const en: Dictionary = {
   },
   loader: {
     label: "Loading",
+  },
+  ruler: {
+    top: "Top",
   },
   cat: {
     label: "Programmer cat",
@@ -215,6 +222,9 @@ const mn: Dictionary = {
   },
   loader: {
     label: "Ачаалж байна",
+  },
+  ruler: {
+    top: "Эхлэл",
   },
   cat: {
     label: "Программист муур",
