@@ -130,7 +130,7 @@
  */
 .hero-cat .cat-art[data-state="night"] .cat-head { animation: cat-breathe 4.6s steps(1, end) 1s infinite; }
 .hero-cat .cat-art[data-state="night"] .cat-tail { animation: cat-tip 5.4s steps(1, end) 1s infinite; }
-.hero-cat .cat-art[data-state="night"] .cat-zzz { animation: cat-drift 4s steps(1, end) 1s infinite; }
+.hero-cat .cat-art[data-state="night"] .cat-zzz { animation: cat-drift 4s steps(1, end) 1s infinite backwards; }
 .hero-cat .cat-art[data-state="night"] .cat-steam[data-layer="steam-1"] { animation: cat-steam-a 1.2s steps(1, end) infinite; }
 .hero-cat .cat-art[data-state="night"] .cat-steam[data-layer="steam-2"] { animation: cat-steam-b 1.2s steps(1, end) infinite; }
 
@@ -252,6 +252,8 @@
  * mirrors them; the z's are mirrored back so they read. The wrapper never takes the pointer. Every loop waits out the
  * arrival hop (400ms); nothing moves under reduced motion.
  */
+/* The geometry below (the box's 32 px height and its bottom offset) is mirrored by CAT_REACH_PX and HEADER_PX in
+   src/components/ruler/ruler.tsx; change them together. */
 .ruler-cat {
   --cu: 3px;
   --hu: 2px;
@@ -306,7 +308,7 @@
 
 /* Asleep: breathing (the head sinks one cell onto the curl and rises) and a z drifting up and away in cell steps. */
 .ruler-cat .cat-art[data-pose="sleep"] .cat-head { animation: mini-breathe 3.2s steps(1, end) 400ms infinite; }
-.ruler-cat .cat-art[data-pose="sleep"] .cat-zzz { animation: mini-drift 3.2s steps(1, end) 400ms infinite; }
+.ruler-cat .cat-art[data-pose="sleep"] .cat-zzz { animation: mini-drift 3.2s steps(1, end) 400ms infinite backwards; }
 
 /* Napping at the end of the page: the same slow breath, a little slower. */
 .ruler-cat .cat-art[data-pose="nap"] .cat-head { animation: mini-breathe 4.4s steps(1, end) 400ms infinite; }

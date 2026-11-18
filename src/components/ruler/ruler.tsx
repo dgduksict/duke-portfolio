@@ -45,12 +45,16 @@ const DRAG_SLOP = 3;
 const NEAR_PX = 22;
 /** A document must be taller than the viewport by this much (px) to go live, and only taller to stay live. */
 const LIVE_SLACK_PX = 1;
-/** The site header's height (px): its 64 px bar and the 4 px beam edge below it. Nothing of the cat may reach above it. */
+/**
+ * The site header's height (px): its 64 px bar and the 4 px beam edge below it. Nothing of the cat may reach above it.
+ * Keep in step with the header and with the `.ruler-cat` geometry in components/cat/cat.css.
+ */
 const HEADER_PX = 68;
 /**
  * How far the cat's box reaches above the needle's line (px): the readout plate's top edge (26) and his 32 px box on
  * it, plus the 4 px apex of his arrival hop (cat.css). Under the page's first few percent the needle is too close to
  * the header for that, so he stays away until his top clears the header with a little air (CAT_MIN_Y, in needle px).
+ * Must match the `.ruler-cat` geometry in components/cat/cat.css (box size, bottom offset, hop).
  */
 const CAT_REACH_PX = 62;
 const CAT_MIN_Y = HEADER_PX + CAT_REACH_PX - RAIL_TOP + 4;

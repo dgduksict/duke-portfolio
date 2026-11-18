@@ -242,7 +242,7 @@ function LampGlow({ cx, cy }: { readonly cx: number; readonly cy: number }) {
 
 /** The left part of the room is 80 cells wide and as tall as the window wall (its right edge meets the frame). */
 const LEFT_COLS = 80;
-/** Rows of the room, top of the window wall to the floor (window-scene.tsx keeps the same numbers in CSS). */
+/** Rows of the room, top of the window wall to the floor (scene.css keeps the same numbers in CSS). */
 export const ROOM_ROWS = 95;
 /** The floor line and the desk top, in room rows. */
 const FLOOR = ROOM_ROWS;

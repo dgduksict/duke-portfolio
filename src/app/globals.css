@@ -36,7 +36,7 @@
   --sun: #f2b53a;
   --wood: #9a6a3c;
   --leaf: #4d7a38;
-  /* What shows before the sky has a time to paint; keeps white header text legible. */
+  /* What shows in the window glass before the sky has a time to paint. */
   --sky-base: #0e1b3a;
   color-scheme: light;
 }

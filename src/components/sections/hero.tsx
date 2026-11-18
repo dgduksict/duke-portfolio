@@ -36,11 +36,11 @@ export function Hero() {
           {t(profile.name)}
         </h1>
 
-        <p className="type-lead mt-6 font-medium sm:mt-8">{t(profile.headline)}</p>
+        <p className="type-lead mt-6 sm:mt-8">{t(profile.headline)}</p>
         <p className="type-lead measure mt-2 text-ink-soft">{t(profile.intro)}</p>
 
         {profile.availability !== null ? (
-          <p className="mt-5 inline-flex items-center gap-2 text-sm font-medium">
+          <p className="mt-5 inline-flex items-center gap-2 text-sm">
             <span className="px-dot" aria-hidden />
             {t(profile.availability)}
           </p>
