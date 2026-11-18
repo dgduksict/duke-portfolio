@@ -98,6 +98,22 @@ describe("WindowScene", () => {
     expect(container.querySelector("[data-header-zone]")).not.toBeNull();
   });
 
+  it("has a compact variant: the window, sill, plants and cat slot, without the room or the header zone", () => {
+    const { container } = render(
+      <WindowScene now={NOON} compact>
+        <span>cat</span>
+      </WindowScene>,
+    );
+    const root = container.firstElementChild as HTMLElement;
+    expect(root).toHaveClass("scene", "scene-compact");
+    expect(root.querySelector(".scene-frame [data-ready]")).not.toBeNull();
+    expect(root.querySelector(".scene-sill")).not.toBeNull();
+    expect(root.querySelectorAll('[data-layer="sill-plant"]')).toHaveLength(2);
+    expect(root.querySelector("[data-cat-slot]")).toHaveTextContent("cat");
+    expect(root.querySelector("[data-header-zone]")).toBeNull();
+    expect(root.querySelector(".scene-left, .scene-right, .scene-radiator, .scene-wainscot, .scene-skirting, .scene-mug")).toBeNull();
+  });
+
   it("wears no foreign brand colours", () => {
     for (const now of [null, NOON, DUSK, MIDNIGHT]) {
       const html = render(<WindowScene now={now} />).container.innerHTML.toLowerCase();

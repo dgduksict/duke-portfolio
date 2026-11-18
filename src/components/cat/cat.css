@@ -33,7 +33,6 @@
  * silhouette keeps its edge, and the z turns to window light.
  */
 .dark .cat-art,
-.loader .cat-art,
 .cat-art[data-state="night"] {
   --cat-rim: #59639a;
   --cat-zzz: #ffe58a;
