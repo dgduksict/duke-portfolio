@@ -1,108 +1,48 @@
 /*
- * The programmer cat (components/cat/cat-art.tsx). Static drawing styles only: the cat's own colour set, mapped from
- * the portfolio tokens (--ink, --ink-soft, --ground, --rule, --accent, --sun) once for the light theme and once for
- * the dark one, the paint classes, and the transform box/origin of every part a later animation moves. The values are
- * fixed here rather than read from the live tokens so that neither the theme flip (--ink turns pale in dark mode)
- * nor the sky behind the hero ever repaints the drawing: the cat stays an ink cat in a blue hoodie.
+ * The pixel cat (components/cat/cat-art.tsx, drawn from the bitmaps in sprites.ts). Static paint only: the colour of
+ * every legend character of the sprites (PALETTE maps each one to a variable here), then the transform box/origin of
+ * every part a later animation moves. The values are fixed rather than read from the live tokens, so neither the theme
+ * flip nor the sky behind the hero ever repaints him: he stays a black cat with a 1-pixel rim, amber and cream accents.
  */
 
 .cat-art {
-  /* the body: near-black ink (--ink, light), a lifted ink for inner ears and keys, a pale rim light and edge */
-  --cat-ink: #0e1a2b;
-  --cat-ink-2: #29364b;
-  --cat-rim: #e7ecf4;
-  --cat-edge: #f3f5f8;
-  --cat-edge-alpha: 0.6;
-  --cat-paper: #ffffff;
-  --cat-eye: #ffffff;
-  --cat-nose: #f1c88f;
-  /* the hoodie: --accent, lit a touch at the top left and deepened at the hem (one hue, never a sweep) */
-  --cat-hoodie-lit: #3368d6;
-  --cat-hoodie: #1f56c9;
-  --cat-hoodie-deep: #1a47a8;
-  --cat-hoodie-rim: #8cb6ff;
-  /* drawstrings and zip: --sun */
-  --cat-sun: #e39a2d;
-  /* the laptop: --rule aluminium, a darker side, an ink screen with tidy lines in the site's colours */
-  --cat-metal: #d6dde7;
-  --cat-metal-2: #a6b1c2;
-  --cat-screen: #0b1322;
-  --cat-code-accent: #8cb6ff;
-  --cat-code-sun: #f2b45a;
-  --cat-code-soft: #93a0b5;
-  --cat-code-rule: #d6dde7;
-  /* zzz: on the page ground (the ruler cat) */
-  --cat-zzz-a: #1f56c9;
-  --cat-zzz-b: #e39a2d;
+  /* the silhouette: near-black ink, a rim one step lighter (it is what keeps him readable on a dark sky) */
+  --cat-ink: #0b0c14;
+  --cat-rim: #3b4266;
+  /* the half-lidded eye: window-light yellow */
+  --cat-eye: #ffd34e;
+  /* accents from the site's lamp palette: amber, its deep shade, the bright glow, cream white */
+  --cat-amber: #e9a420;
+  --cat-amber-deep: #b9770f;
+  --cat-glow: #ffe58a;
+  --cat-white: #fff6e0;
+  /* the laptop: a warm silver case with a darker shade and keys, a deep blue screen */
+  --cat-metal: #cdc4b0;
+  --cat-metal-shade: #8f8570;
+  --cat-screen: #1f2d5c;
+  /* the mug's coffee and its steam */
+  --cat-coffee: #5a3a22;
+  --cat-steam: #e9e4d6;
+  /* the sleeping z on the page ground (the ruler cat, light theme) */
+  --cat-zzz: #b9770f;
+  image-rendering: pixelated;
 }
 
-/* The dark ground (the dark theme, and the loading screen, which always has the night side of the ridge): the ink lifts just off the page and the edge turns into a visible pale outline. */
-.dark .cat-art,
-.loader .cat-art {
-  --cat-ink: #131f33;
-  --cat-ink-2: #2b3a52;
-  --cat-edge: #e7ecf4;
-  --cat-edge-alpha: 0.42;
-  --cat-hoodie-lit: #4377e3;
-  --cat-hoodie: #2c62d6;
-  --cat-hoodie-deep: #1f4bb0;
-  --cat-sun: #f2b45a;
-  --cat-metal: #c3ccd9;
-  --cat-metal-2: #8793a8;
-  --cat-zzz-a: #8cb6ff;
-  --cat-zzz-b: #f2b45a;
-}
-
-/* The hero sleeps under the night sky in both themes, so his zzz is always the pale pair. */
-.cat-art[data-state] {
-  --cat-zzz-a: #8cb6ff;
-  --cat-zzz-b: #f2b45a;
-}
-
-/* ---------- paint ---------- */
-.cat-art .f-ink { fill: var(--cat-ink); }
-.cat-art .f-ink2 { fill: var(--cat-ink-2); }
-.cat-art .f-paper { fill: var(--cat-paper); }
-.cat-art .f-eye { fill: var(--cat-eye); }
-.cat-art .f-nose { fill: var(--cat-nose); }
-.cat-art .f-sun { fill: var(--cat-sun); }
-.cat-art .f-metal { fill: var(--cat-metal); }
-.cat-art .f-metal2 { fill: var(--cat-metal-2); }
-.cat-art .f-screen { fill: var(--cat-screen); }
-.cat-art .f-cursor { fill: var(--cat-code-sun); }
-.cat-art .f-shade { fill: var(--cat-ink); opacity: 0.22; }
-.cat-art .f-ground { fill: var(--cat-ink); opacity: 0.1; }
-
-.cat-art [class^="s-"],
-.cat-art [class*=" s-"] {
-  fill: none;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-.cat-art .s-ink { stroke: var(--cat-ink); }
-.cat-art .s-paper { stroke: var(--cat-paper); }
-.cat-art .s-sun { stroke: var(--cat-sun); }
-.cat-art .s-metal2 { stroke: var(--cat-metal-2); }
-.cat-art .s-shade { stroke: var(--cat-ink); opacity: 0.22; }
-.cat-art .s-code-accent { stroke: var(--cat-code-accent); }
-.cat-art .s-code-sun { stroke: var(--cat-code-sun); }
-.cat-art .s-code-soft { stroke: var(--cat-code-soft); }
-.cat-art .s-code-rule { stroke: var(--cat-code-rule); }
-.cat-art .s-zzz-a { stroke: var(--cat-zzz-a); }
-.cat-art .s-zzz-b { stroke: var(--cat-zzz-b); }
-/* The pale rim light on the ink silhouette: it is what keeps the cat visible on the dark sky and the dark ground. */
-.cat-art .s-rim { stroke: var(--cat-rim); opacity: 0.9; }
-.cat-art .s-whisker { stroke: var(--cat-rim); opacity: 0.7; }
-.cat-art .s-hoodie-lit { stroke: var(--cat-hoodie-rim); opacity: 0.55; }
 /*
- * A pale outline drawn under the ink parts. On the light ground it is invisible (same colour), on a dark ground it is
- * the edge that keeps the silhouette, and where the cat overlaps himself it separates the parts.
+ * On a dark ground (the dark theme, the loading screen) and in front of the night window, the rim lifts so the black
+ * silhouette keeps its edge, and the z turns to window light.
  */
-.cat-art .s-edge { stroke: var(--cat-edge); opacity: var(--cat-edge-alpha); }
+.dark .cat-art,
+.loader .cat-art,
+.cat-art[data-state="night"] {
+  --cat-rim: #59639a;
+  --cat-zzz: #ffe58a;
+}
 
-.cat-art .h-lit { stop-color: var(--cat-hoodie-lit); }
-.cat-art .h-mid { stop-color: var(--cat-hoodie); }
-.cat-art .h-deep { stop-color: var(--cat-hoodie-deep); }
+/* Steam has two frames; the second waits for the animation (and stays hidden under reduced motion). */
+.cat-art .cat-steam[data-layer="steam-2"] {
+  opacity: 0;
+}
 
 /* ---------- animated parts: each pivots on its own box ---------- */
 .cat-art .cat-head,
@@ -223,7 +163,7 @@
 .hero-cat-bubble {
   position: absolute;
   top: 6%;
-  right: 72%;
+  right: 76%;
   width: max-content;
   max-width: 15rem;
   padding: 0.5rem 0.8rem;

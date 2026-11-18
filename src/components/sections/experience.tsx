@@ -12,7 +12,7 @@ export function Experience() {
 
   return (
     <Section id="experience" title={dict.experience.title}>
-      <ol className="divide-y divide-rule">
+      <ol className="grid gap-10">
         {experience.map((entry) => {
           const headingId = `role-${entry.id}-title`;
           const current = entry.end === null;
@@ -24,22 +24,22 @@ export function Experience() {
               key={entry.id}
               id={`role-${entry.id}`}
               aria-labelledby={headingId}
-              className="grid scroll-mt-24 gap-x-8 gap-y-2 py-8 first:pt-0 sm:grid-cols-[9rem_minmax(0,1fr)]"
+              className="px-box grid scroll-mt-24 gap-x-8 gap-y-2 p-5 sm:grid-cols-[9rem_minmax(0,1fr)] sm:p-6"
             >
-              <p className="tabular flex items-center gap-2 self-start pt-1 text-sm text-ink-soft">
+              <p className="tabular flex items-center gap-2 self-start pt-1 text-base text-ink-soft">
                 {formatYearRange(entry.start, entry.end, dict.experience.now)}
                 {current ? (
                   <>
-                    <span className="size-1.5 rounded-full bg-sun" aria-hidden />
+                    <span className="px-dot" aria-hidden />
                     <span className="sr-only">{dict.experience.current}</span>
                   </>
                 ) : null}
               </p>
 
               <div className="min-w-0">
-                <h3 id={headingId} className="text-xl font-semibold tracking-tight">
+                <h3 id={headingId} className="text-xl">
                   {t(entry.role)}
-                  <span className="font-normal text-ink-soft">, </span>
+                  <span className="text-ink-soft">, </span>
                   {entry.companyUrl !== null ? (
                     <a href={entry.companyUrl} target="_blank" rel="noopener noreferrer" className="link">
                       {entry.company}
@@ -49,12 +49,12 @@ export function Experience() {
                     entry.company
                   )}
                 </h3>
-                <p className="mt-0.5 text-sm text-ink-soft">{t(entry.location)}</p>
+                <p className="mt-0.5 text-base text-ink-soft">{t(entry.location)}</p>
 
                 <p className="measure mt-3">{t(entry.summary)}</p>
 
                 {highlights.length > 0 ? (
-                  <ul className="measure mt-3 list-disc space-y-1.5 pl-5 marker:text-ink-soft">
+                  <ul className="px-list measure mt-3 space-y-1.5">
                     {highlights.map((highlight) => (
                       <li key={highlight}>{highlight}</li>
                     ))}
@@ -62,7 +62,7 @@ export function Experience() {
                 ) : null}
 
                 {related.length > 0 ? (
-                  <p className="mt-3 text-sm">
+                  <p className="mt-3 text-base">
                     <span className="text-ink-soft">{dict.experience.fromThisRole} </span>
                     {related.map((project, index) => (
                       <Fragment key={project.id}>
@@ -77,10 +77,12 @@ export function Experience() {
 
                 <ul
                   aria-label={dict.work.builtWith}
-                  className="mt-4 flex flex-wrap gap-x-4 gap-y-1 text-sm text-ink-soft"
+                  className="mt-4 flex flex-wrap gap-x-3 gap-y-3 text-base"
                 >
                   {entry.stack.map((tool) => (
-                    <li key={tool}>{tool}</li>
+                    <li key={tool} className="px-chip">
+                      {tool}
+                    </li>
                   ))}
                 </ul>
               </div>

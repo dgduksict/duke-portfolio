@@ -1,0 +1,255 @@
+/*
+ * Pixel foundation. Everything pixel-drawn snaps to one unit, --px: borders, ledges,
+ * dashes, focus rings and (later) sprite scale. Squares only: no radius, blur, soft
+ * shadow or smooth gradient. Borders are box-shadow stair-steps with the corner pixel
+ * left out; fills are flat tokens from globals.css, so everything follows light/dark.
+ *
+ * The stair-step shadows draw OUTSIDE the box by one --px, so give neighbours at least
+ * that much room (a gap of 1rem is plenty).
+ */
+
+:root {
+  --px: 4px;
+}
+
+@media (width < 30rem) {
+  :root {
+    --px: 3px;
+  }
+}
+
+@layer components {
+  /* ------------------------------------------------------------------ boxes */
+
+  /* A raised panel: flat fill, stepped outline, no ledge. */
+  .px-box {
+    background-color: var(--panel);
+    color: var(--ink);
+    border-radius: 0;
+    box-shadow:
+      calc(var(--px) * -1) 0 0 0 var(--edge),
+      var(--px) 0 0 0 var(--edge),
+      0 calc(var(--px) * -1) 0 0 var(--edge),
+      0 var(--px) 0 0 var(--edge);
+  }
+
+  /* A sunken panel: the ground colour with a shaded top and left inner strip. */
+  .px-box-inset {
+    background-color: var(--ground);
+    color: var(--ink);
+    border-radius: 0;
+    box-shadow:
+      calc(var(--px) * -1) 0 0 0 var(--edge),
+      var(--px) 0 0 0 var(--edge),
+      0 calc(var(--px) * -1) 0 0 var(--edge),
+      0 var(--px) 0 0 var(--edge),
+      inset 0 var(--px) 0 0 var(--shade),
+      inset var(--px) 0 0 0 var(--shade);
+  }
+
+  /* ---------------------------------------------------------------- buttons */
+
+  /*
+   * Shared by .px-btn and .btn. A face, a stepped outline and a ledge of height --ledge.
+   * Rest: ledge 1 unit. Hover (real pointers only): the face rises one unit and the ledge
+   * grows to 2, so the bottom edge stays put. Press: the face drops one unit onto a zero
+   * ledge. All steps are instant: no transitions.
+   */
+  .px-btn,
+  .btn {
+    --ledge: var(--px);
+    --face: var(--panel);
+    --ledge-color: var(--shade);
+
+    position: relative;
+    background-color: var(--face);
+    border-radius: 0;
+    cursor: pointer;
+    transition: none;
+    box-shadow:
+      calc(var(--px) * -1) 0 0 0 var(--edge),
+      var(--px) 0 0 0 var(--edge),
+      0 calc(var(--px) * -1) 0 0 var(--edge),
+      calc(var(--px) * -1) var(--ledge) 0 0 var(--edge),
+      var(--px) var(--ledge) 0 0 var(--edge),
+      0 var(--ledge) 0 0 var(--ledge-color),
+      0 calc(var(--ledge) + var(--px)) 0 0 var(--edge);
+  }
+
+  @media (hover: hover) {
+    .px-btn:hover,
+    .btn:hover {
+      --ledge: calc(var(--px) * 2);
+
+      transform: translateY(calc(var(--px) * -1));
+    }
+  }
+
+  .px-btn:active,
+  .btn:active {
+    --ledge: 0px;
+
+    transform: translateY(var(--px));
+  }
+
+  /* ------------------------------------------------------------ links, rules */
+
+  /*
+   * A pixel-dashed underline: dashes one unit wide with one unit gaps, drawn as a hard
+   * stop pattern on the element's own bottom edge, so it wraps with the text.
+   * --dash is the colour; --dash-h the thickness.
+   */
+  .px-dash,
+  .link,
+  .link-quiet {
+    --dash: currentColor;
+    --dash-h: max(2px, calc(var(--px) / 2));
+
+    background-image: linear-gradient(90deg, var(--dash) 0 50%, transparent 50% 100%);
+    background-size: calc(var(--px) * 2) var(--dash-h);
+    background-position: 0 100%;
+    background-repeat: repeat-x;
+    padding-bottom: max(2px, calc(var(--px) / 2));
+    -webkit-box-decoration-break: clone;
+    box-decoration-break: clone;
+    text-decoration: none;
+  }
+
+  /* A divider strip: two rows of bricks, the lower row half a brick over. */
+  .px-rule {
+    height: calc(var(--px) * 2);
+    border: 0;
+    background-image:
+      linear-gradient(90deg, var(--rule) 0 75%, transparent 75% 100%),
+      linear-gradient(90deg, var(--rule) 0 75%, transparent 75% 100%);
+    background-size: calc(var(--px) * 4) var(--px);
+    background-position:
+      0 0,
+      calc(var(--px) * 2) var(--px);
+    background-repeat: repeat-x;
+  }
+
+  /* ---------------------------------------------------------- section strips */
+
+  /*
+   * The divider between sections: a skyline of seven blocks standing on a one-unit ground
+   * line, drawn as one 24-unit tile of hard-stop gradient columns that repeats along x.
+   * It sits on the top edge of its (positioned) parent and rises into the space above, so
+   * the parent's own padding keeps the layout. Windows are the accent, the blocks the
+   * theme's rule colour, the ground line the edge colour. Layers run top to bottom.
+   */
+  .px-divider {
+    --u: var(--px);
+    --tile: calc(var(--u) * 24);
+
+    position: absolute;
+    inset-inline: 0;
+    bottom: 100%;
+    height: calc(var(--u) * 6);
+    pointer-events: none;
+    background-repeat: repeat-x;
+    background-image:
+      /* windows */
+      linear-gradient(90deg, transparent 0 calc(var(--u) * 4), var(--accent) 0 calc(var(--u) * 5), transparent 0),
+      linear-gradient(90deg, transparent 0 calc(var(--u) * 6), var(--accent) 0 calc(var(--u) * 7), transparent 0),
+      linear-gradient(90deg, transparent 0 calc(var(--u) * 11), var(--accent) 0 calc(var(--u) * 12), transparent 0),
+      linear-gradient(90deg, transparent 0 calc(var(--u) * 12), var(--accent) 0 calc(var(--u) * 13), transparent 0),
+      linear-gradient(90deg, transparent 0 calc(var(--u) * 18), var(--accent) 0 calc(var(--u) * 19), transparent 0),
+      linear-gradient(90deg, transparent 0 calc(var(--u) * 22), var(--accent) 0 calc(var(--u) * 23), transparent 0),
+      /* blocks, tallest first */
+      linear-gradient(90deg, transparent 0 calc(var(--u) * 10), var(--rule) 0 calc(var(--u) * 14), transparent 0),
+      linear-gradient(90deg, transparent 0 calc(var(--u) * 3), var(--rule) 0 calc(var(--u) * 5), transparent 0 calc(var(--u) * 17), var(--rule) 0 calc(var(--u) * 20), transparent 0),
+      linear-gradient(90deg, transparent 0 calc(var(--u) * 5), var(--rule) 0 calc(var(--u) * 8), transparent 0 calc(var(--u) * 20), var(--rule) 0),
+      linear-gradient(90deg, var(--rule) 0 calc(var(--u) * 3), transparent 0 calc(var(--u) * 14), var(--rule) 0 calc(var(--u) * 17), transparent 0),
+      linear-gradient(90deg, transparent 0 calc(var(--u) * 8), var(--rule) 0 calc(var(--u) * 10), transparent 0),
+      /* ground line */
+      linear-gradient(var(--edge), var(--edge));
+    background-size:
+      var(--tile) var(--u),
+      var(--tile) var(--u),
+      var(--tile) var(--u),
+      var(--tile) var(--u),
+      var(--tile) var(--u),
+      var(--tile) var(--u),
+      var(--tile) calc(var(--u) * 5),
+      var(--tile) calc(var(--u) * 4),
+      var(--tile) calc(var(--u) * 3),
+      var(--tile) calc(var(--u) * 2),
+      var(--tile) var(--u),
+      100% var(--u);
+    background-position:
+      0 calc(100% - var(--u) * 2),
+      0 calc(100% - var(--u) * 2),
+      0 calc(100% - var(--u) * 4),
+      0 calc(100% - var(--u) * 2),
+      0 calc(100% - var(--u) * 3),
+      0 calc(100% - var(--u) * 2),
+      0 calc(100% - var(--u)),
+      0 calc(100% - var(--u)),
+      0 calc(100% - var(--u)),
+      0 calc(100% - var(--u)),
+      0 calc(100% - var(--u)),
+      0 100%;
+  }
+
+  /* A tag: a ground-coloured square chip with a thin stepped outline, for tool lists. */
+  .px-chip {
+    display: inline-block;
+    padding: 0 0.5rem;
+    background-color: var(--ground);
+    color: var(--ink-soft);
+    box-shadow:
+      -2px 0 0 0 var(--rule),
+      2px 0 0 0 var(--rule),
+      0 -2px 0 0 var(--rule),
+      0 2px 0 0 var(--rule);
+  }
+
+  /* A solid square marker, two units across (the "current role" dot). */
+  .px-dot {
+    display: inline-block;
+    width: calc(var(--px) * 2);
+    height: calc(var(--px) * 2);
+    flex: none;
+    background-color: var(--sun);
+  }
+
+  /* Square bullets: a one-unit square in the accent colour, centred on the first line. */
+  .px-list {
+    list-style: none;
+    padding-left: 0;
+  }
+
+  .px-list > li {
+    position: relative;
+    padding-left: calc(var(--px) * 4);
+  }
+
+  .px-list > li::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: calc(0.75em - var(--px) / 2);
+    width: var(--px);
+    height: var(--px);
+    background-color: var(--accent-text);
+  }
+
+  /* Rows of a list or definition list, split by a pixel-dotted line instead of a hard rule. */
+  .px-rows > * + * {
+    background-image: linear-gradient(90deg, var(--rule) 0 50%, transparent 50% 100%);
+    background-size: calc(var(--px) * 2) 2px;
+    background-position: 0 0;
+    background-repeat: repeat-x;
+  }
+
+  /* -------------------------------------------------------------- focus ring */
+
+  /* A block outline one unit thick, one unit off the element, in --focus. .px-focus is focus-only. */
+  .px-focus:focus-visible,
+  :focus-visible {
+    outline: var(--px) solid var(--focus);
+    outline-offset: var(--px);
+    border-radius: 0;
+  }
+}

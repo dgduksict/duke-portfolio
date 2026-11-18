@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowUpRight } from "lucide-react";
+import { PixelIcon } from "@/components/ui/pixel-icons";
 import { Section } from "@/components/ui/section";
 import { Pipeline } from "@/components/work/pipeline";
 import { projects } from "@/data/projects";
@@ -14,7 +14,7 @@ export function Work() {
 
   return (
     <Section id="work" title={dict.work.title}>
-      <div className="divide-y divide-rule">
+      <div className="grid gap-12">
         {projects.map((project) => {
           const headingId = `project-${project.id}-title`;
           const outcomes = project.outcomes ? t(project.outcomes) : [];
@@ -26,13 +26,13 @@ export function Work() {
               key={project.id}
               id={`project-${project.id}`}
               aria-labelledby={headingId}
-              className="project scroll-mt-24 py-12 first:pt-0"
+              className="project px-box scroll-mt-24 p-5 sm:p-8"
             >
               <header className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2">
                 <h3 id={headingId} className="type-project">
                   {t(project.name)}
                 </h3>
-                <p className="flex flex-wrap items-baseline gap-x-4 text-sm text-ink-soft">
+                <p className="flex flex-wrap items-baseline gap-x-4 text-base text-ink-soft">
                   {project.links.length === 0 ? (
                     <span>{dict.work.internal}</span>
                   ) : (
@@ -42,10 +42,10 @@ export function Work() {
                         href={link.href}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="link inline-flex items-center gap-1"
+                        className="link inline-flex items-center gap-2"
                       >
                         {hostOf(link.href)}
-                        <ArrowUpRight aria-hidden className="size-3.5" />
+                        <PixelIcon name="arrow-up-right" />
                         <span className="sr-only">({dict.work.newTab})</span>
                       </a>
                     ))
@@ -61,16 +61,16 @@ export function Work() {
               <div className="grid gap-x-10 gap-y-6 md:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)]">
                 <p className="measure text-ink-soft">{t(project.description)}</p>
 
-                <dl className="space-y-5 text-[0.9375rem]">
+                <dl className="space-y-5">
                   <div>
-                    <dt className="font-semibold">{dict.work.myPart}</dt>
+                    <dt className="text-accent-text">{dict.work.myPart}</dt>
                     <dd className="mt-1 text-ink-soft">{t(project.part)}</dd>
                   </div>
                   {outcomes.length > 0 ? (
                     <div>
-                      <dt className="font-semibold">{dict.work.outcomes}</dt>
+                      <dt className="text-accent-text">{dict.work.outcomes}</dt>
                       <dd className="mt-1">
-                        <ul className="list-disc space-y-1 pl-5 text-ink-soft marker:text-ink-soft">
+                        <ul className="px-list space-y-1 text-ink-soft">
                           {outcomes.map((outcome) => (
                             <li key={outcome}>{outcome}</li>
                           ))}
@@ -79,11 +79,13 @@ export function Work() {
                     </div>
                   ) : null}
                   <div>
-                    <dt className="font-semibold">{dict.work.builtWith}</dt>
+                    <dt className="text-accent-text">{dict.work.builtWith}</dt>
                     <dd className="mt-1">
-                      <ul className="flex flex-wrap gap-x-3 gap-y-1 text-ink-soft">
+                      <ul className="flex flex-wrap gap-x-3 gap-y-3">
                         {project.stack.map((tool) => (
-                          <li key={tool}>{tool}</li>
+                          <li key={tool} className="px-chip">
+                            {tool}
+                          </li>
                         ))}
                       </ul>
                     </dd>
@@ -95,8 +97,8 @@ export function Work() {
                 <dl className="mt-8 flex flex-wrap gap-x-10 gap-y-4">
                   {metrics.map((metric) => (
                     <div key={metric.id}>
-                      <dt className="text-sm text-ink-soft">{t(metric.label)}</dt>
-                      <dd className="tabular text-2xl font-semibold tracking-tight">
+                      <dt className="text-base text-ink-soft">{t(metric.label)}</dt>
+                      <dd className="tabular font-pixel text-[1.5rem] leading-tight">
                         {formatMetric(metric.value, metric.suffix, metric.decimals)}
                       </dd>
                     </div>

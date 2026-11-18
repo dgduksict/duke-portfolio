@@ -1,16 +1,15 @@
 "use client";
 
-import { Menu, Moon, Sun, X } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
 import { Eyes } from "@/components/ui/eyes";
+import { PixelIcon } from "@/components/ui/pixel-icons";
 import { navItems } from "@/data/navigation";
 import { profile } from "@/data/profile";
 import { useActiveSection } from "@/hooks/use-active-section";
 import { useI18n } from "@/hooks/use-i18n";
 import { useIsMounted } from "@/hooks/use-is-mounted";
 import { getDictionary } from "@/lib/i18n";
-import { cn } from "@/lib/utils";
 import { usePortfolioStore } from "@/store/portfolio-store";
 import { LANGUAGES } from "@/types";
 
@@ -45,7 +44,7 @@ function ThemeToggle({ label }: { readonly label: string }) {
       title={label}
       className="header-control"
     >
-      {dark ? <Moon aria-hidden className="size-4" /> : <Sun aria-hidden className="size-4" />}
+      <PixelIcon name={dark ? "moon" : "sun"} cell={3} />
     </button>
   );
 }
@@ -75,9 +74,9 @@ export function SiteHeader() {
         {dict.nav.skip}
       </a>
 
-      <div className="container-page flex h-16 items-center justify-between gap-4">
-        <a href="#top" aria-label={dict.nav.home} className="flex items-center gap-2.5 rounded-md">
-          <span className="text-lg font-bold tracking-tight">{t(profile.shortName)}</span>
+      <div className="container-page flex h-16 items-center justify-between gap-1 min-[23rem]:gap-4">
+        <a href="#top" aria-label={dict.nav.home} className="flex items-center gap-2.5">
+          <span className="font-pixel text-[1rem] leading-none">{t(profile.shortName)}</span>
           <Eyes />
         </a>
 
@@ -116,13 +115,13 @@ export function SiteHeader() {
             onClick={() => setMobileNavOpen(!mobileNavOpen)}
             className="header-control md:hidden"
           >
-            {mobileNavOpen ? <X aria-hidden className="size-5" /> : <Menu aria-hidden className="size-5" />}
+            <PixelIcon name={mobileNavOpen ? "close" : "menu"} cell={3} />
           </button>
         </div>
       </div>
 
       {mobileNavOpen ? (
-        <nav id="mobile-nav" aria-label={dict.nav.primary} className="border-t border-rule md:hidden">
+        <nav id="mobile-nav" aria-label={dict.nav.primary} className="site-menu md:hidden">
           <ul className="container-page grid py-3">
             {links.map((link) => (
               <li key={link.id}>
@@ -130,7 +129,7 @@ export function SiteHeader() {
                   href={link.href}
                   aria-current={link.current ? "true" : undefined}
                   onClick={() => setMobileNavOpen(false)}
-                  className={cn("block py-3 text-lg font-medium", link.current ? "text-ink" : "text-ink-soft")}
+                  className="nav-link my-1 w-fit py-3"
                 >
                   {link.label}
                 </a>

@@ -18,10 +18,10 @@ export function Testimonials({ items }: TestimonialsProps) {
     <Section id="testimonials" title={dict.testimonials.title}>
       <div className="grid gap-x-12 gap-y-10 md:grid-cols-2">
         {items.map((item) => (
-          <figure key={item.id}>
+          <figure key={item.id} className="px-box p-5 sm:p-6">
             <blockquote className="type-lead measure">“{t(item.quote)}”</blockquote>
-            <figcaption className="mt-4 text-sm text-ink-soft">
-              <span className="font-medium text-ink">{item.author}</span>
+            <figcaption className="mt-4 text-base text-ink-soft">
+              <span className="text-ink">{item.author}</span>
               {`, ${t(item.role)}, ${item.company}`}
             </figcaption>
           </figure>
