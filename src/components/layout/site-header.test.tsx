@@ -16,6 +16,15 @@ describe("SiteHeader", () => {
     }
   });
 
+  it("keeps the brand link square and the header row gap responsive", () => {
+    render(<SiteHeader />);
+    const brand = screen.getByRole("link", { name: "Duke, back to the top" });
+    expect(brand.className).not.toMatch(/rounded/);
+    const row = brand.parentElement;
+    expect(row).toHaveClass("gap-1", "min-[23rem]:gap-4");
+    expect(row).not.toHaveClass("gap-4");
+  });
+
   it("offers a way past the navigation", () => {
     render(<SiteHeader />);
     expect(screen.getByRole("link", { name: "Skip to content" })).toHaveAttribute("href", "#main");

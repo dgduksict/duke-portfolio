@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, Copy } from "lucide-react";
+import { PixelIcon } from "@/components/ui/pixel-icons";
 import { useClipboard } from "@/hooks/use-clipboard";
 import { cn } from "@/lib/utils";
 
@@ -24,11 +24,7 @@ export function CopyButton({ value, label, copiedLabel, className }: CopyButtonP
         className={cn("btn btn-quiet", className)}
         data-print="hide"
       >
-        {copied ? (
-          <Check aria-hidden className="size-4 text-accent" />
-        ) : (
-          <Copy aria-hidden className="size-4" />
-        )}
+        {copied ? <PixelIcon name="check" className="text-accent-text" /> : <PixelIcon name="copy" />}
         <span>{copied ? copiedLabel : label}</span>
       </button>
       <span role="status" className="sr-only">

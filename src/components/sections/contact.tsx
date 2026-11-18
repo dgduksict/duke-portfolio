@@ -1,6 +1,5 @@
 "use client";
 
-import { Phone } from "lucide-react";
 import Image from "next/image";
 import type { ComponentType, SVGProps } from "react";
 import {
@@ -10,6 +9,7 @@ import {
   LinkedinIcon,
 } from "@/components/ui/brand-icons";
 import { CopyButton } from "@/components/ui/copy-button";
+import { PixelIcon } from "@/components/ui/pixel-icons";
 import { Section } from "@/components/ui/section";
 import { profile } from "@/data/profile";
 import { useI18n } from "@/hooks/use-i18n";
@@ -35,7 +35,7 @@ export function Contact() {
           width={735}
           height={694}
           sizes="(min-width: 768px) 14rem, 11rem"
-          className="aspect-square w-full max-w-56 rounded-xl object-cover"
+          className="px-box aspect-square w-full max-w-56 object-cover p-1"
         />
 
         <div className="min-w-0">
@@ -48,13 +48,13 @@ export function Contact() {
           <p className="mt-10">
             <a
               href={`mailto:${profile.email}`}
-              className="text-[clamp(1.5rem,4vw,2.5rem)] font-semibold tracking-tight underline decoration-rule decoration-2 underline-offset-[0.18em] transition-colors hover:decoration-accent"
+              className="link text-[1.25rem] [--dash-h:var(--px)] [overflow-wrap:anywhere] sm:text-[1.875rem] lg:text-[2.5rem]"
             >
               {profile.email}
             </a>
           </p>
 
-          <div className="mt-5 flex flex-wrap items-center gap-3">
+          <div className="mt-6 flex flex-wrap items-center gap-4">
             <CopyButton
               value={profile.email}
               label={dict.contact.copyEmail}
@@ -62,14 +62,14 @@ export function Contact() {
             />
             {profile.phone !== null ? (
               <a href={`tel:${profile.phone.replace(/\s/g, "")}`} className="btn btn-quiet tabular">
-                <Phone aria-hidden className="size-4" />
+                <PixelIcon name="phone" />
                 <span className="sr-only">{dict.contact.phone}: </span>
                 {profile.phone}
               </a>
             ) : null}
           </div>
 
-          <h3 className="mt-10 text-sm font-semibold">{dict.contact.elsewhere}</h3>
+          <h3 className="type-label mt-10">{dict.contact.elsewhere}</h3>
           <ul className="mt-3 flex flex-wrap gap-x-6 gap-y-3">
             {profile.socials.map((social) => {
               const Icon = SOCIAL_ICONS[social.icon];

@@ -22,25 +22,25 @@ export function Stack() {
     <Section id="stack" title={dict.stack.title}>
       <p className="measure text-ink-soft">{dict.stack.intro}</p>
 
-      <div className="mt-10 grid gap-x-14 gap-y-12 md:grid-cols-2">
+      <div className="mt-10 grid gap-x-12 gap-y-12 md:grid-cols-2 md:items-start">
         {SKILL_GROUPS.map((group) => {
           const items = evidence.filter((item) => item.skill.group === group);
           const used = items.filter((item) => item.places.length > 0);
           const unused = items.filter((item) => item.places.length === 0);
 
           return (
-            <div key={group}>
-              <h3 className="text-lg font-semibold tracking-tight">{dict.stack.groups[group]}</h3>
+            <div key={group} className="px-box p-5 sm:p-6">
+              <h3 className="type-label">{dict.stack.groups[group]}</h3>
 
               {used.length > 0 ? (
-                <dl className="mt-3 divide-y divide-rule">
+                <dl className="px-rows mt-4">
                   {used.map(({ skill, places }) => (
                     <div
                       key={skill.id}
-                      className="grid grid-cols-[minmax(0,8.5rem)_minmax(0,1fr)] gap-x-4 py-2.5"
+                      className="grid grid-cols-[minmax(0,8.5rem)_minmax(0,1fr)] gap-x-4 py-3"
                     >
-                      <dt className="font-medium">{skill.name}</dt>
-                      <dd className="text-sm leading-6 text-ink-soft">
+                      <dt>{skill.name}</dt>
+                      <dd className="text-base text-ink-soft">
                         {places.map((place, index) => (
                           <Fragment key={place.href}>
                             <a href={place.href} className="link-quiet">
@@ -56,7 +56,7 @@ export function Stack() {
               ) : null}
 
               {unused.length > 0 ? (
-                <p className="mt-3 text-sm text-ink-soft">
+                <p className="mt-3 text-base text-ink-soft">
                   {dict.stack.alsoUsed} {unused.map((item) => item.skill.name).join(", ")}.
                 </p>
               ) : null}
