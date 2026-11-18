@@ -1,6 +1,7 @@
 "use client";
 
 import { FileText, Mail } from "lucide-react";
+import { HeroCat } from "@/components/cat/hero-cat";
 import { Sky } from "@/components/sky/sky";
 import { GithubIcon, LinkedinIcon } from "@/components/ui/brand-icons";
 import { CopyButton } from "@/components/ui/copy-button";
@@ -26,7 +27,10 @@ export function Hero() {
 
   return (
     <section id="top" aria-labelledby="hero-name">
-      <Sky now={now} />
+      <div className="relative">
+        <Sky now={now} />
+        <HeroCat now={now} />
+      </div>
 
       <div className="container-page pb-16 sm:pb-24">
         <h1 id="hero-name" className="display-name pt-1">

@@ -1,4 +1,6 @@
 @import "tailwindcss";
+@import "../components/cat/cat.css";
+@import "../components/loader/loader.css";
 
 @custom-variant dark (&:where(.dark, .dark *));
 

@@ -2,6 +2,8 @@ import type { Metadata, Viewport } from "next";
 import { Geologica } from "next/font/google";
 import type { ReactNode } from "react";
 import { Providers } from "@/components/layout/providers";
+import { LoaderGate } from "@/components/loader/loader-gate";
+import { LoadingScreen } from "@/components/loader/loading-screen";
 import { profile } from "@/data/profile";
 import "./globals.css";
 
@@ -59,7 +61,11 @@ export default function RootLayout({ children }: { readonly children: ReactNode 
   return (
     <html lang="en" suppressHydrationWarning className={geologica.variable}>
       <body>
-        <Providers>{children}</Providers>
+        <LoaderGate />
+        <Providers>
+          <LoadingScreen />
+          {children}
+        </Providers>
       </body>
     </html>
   );
