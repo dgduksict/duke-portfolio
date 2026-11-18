@@ -81,6 +81,8 @@
     overflow: hidden;
     container-type: inline-size;
     padding-top: var(--scene-top);
+    /* Air between the floor line and the name below, which sits on the page ground. */
+    margin-bottom: 2rem;
     background-color: var(--scene-wall);
     image-rendering: pixelated;
   }
