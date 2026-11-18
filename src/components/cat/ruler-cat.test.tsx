@@ -109,7 +109,7 @@ describe("cat.css: the mini (ruler cat) rules", () => {
     const moves = mini.match(/translate[XY]?\([^)]*\)/g) ?? [];
     expect(moves.length).toBeGreaterThan(5);
     for (const move of moves) {
-      if (/^translate[XY]?(0(, 0)?)$/.test(move)) continue;
+      if (/^translate[XY]?\(0(, 0)?\)$/.test(move)) continue;
       expect(move, move).toMatch(/var\(--(cu|hu)\)/);
       expect(move).not.toMatch(/\d+px/);
     }
