@@ -69,4 +69,9 @@ describe("dictionaries", () => {
     expect(dictionaries.mn.contact.title).not.toBe(dictionaries.en.contact.title);
     expect(dictionaries.mn.stack.title).not.toBe(dictionaries.en.stack.title);
   });
+
+  it("names the ruler's top marker in both languages", () => {
+    expect(dictionaries.en.ruler.top).toBe("Top");
+    expect(dictionaries.mn.ruler.top).toBe("Эхлэл");
+  });
 });

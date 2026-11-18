@@ -2,6 +2,7 @@
 @import "./pixel.css";
 @import "../components/cat/cat.css";
 @import "../components/loader/loader.css";
+@import "../components/ruler/ruler.css";
 @import "../components/scene/scene.css";
 
 @custom-variant dark (&:where(.dark, .dark *));

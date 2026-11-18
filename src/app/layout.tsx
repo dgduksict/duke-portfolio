@@ -3,6 +3,8 @@ import type { ReactNode } from "react";
 import { Providers } from "@/components/layout/providers";
 import { LoaderGate } from "@/components/loader/loader-gate";
 import { LoadingScreen } from "@/components/loader/loading-screen";
+import { Ruler } from "@/components/ruler/ruler";
+import { RulerGate } from "@/components/ruler/ruler-gate";
 import { profile } from "@/data/profile";
 import { fontVariables } from "@/lib/fonts";
 import "./globals.css";
@@ -54,9 +56,11 @@ export default function RootLayout({ children }: { readonly children: ReactNode 
     <html lang="en" suppressHydrationWarning className={fontVariables}>
       <body>
         <LoaderGate />
+        <RulerGate />
         <Providers>
           <LoadingScreen />
           {children}
+          <Ruler />
         </Providers>
       </body>
     </html>
