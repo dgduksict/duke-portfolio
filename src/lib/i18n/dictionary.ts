@@ -64,6 +64,14 @@ export interface Dictionary {
     /** Announced to screen readers while the loading screen is up; never shown. */
     readonly label: string;
   };
+  readonly cat: {
+    /** The accessible name of the hero cat's button. */
+    readonly label: string;
+    /** Smug clean-code one-liners, shown one per click in turn while the sky is awake. */
+    readonly quotes: readonly [string, string, string, string];
+    /** What he says when poked in the night. */
+    readonly sleeping: string;
+  };
   readonly notFound: {
     readonly title: string;
     readonly body: string;
@@ -131,6 +139,16 @@ const en: Dictionary = {
   loader: {
     label: "Loading",
   },
+  cat: {
+    label: "Programmer cat",
+    quotes: [
+      "A good name beats a hundred comments.",
+      "Tests first. I can wait.",
+      "Small diffs make calm reviews.",
+      "Tidy code explains itself. You're welcome.",
+    ],
+    sleeping: "shh",
+  },
   notFound: {
     title: "Nothing here",
     body: "This page doesn't exist. Everything lives on the one page.",
@@ -197,6 +215,16 @@ const mn: Dictionary = {
   },
   loader: {
     label: "Ачаалж байна",
+  },
+  cat: {
+    label: "Программист муур",
+    quotes: [
+      "Сайн нэр зуун тайлбараас дээр.",
+      "Эхлээд тест бич, дараа нь ярья.",
+      "Жижиг өөрчлөлт бол тайван хяналт.",
+      "Цэвэр код өөрөө өөрийгөө тайлбарладаг.",
+    ],
+    sleeping: "Ш-ш, унтаж байна",
   },
   notFound: {
     title: "Энд юу ч алга",

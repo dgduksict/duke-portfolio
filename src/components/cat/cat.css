@@ -130,3 +130,148 @@
 .cat-art .cat-zzz { transform-origin: 0% 100%; }
 /* Breathing scales the body up from where it rests. */
 .cat-art .cat-body { transform-origin: 50% 100%; }
+
+/* The night cat's tail hangs from its top right (it dangles over the laptop's edge), not from the bottom right. */
+.cat-art[data-state="night"] .cat-tail { transform-origin: 100% 0%; }
+
+/* ---------- the hero cat (components/cat/hero-cat.tsx) ----------
+ * Only transform and opacity move. Every loop waits out the hop (about 1 s); nothing moves under reduced motion.
+ * The whole layer ignores the pointer; the button inside it is the one thing that takes it.
+ */
+.hero-cat-hop {
+  transform-origin: 50% 100%;
+  animation: cat-hop 1000ms linear both;
+}
+
+/* An arc in from the left onto the ridge: up and over (ease-out going up, ease-in coming down), a little squash on landing. */
+@keyframes cat-hop {
+  0% { opacity: 0; transform: translate(-110px, 18px) scale(0.92); animation-timing-function: ease-out; }
+  10% { opacity: 1; }
+  45% { opacity: 1; transform: translate(-48px, -78px) rotate(-6deg); animation-timing-function: ease-in; }
+  72% { opacity: 1; transform: translate(0, 0) scale(1.05, 0.92); animation-timing-function: ease-out; }
+  86% { transform: translate(0, -8px) scale(0.99, 1.02); animation-timing-function: ease-in-out; }
+  100% { opacity: 1; transform: translate(0, 0); }
+}
+
+.hero-cat-button {
+  padding: 0;
+  border: 0;
+  border-radius: 1.25rem;
+  background: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* A two-tone ring (ink inside, white outside) reads on the dark sky and on the pale one; the box never clips it. */
+.hero-cat-button:focus-visible {
+  outline: 2px solid #ffffff;
+  outline-offset: 3px;
+  border-radius: 1.25rem;
+  box-shadow: 0 0 0 2px #0e1a2b;
+}
+
+/* Day and night drawings cross-fade (about 600 ms) when the sky flips under an open page. */
+.hero-cat-layer[data-fade="in"] { animation: cat-fade-in 600ms ease-out both; }
+.hero-cat-layer[data-fade="out"] { animation: cat-fade-out 600ms ease-out both; }
+@keyframes cat-fade-in { from { opacity: 0; } }
+@keyframes cat-fade-out { to { opacity: 0; } }
+
+/* Day: paws on the keys, a tail flick now and then, a smug glance, the screen's lines blinking. */
+.hero-cat .cat-art[data-state="day"] .cat-paw-l { animation: cat-type 420ms ease-in-out 1s infinite alternate; }
+.hero-cat .cat-art[data-state="day"] .cat-paw-r { animation: cat-type 380ms ease-in-out 1.15s infinite alternate; }
+.hero-cat .cat-art[data-state="day"] .cat-tail { animation: cat-flick 6s ease-in-out 1.6s infinite; }
+.hero-cat .cat-art[data-state="day"] .cat-eye { animation: cat-glance 8s ease-in-out 2.4s infinite; }
+.hero-cat .cat-art[data-state="day"] .cat-head { animation: cat-nod 8s ease-in-out 2.4s infinite; }
+.hero-cat .cat-art[data-state="day"] .cat-screen { animation: cat-blink 4.4s steps(1, end) 1.2s infinite; }
+
+@keyframes cat-type { to { transform: translateY(-2.4px); } }
+@keyframes cat-flick {
+  0%, 76%, 100% { transform: rotate(0deg); }
+  82% { transform: rotate(10deg); }
+  88% { transform: rotate(-7deg); }
+  94% { transform: rotate(4deg); }
+}
+@keyframes cat-glance {
+  0%, 58%, 80%, 100% { transform: translateX(0); }
+  64%, 74% { transform: translateX(2.4px); }
+}
+@keyframes cat-nod {
+  0%, 58%, 82%, 100% { transform: rotate(0deg); }
+  64%, 74% { transform: rotate(-2.6deg); }
+}
+@keyframes cat-blink {
+  0%, 84%, 88%, 94%, 100% { opacity: 1; }
+  86% { opacity: 0.4; }
+  91% { opacity: 0.65; }
+}
+
+/* Night: slow breathing, a tail that barely sways, and the zzz drifting up and away. */
+.hero-cat .cat-art[data-state="night"] .cat-body { animation: cat-breathe 4.6s ease-in-out 1s infinite alternate; }
+.hero-cat .cat-art[data-state="night"] .cat-head { animation: cat-bob 4.6s ease-in-out 1s infinite alternate; }
+.hero-cat .cat-art[data-state="night"] .cat-tail { animation: cat-sway 5.4s ease-in-out 1s infinite alternate; }
+.hero-cat .cat-art[data-state="night"] .cat-zzz { animation: cat-drift 4s ease-out 1s infinite; }
+
+@keyframes cat-breathe { to { transform: scale(1, 1.03); } }
+@keyframes cat-bob { to { transform: translateY(-1px); } }
+@keyframes cat-sway { from { transform: rotate(-4deg); } to { transform: rotate(5deg); } }
+@keyframes cat-drift {
+  0% { opacity: 0; transform: translate(0, 8px); }
+  22% { opacity: 1; }
+  100% { opacity: 0; transform: translate(6px, -16px); }
+}
+
+/* The speech bubble, to the left of his head: the site's own ground, ink and rule, so it reads in both themes. */
+.hero-cat-bubble {
+  position: absolute;
+  top: 6%;
+  right: 72%;
+  width: max-content;
+  max-width: 15rem;
+  padding: 0.5rem 0.8rem;
+  border: 1px solid var(--rule);
+  border-radius: 0.9rem;
+  background: var(--ground);
+  color: var(--ink);
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.35;
+  text-wrap: balance;
+  box-shadow: 0 8px 20px -10px rgb(0 0 0 / 0.5);
+  pointer-events: none;
+  transform-origin: 100% 55%;
+  transition: opacity 180ms ease-out, transform 180ms ease-out;
+}
+.hero-cat-bubble:empty {
+  padding: 0;
+  border-width: 0;
+  box-shadow: none;
+  opacity: 0;
+  transform: scale(0.94);
+}
+.hero-cat-bubble::after {
+  content: "";
+  position: absolute;
+  top: 0.85rem;
+  right: -0.38rem;
+  width: 0.7rem;
+  height: 0.7rem;
+  border: solid var(--rule);
+  border-width: 1px 1px 0 0;
+  background: var(--ground);
+  transform: rotate(45deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-cat-hop,
+  .hero-cat-layer,
+  .hero-cat .cat-art,
+  .hero-cat .cat-art * {
+    animation: none !important;
+  }
+  /* A flip between day and night swaps the drawings at once. */
+  .hero-cat-layer[data-fade="out"] {
+    opacity: 0;
+  }
+  .hero-cat-bubble {
+    transition: none;
+  }
+}
