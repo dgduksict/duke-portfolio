@@ -111,6 +111,9 @@ function Part({ parts, part, scale }: { parts: Record<CatPart, Sprite>; part: Ca
   return isBlank(map) ? null : <PixelSprite map={map} scale={scale} className={`cat-${part}`} />;
 }
 
+/** The eye's pixels in ink: the head is drawn with a socket under the eye, so the eye can glance without a hole. */
+const socket = (eye: Sprite): Sprite => eye.map((row) => row.replaceAll("e", "k"));
+
 /** The cat's layers, back to front: tail, body, head (with its ears and eye), paws. */
 function Cat({ parts, scale }: { parts: Record<CatPart, Sprite>; scale: number }) {
   return (
@@ -119,6 +122,7 @@ function Cat({ parts, scale }: { parts: Record<CatPart, Sprite>; scale: number }
       <Part parts={parts} part="body" scale={scale} />
       <g className="cat-head">
         <PixelSprite map={parts.head} scale={scale} />
+        <PixelSprite map={socket(parts.eye)} scale={scale} />
         <Part parts={parts} part="ear-l" scale={scale} />
         <Part parts={parts} part="ear-r" scale={scale} />
         <Part parts={parts} part="eye" scale={scale} />

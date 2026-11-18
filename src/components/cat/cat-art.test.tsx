@@ -35,6 +35,25 @@ describe("CatArt (hero)", () => {
     }
   });
 
+  it("keeps the night tail to its curl: the belly stays in the body layer", () => {
+    const { container } = render(<CatArt variant="hero" state="night" />);
+    const tail = container.querySelector(".cat-tail");
+    const xs = [...(tail?.querySelectorAll("rect") ?? [])].map((r) => Number(r.getAttribute("x")) / 6);
+    expect(xs.length).toBeGreaterThan(0);
+    expect(Math.min(...xs)).toBeGreaterThanOrEqual(26);
+  });
+
+  it("draws ink under the day eye, so a glance leaves no hole in the head", () => {
+    const { container } = render(<CatArt variant="hero" state="day" />);
+    const eye = container.querySelector(".cat-eye rect");
+    const head = container.querySelector(".cat-head");
+    expect(eye).not.toBeNull();
+    const under = [...(head?.querySelectorAll(":scope > g:not(.cat-eye):not(.cat-ear-l):not(.cat-ear-r) rect") ?? [])].some(
+      (r) => r.getAttribute("x") === eye?.getAttribute("x") && r.getAttribute("y") === eye?.getAttribute("y"),
+    );
+    expect(under).toBe(true);
+  });
+
   it("is decorative", () => {
     const { container } = render(<CatArt variant="hero" state="day" />);
     const svg = container.querySelector("svg");
