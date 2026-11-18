@@ -43,6 +43,17 @@ export function displayedProgress(
 }
 
 /**
+ * What the loader shows for `progress` (0 to 1): the whole percent and the number of lit blocks out of `blocks`, both
+ * from one value so they cannot disagree. The percent is floored until `progress` reaches 1 (so 0.996 reads 99, never
+ * 100), and the blocks follow the percent: all of them light only at 100.
+ */
+export function loaderReadout(progress: number, blocks: number): { percent: number; filled: number } {
+  const p = clamp01(progress);
+  const percent = p >= 1 ? 100 : Math.floor(p * 100);
+  return { percent, filled: Math.floor((percent * blocks) / 100) };
+}
+
+/**
  * The inline script that runs while the HTML is parsed, before the page paints: on the homepage (`/`) and only when
  * the loader has not been seen this browser session, it sets `document.documentElement.dataset.loader` to "on", which
  * CSS reads to show the loader. It then schedules a safety release: after `LOADER.safetyMs`, if the value is still

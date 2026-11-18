@@ -1,10 +1,10 @@
 "use client";
 
-import { FileText, Mail } from "lucide-react";
 import { HeroCat } from "@/components/cat/hero-cat";
 import { WindowScene } from "@/components/scene/window-scene";
 import { GithubIcon, LinkedinIcon } from "@/components/ui/brand-icons";
 import { CopyButton } from "@/components/ui/copy-button";
+import { PixelIcon } from "@/components/ui/pixel-icons";
 import { profile } from "@/data/profile";
 import { useI18n } from "@/hooks/use-i18n";
 import { useNow } from "@/hooks/use-now";
@@ -36,12 +36,12 @@ export function Hero() {
           {t(profile.name)}
         </h1>
 
-        <p className="type-lead mt-6 font-medium sm:mt-8">{t(profile.headline)}</p>
+        <p className="type-lead mt-6 sm:mt-8">{t(profile.headline)}</p>
         <p className="type-lead measure mt-2 text-ink-soft">{t(profile.intro)}</p>
 
         {profile.availability !== null ? (
-          <p className="mt-5 inline-flex items-center gap-2 text-sm font-medium">
-            <span className="size-2 rounded-full bg-sun" aria-hidden />
+          <p className="mt-5 inline-flex items-center gap-2 text-sm">
+            <span className="px-dot" aria-hidden />
             {t(profile.availability)}
           </p>
         ) : null}
@@ -56,7 +56,7 @@ export function Hero() {
         >
           <div className="flex flex-wrap items-center gap-3">
             <a href={`mailto:${profile.email}`} className="btn btn-primary">
-              <Mail aria-hidden className="size-4" />
+              <PixelIcon name="mail" />
               {dict.hero.emailMe}
             </a>
             <CopyButton
@@ -80,7 +80,7 @@ export function Hero() {
             ) : null}
             {profile.resumeUrl !== null ? (
               <a href={profile.resumeUrl} className="btn btn-quiet">
-                <FileText aria-hidden className="size-4" />
+                <PixelIcon name="file" />
                 {dict.hero.resume}
               </a>
             ) : null}

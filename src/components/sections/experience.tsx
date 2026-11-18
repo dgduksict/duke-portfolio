@@ -12,7 +12,7 @@ export function Experience() {
 
   return (
     <Section id="experience" title={dict.experience.title}>
-      <ol className="grid gap-10">
+      <ol role="list" className="grid gap-10">
         {experience.map((entry) => {
           const headingId = `role-${entry.id}-title`;
           const current = entry.end === null;
@@ -54,7 +54,7 @@ export function Experience() {
                 <p className="measure mt-3">{t(entry.summary)}</p>
 
                 {highlights.length > 0 ? (
-                  <ul className="px-list measure mt-3 space-y-1.5">
+                  <ul role="list" className="px-list measure mt-3 space-y-1.5">
                     {highlights.map((highlight) => (
                       <li key={highlight}>{highlight}</li>
                     ))}
@@ -76,6 +76,7 @@ export function Experience() {
                 ) : null}
 
                 <ul
+                  role="list"
                   aria-label={dict.work.builtWith}
                   className="mt-4 flex flex-wrap gap-x-3 gap-y-3 text-base"
                 >

@@ -7,7 +7,7 @@ import { profile } from "@/data/profile";
 import { useI18n } from "@/hooks/use-i18n";
 import { useNow } from "@/hooks/use-now";
 import { catStateForPhase } from "@/lib/cat";
-import { displayedProgress, LOADER } from "@/lib/loader";
+import { displayedProgress, LOADER, loaderReadout } from "@/lib/loader";
 import { skyAt } from "@/lib/sky";
 import { sunPosition } from "@/lib/sun";
 
@@ -132,13 +132,12 @@ function Overlay({ phase, onPhase }: { readonly phase: Phase; readonly onPhase: 
 
       const minMs = reduced ? LOADER.reducedMinMs : LOADER.minMs;
       const paint = (progress: number) => {
-        const value = Math.round(progress * 100);
+        // One value drives both, so the readout never says 100 % with a block still dark.
+        const { percent: value, filled } = loaderReadout(progress, BLOCKS);
         if (value !== lastPercent) {
           lastPercent = value;
           percent.textContent = `${value}%`;
         }
-        // Whole blocks only; the small epsilon keeps 100 % from rounding down to 19 blocks.
-        const filled = Math.min(BLOCKS, Math.floor(progress * BLOCKS + 1e-6));
         if (filled !== lastFilled) {
           lastFilled = filled;
           blocks.forEach((block, i) => {

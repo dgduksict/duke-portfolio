@@ -1,7 +1,7 @@
 "use client";
 
 import { useTheme } from "next-themes";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Eyes } from "@/components/ui/eyes";
 import { PixelIcon } from "@/components/ui/pixel-icons";
 import { navItems } from "@/data/navigation";
@@ -60,6 +60,19 @@ export function SiteHeader() {
   const setMobileNavOpen = usePortfolioStore((state) => state.setMobileNavOpen);
   const active = useActiveSection();
   const overSky = useOverSky();
+  const menuButton = useRef<HTMLButtonElement>(null);
+
+  // Esc closes the phone menu and hands focus back to the button that opened it.
+  useEffect(() => {
+    if (!mobileNavOpen) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      setMobileNavOpen(false);
+      menuButton.current?.focus();
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [mobileNavOpen, setMobileNavOpen]);
 
   const links = navItems.map((item) => ({
     id: item.id,
@@ -85,7 +98,7 @@ export function SiteHeader() {
         </a>
 
         <nav aria-label={dict.nav.primary} className="hidden md:block">
-          <ul className="flex items-center gap-1">
+          <ul role="list" className="flex items-center gap-1">
             {links.map((link) => (
               <li key={link.id}>
                 <a href={link.href} aria-current={link.current ? "true" : undefined} className="nav-link">
@@ -112,6 +125,7 @@ export function SiteHeader() {
           </div>
           <ThemeToggle label={dict.nav.toggleTheme} />
           <button
+            ref={menuButton}
             type="button"
             aria-expanded={mobileNavOpen}
             aria-controls="mobile-nav"
@@ -126,7 +140,7 @@ export function SiteHeader() {
 
       {mobileNavOpen ? (
         <nav id="mobile-nav" aria-label={dict.nav.primary} className="site-menu md:hidden">
-          <ul className="container-page grid py-3">
+          <ul role="list" className="container-page grid py-3">
             {links.map((link) => (
               <li key={link.id}>
                 <a

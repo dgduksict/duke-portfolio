@@ -82,7 +82,7 @@ describe("WindowScene", () => {
     const root = container.firstElementChild as HTMLElement;
     expect(root).toHaveAttribute("data-print", "hide");
     expect(root).not.toHaveAttribute("aria-hidden");
-    expect(container).toHaveTextContent("");
+    expect(container.textContent).toBe("");
     // Everything drawn sits under an aria-hidden layer; only the cat slot is outside one.
     for (const drawn of container.querySelectorAll("svg, [data-layer]")) {
       expect(drawn.closest('[aria-hidden="true"]'), drawn.outerHTML.slice(0, 80)).not.toBeNull();

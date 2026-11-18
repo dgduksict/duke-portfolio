@@ -51,7 +51,7 @@ describe("skyAt", () => {
     expect(morning.glowX).toBe(-0.15);
     expect(evening.glowX).toBe(1.15);
     expect(morning.glowStrength).toBe(0.5);
-    for (const value of [morning.glowX, morning.glowY, morning.glowSize, evening.glowY]) {
+    for (const value of [morning.glowX, morning.glowY, evening.glowY]) {
       expect(Number.isFinite(value)).toBe(true);
     }
   });

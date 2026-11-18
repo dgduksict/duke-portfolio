@@ -1,5 +1,28 @@
 import { describe, expect, it } from "vitest";
-import { displayedProgress, LOADER, loaderGateScript } from "./loader";
+import { displayedProgress, LOADER, loaderGateScript, loaderReadout } from "./loader";
+
+describe("loaderReadout", () => {
+  it("floors the percent until the progress is complete, so 100 % always means a full bar", () => {
+    expect(loaderReadout(0, 20)).toEqual({ percent: 0, filled: 0 });
+    expect(loaderReadout(0.995, 20)).toEqual({ percent: 99, filled: 19 });
+    expect(loaderReadout(0.9999, 20)).toEqual({ percent: 99, filled: 19 });
+    expect(loaderReadout(1, 20)).toEqual({ percent: 100, filled: 20 });
+  });
+
+  it("never shows a full bar below 100 % or a lit block count that disagrees with the percent", () => {
+    for (let i = 0; i <= 1000; i += 1) {
+      const { percent, filled } = loaderReadout(i / 1000, 20);
+      expect(filled).toBe(Math.floor(percent / 5));
+      expect(filled === 20).toBe(percent === 100);
+    }
+  });
+
+  it("clamps out-of-range progress", () => {
+    expect(loaderReadout(-1, 20)).toEqual({ percent: 0, filled: 0 });
+    expect(loaderReadout(3, 20)).toEqual({ percent: 100, filled: 20 });
+    expect(loaderReadout(Number.NaN, 20)).toEqual({ percent: 0, filled: 0 });
+  });
+});
 
 describe("LOADER", () => {
   it("holds the agreed timings and session key", () => {

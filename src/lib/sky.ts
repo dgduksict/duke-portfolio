@@ -23,13 +23,12 @@ export interface SkyState {
   readonly glowStrength: number;
   readonly glowX: number;
   readonly glowY: number;
-  readonly glowSize: number;
   readonly stars: number;
   readonly sun: number;
   readonly phase: SkyPhase;
 }
 
-/** Every zenith keeps white text above 4.5:1, so the header stays legible at any hour. */
+/** The sky's colour stops by sun elevation, as painted in the pixel window (the header sits on the wall, not on the sky). */
 export const SKY_KEYFRAMES: readonly SkyKeyframe[] = [
   { elevation: -18, zenith: "#060b1e", mid: "#0b1531", horizon: "#1a2246", glow: "#3a3060" },
   { elevation: -12, zenith: "#0a1430", mid: "#14204a", horizon: "#2e2c5c", glow: "#5a3e6e" },
@@ -100,7 +99,6 @@ export function skyAt({ elevation, azimuth }: SunPosition): SkyState {
     glowStrength: clamp((elevation + 10) / 10, 0, 1) * (behindViewer ? 0.5 : 1),
     glowX: clamp((azimuth - 90) / 180, -0.15, 1.15),
     glowY,
-    glowSize: elevation <= 0 ? 1.1 : 1.1 - 0.7 * clamp(elevation / 30, 0, 1),
     stars: clamp((-4 - elevation) / 8, 0, 1),
     sun: behindViewer ? 0 : clamp((elevation + 1) / 2, 0, 1),
     phase: phaseOf(elevation),

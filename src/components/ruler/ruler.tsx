@@ -45,12 +45,16 @@ const DRAG_SLOP = 3;
 const NEAR_PX = 22;
 /** A document must be taller than the viewport by this much (px) to go live, and only taller to stay live. */
 const LIVE_SLACK_PX = 1;
-/** The site header's height (px): nothing of the cat may ever reach above its bottom edge. */
-const HEADER_PX = 64;
+/**
+ * The site header's height (px): its 64 px bar and the 4 px beam edge below it. Nothing of the cat may reach above it.
+ * Keep in step with the header and with the `.ruler-cat` geometry in components/cat/cat.css.
+ */
+const HEADER_PX = 68;
 /**
  * How far the cat's box reaches above the needle's line (px): the readout plate's top edge (26) and his 32 px box on
  * it, plus the 4 px apex of his arrival hop (cat.css). Under the page's first few percent the needle is too close to
  * the header for that, so he stays away until his top clears the header with a little air (CAT_MIN_Y, in needle px).
+ * Must match the `.ruler-cat` geometry in components/cat/cat.css (box size, bottom offset, hop).
  */
 const CAT_REACH_PX = 62;
 const CAT_MIN_Y = HEADER_PX + CAT_REACH_PX - RAIL_TOP + 4;
@@ -175,6 +179,7 @@ export function Ruler() {
     let movedAt = Number.NEGATIVE_INFINITY;
     let catPose: RulerPose | null = null;
     let timer: ReturnType<typeof setTimeout> | undefined;
+    let timerDue = 0;
 
     const measure = () => {
       dirty = false;
@@ -226,12 +231,16 @@ export function Ruler() {
         setCat(pose === null ? null : { ms, progress });
       }
       if (pose !== "type" && pose !== "sit") return clearTimer();
-      if (timer !== undefined) return;
-      const next = ms < TYPING_WINDOW_MS ? TYPING_WINDOW_MS - ms : GROOM_AFTER_MS - ms;
+      // The next mark: 150 ms or 1200 ms after the last scroll. A pending timeout that is due no later is kept (a scroll
+      // in full flow arms nothing new); one due later (he had been sitting, then the page moved) is replaced.
+      const due = now + (ms < TYPING_WINDOW_MS ? TYPING_WINDOW_MS - ms : GROOM_AFTER_MS - ms) + 1;
+      if (timer !== undefined && timerDue <= due) return;
+      clearTimer();
+      timerDue = due;
       timer = setTimeout(() => {
         timer = undefined;
         schedule();
-      }, next + 1);
+      }, due - now);
     };
 
     const pass = () => {

@@ -1,8 +1,7 @@
 import type { SVGProps } from "react";
 
 /**
- * Brand glyphs. lucide-react v1 dropped brand icons, so these are inlined from
- * Simple Icons (CC0 1.0 Universal) and share one wrapper for sizing/colour.
+ * Brand glyphs, inlined from Simple Icons (CC0 1.0 Universal); they share one wrapper for sizing/colour.
  */
 function BrandIcon({ path, ...props }: SVGProps<SVGSVGElement> & { readonly path: string }) {
   return (

@@ -21,7 +21,7 @@ export function Pipeline({ stages, label }: PipelineProps) {
   return (
     <figure className="pipeline" style={{ "--stages": stages.length } as CSSProperties}>
       <figcaption className="sr-only">{label}</figcaption>
-      <ol className="pipeline-stages">
+      <ol role="list" className="pipeline-stages">
         {stages.map((stage, index) => (
           <li key={stage.id} className="pipeline-stage" style={{ "--i": index } as CSSProperties}>
             <span className="pipeline-node" aria-hidden />
