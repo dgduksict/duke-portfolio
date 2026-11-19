@@ -114,6 +114,57 @@ describe("WindowScene", () => {
     expect(root.querySelector(".scene-left, .scene-right, .scene-radiator, .scene-wainscot, .scene-skirting, .scene-mug")).toBeNull();
   });
 
+  it("lets it snow in winter", () => {
+    const { container } = render(<WindowScene now={NOON} season="winter" />);
+    const snow = container.querySelector('[data-layer="snow"]');
+    expect(snow).not.toBeNull();
+    const near = snow?.querySelectorAll(".scene-snow-1 rect") ?? [];
+    const far = snow?.querySelectorAll(".scene-snow-0 rect") ?? [];
+    expect(near.length).toBeGreaterThan(0);
+    expect(far.length).toBeGreaterThan(0);
+    // 36 flakes, each drawn twice (at y and y - 64) so the fall loops without a seam.
+    const rects = [...(snow?.querySelectorAll("rect") ?? [])];
+    expect(rects).toHaveLength(72);
+    expect(near.length + far.length).toBe(72);
+    const onGlass = rects.filter((rect) => Number(rect.getAttribute("y")) >= 0);
+    expect(onGlass).toHaveLength(36);
+    expect(new Set(onGlass.map((rect) => `${rect.getAttribute("x")},${rect.getAttribute("y")}`)).size).toBe(36);
+    for (const rect of rects) expect(Number(rect.getAttribute("y"))).toBeLessThan(64);
+    // The flakes sit behind the bars.
+    const layers = [...container.querySelectorAll("[data-layer]")].map((el) => el.getAttribute("data-layer"));
+    expect(layers.indexOf("snow")).toBeLessThan(layers.indexOf("bars"));
+  });
+
+  it("paints snow warm at night and white by day", () => {
+    const night = render(<WindowScene now={MIDNIGHT} season="winter" />).container;
+    expect(night.querySelector('[data-layer="snow"]')?.getAttribute("fill")).toBe("#fff8e0");
+    const day = render(<WindowScene now={NOON} season="winter" />).container;
+    expect(day.querySelector('[data-layer="snow"]')?.getAttribute("fill")).toBe("#ffffff");
+  });
+
+  it("shows fireflies only on summer nights", () => {
+    const night = render(<WindowScene now={MIDNIGHT} season="summer" />).container;
+    const flies = night.querySelector('[data-layer="fireflies"]');
+    expect(flies).not.toBeNull();
+    expect(flies?.querySelectorAll("rect")).toHaveLength(7);
+    expect(night.querySelector('[data-layer="snow"]')).toBeNull();
+    expect(render(<WindowScene now={NOON} season="summer" />).container.querySelector('[data-layer="fireflies"]')).toBeNull();
+    expect(render(<WindowScene now={MIDNIGHT} season="winter" />).container.querySelector('[data-layer="fireflies"]')).toBeNull();
+  });
+
+  it("has no seasonal layers without a season", () => {
+    for (const season of [undefined, null]) {
+      const { container } = render(<WindowScene now={MIDNIGHT} season={season} />);
+      expect(container.querySelector('[data-layer="snow"]')).toBeNull();
+      expect(container.querySelector('[data-layer="fireflies"]')).toBeNull();
+    }
+  });
+
+  it("has no snow before the time is known", () => {
+    const { container } = render(<WindowScene now={null} season="winter" />);
+    expect(container.querySelector('[data-layer="snow"]')).toBeNull();
+  });
+
   it("wears no foreign brand colours", () => {
     for (const now of [null, NOON, DUSK, MIDNIGHT]) {
       const html = render(<WindowScene now={now} />).container.innerHTML.toLowerCase();
@@ -141,6 +192,17 @@ describe("scene.css", () => {
     const reduced = code.slice(code.indexOf("prefers-reduced-motion: reduce"));
     expect(code).toContain("prefers-reduced-motion: reduce");
     expect(reduced).toMatch(/animation:\s*none/);
+  });
+
+  it("steps the snow down the glass and blinks the fireflies, and stills both under reduced motion", () => {
+    expect(code).toMatch(/\.scene-snow-0\s*\{[^}]*animation:[^;]*steps\(64/);
+    expect(code).toMatch(/\.scene-snow-1\s*\{[^}]*animation:[^;]*steps\(64/);
+    expect(code).toMatch(/@keyframes scene-snow-fall\s*\{[^}]*transform:/);
+    expect(code).toMatch(/@keyframes scene-firefly\s*\{[^}]*opacity:/);
+    expect(code).toMatch(/\.scene-firefly\s*\{[^}]*animation:[^;]*steps\(/);
+    const reduced = code.slice(code.indexOf("prefers-reduced-motion: reduce"));
+    expect(reduced).toMatch(/\.scene-snow-0[^{]*\{[^}]*animation:\s*none/);
+    expect(reduced).toMatch(/\.scene-firefly[^{]*\{[^}]*animation:\s*none/);
   });
 
   it("has day and night room colours, and the header ink reads on the wall in both", () => {

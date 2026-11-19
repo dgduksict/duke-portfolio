@@ -8,6 +8,7 @@ import { PixelIcon } from "@/components/ui/pixel-icons";
 import { profile } from "@/data/profile";
 import { useI18n } from "@/hooks/use-i18n";
 import { useNow } from "@/hooks/use-now";
+import { useSeason } from "@/hooks/use-season";
 import { formatClock, formatOffset, minutesAhead } from "@/lib/time";
 
 const linkedin = profile.socials.find((social) => social.id === "linkedin");
@@ -16,6 +17,7 @@ const github = profile.socials.find((social) => social.id === "github");
 export function Hero() {
   const { dict, language, t } = useI18n();
   const now = useNow();
+  const season = useSeason(now);
 
   const clock =
     now === null
@@ -27,7 +29,7 @@ export function Hero() {
 
   return (
     <section id="top" aria-labelledby="hero-name">
-      <WindowScene now={now}>
+      <WindowScene now={now} season={season}>
         <HeroCat now={now} />
       </WindowScene>
 

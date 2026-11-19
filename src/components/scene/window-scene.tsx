@@ -3,6 +3,7 @@ import { PixelSky } from "@/components/scene/pixel-sky";
 import { Mug, Radiator, RoomLeft, RoomRight, SillPlants } from "@/components/scene/room";
 import { profile } from "@/data/profile";
 import { moonSpot } from "@/lib/pixel-sky";
+import type { Season } from "@/lib/season";
 import { skyAt } from "@/lib/sky";
 import { sunPosition } from "@/lib/sun";
 
@@ -16,6 +17,8 @@ export interface WindowSceneProps {
    * Same glass, frame, sill, plants and cat slot, so the cat's feet land on the sill exactly as in the hero.
    */
   readonly compact?: boolean;
+  /** Winter snows on the glass, summer lights fireflies on its nights; omitted or `null` shows neither. */
+  readonly season?: Season | null;
 }
 
 /**
@@ -33,7 +36,7 @@ export interface WindowSceneProps {
  * Decorative layers are `aria-hidden` and hidden in print; the slot is not, so the cat's button stays reachable. The
  * empty strip above the window (`data-header-zone`) is what the fixed header watches to know it sits on the wall.
  */
-export function WindowScene({ now, children, compact = false }: WindowSceneProps) {
+export function WindowScene({ now, children, compact = false, season = null }: WindowSceneProps) {
   const sun =
     now === null ? null : sunPosition(now, profile.coordinates.latitude, profile.coordinates.longitude);
   const sky = sun === null ? null : skyAt(sun);
@@ -54,7 +57,7 @@ export function WindowScene({ now, children, compact = false }: WindowSceneProps
             </>
           )}
           <div className="scene-frame">
-            <PixelSky sky={sky} moon={moon} />
+            <PixelSky sky={sky} moon={moon} season={season} />
           </div>
           <div className="scene-sill" />
           <SillPlants />
