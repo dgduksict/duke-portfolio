@@ -40,6 +40,7 @@ const page = {
   tops: { top: 0, experience: 900, work: 1800, stack: 2700, contact: 3600 } as Record<string, number>,
 };
 
+/** `wide` answers the full ruler's query, (min-width: 900px) and (pointer: fine); false is a phone, a tablet or touch. */
 const media = { wide: true, reduced: false, queries: [] as MediaQueryListStub[] };
 
 interface MediaQueryListStub {
@@ -237,10 +238,18 @@ function scrollTo() {
 }
 
 describe("Ruler: whether it shows", () => {
-  it("renders nothing and leaves the native bar when the media query does not match", () => {
+  it("is the full ruler, and claims the native bar, when the full query matches", () => {
+    mount();
+    expect(rulerRoot()).toHaveAttribute("data-mode", "full");
+    expect(html.dataset.ruler).toBe("on");
+    expect(window.__rulerLive).toBe(true);
+  });
+
+  it("is the compact rail, and leaves the native bar, when the full query does not match (narrow or touch)", () => {
     media.wide = false;
     const { container } = mount();
-    expect(container.querySelector(".ruler")).toBeNull();
+    expect(container.querySelector(".ruler")).not.toBeNull();
+    expect(rulerRoot()).toHaveAttribute("data-mode", "compact");
     expect(html.dataset.ruler).toBeUndefined();
     expect(window.__rulerLive).toBe(false);
   });
@@ -283,19 +292,21 @@ describe("Ruler: whether it shows", () => {
     expect(html.dataset.ruler).toBe("on");
   });
 
-  it("releases data-ruler and the rail when the media query stops matching, and takes it back when it matches", () => {
+  it("releases data-ruler and turns compact when the full query stops matching, and takes it back when it matches", () => {
     const { container } = mount();
     media.wide = false;
     act(() => media.queries[0]?.fire());
     flushFrames();
-    expect(container.querySelector(".ruler")).toBeNull();
+    expect(container.querySelector(".ruler")).not.toBeNull();
+    expect(rulerRoot()).toHaveAttribute("data-mode", "compact");
     expect(html.dataset.ruler).toBeUndefined();
     expect(window.__rulerLive).toBe(false);
     media.wide = true;
     act(() => media.queries[0]?.fire());
     flushFrames();
-    expect(container.querySelector(".ruler")).not.toBeNull();
+    expect(rulerRoot()).toHaveAttribute("data-mode", "full");
     expect(html.dataset.ruler).toBe("on");
+    expect(window.__rulerLive).toBe(true);
   });
 
   it("does not go live on a document that is not taller than the viewport (within the 1 px hysteresis)", () => {
@@ -712,11 +723,30 @@ describe("Ruler: the cat on the needle", () => {
     mount();
     scrollToProgress(0.5);
     expect(cat()).not.toBeNull();
+    // The page shrinks to fit the window: no ruler in either mode.
+    page.docHeight = VIEWPORT;
+    page.scrollY = 0;
+    act(() => ResizeObserverStub.instances[0]?.fire());
+    flushFrames();
+    expect(rulerRoot()).toBeNull();
+    expect(cat()).toBeNull();
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it("keeps the cat, in the same pose, when the ruler switches mode under him", () => {
+    window.history.replaceState(null, "", DAY_URL);
+    mount();
+    scrollToProgress(0.5);
+    expect(catPose()).toBe("type");
     media.wide = false;
     act(() => media.queries[0]?.fire());
     flushFrames();
-    expect(cat()).toBeNull();
-    expect(vi.getTimerCount()).toBe(0);
+    flushFrames();
+    expect(rulerRoot()).toHaveAttribute("data-mode", "compact");
+    expect(needle()?.contains(cat())).toBe(true);
+    expect(catPose()).toBe("type");
+    wait(200);
+    expect(catPose()).toBe("sit");
   });
 });
 
@@ -824,9 +854,11 @@ describe("Ruler: listeners", () => {
     mount();
     expect(ResizeObserverStub.instances).toHaveLength(1);
     expect(ResizeObserverStub.instances[0]?.observe).toHaveBeenCalledWith(document.body);
-    expect(media.queries.some((q) => q.media.includes("min-width: 900px") && q.media.includes("pointer: fine"))).toBe(
-      true,
-    );
+    // One query decides the mode: full where (min-width: 900px) and (pointer: fine) holds, compact anywhere else.
+    // It is the gate's query too (lib/ruler-gate.ts), so the two never disagree about who hides the native bar.
+    const modeQueries = media.queries.filter((q) => !q.media.includes("prefers-reduced-motion"));
+    expect(new Set(modeQueries.map((q) => q.media))).toEqual(new Set(["(min-width: 900px) and (pointer: fine)"]));
+    expect(rulerGateScript()).toContain(modeQueries[0]?.media);
   });
 
   it("only schedules one coalesced frame for any number of events", () => {
@@ -865,6 +897,319 @@ describe("Ruler: listeners", () => {
   });
 });
 
+describe("Ruler: compact mode (narrow or touch screens)", () => {
+  const DAY_URL = "/?time=13:00";
+  const NIGHT_URL = "/?time=01:30";
+  const RANGE = 4000 - VIEWPORT;
+
+  beforeEach(() => {
+    media.wide = false;
+  });
+
+  const cat = () => document.querySelector<HTMLElement>(".ruler-cat");
+  const catPose = () => cat()?.querySelector("svg")?.getAttribute("data-pose") ?? null;
+
+  function scrollToProgress(progress: number) {
+    page.scrollY = progress * RANGE;
+    act(() => {
+      window.dispatchEvent(new Event("scroll"));
+    });
+    flushFrames();
+  }
+
+  it("never sets data-ruler, at any scroll position, and removes one a gate left behind", () => {
+    html.dataset.ruler = "on";
+    mount();
+    expect(rulerRoot()).toHaveAttribute("data-mode", "compact");
+    expect(html.dataset.ruler).toBeUndefined();
+    for (const progress of [0, 0.4, 1]) {
+      scrollToProgress(progress);
+      expect(html.dataset.ruler).toBeUndefined();
+    }
+    act(() => {
+      window.dispatchEvent(new Event("resize"));
+    });
+    flushFrames();
+    expect(html.dataset.ruler).toBeUndefined();
+  });
+
+  it("is aria-hidden and hidden in print, with no readout, no marker labels and no text", () => {
+    mount();
+    scrollToProgress(0.5);
+    expect(rulerRoot()).toHaveAttribute("aria-hidden", "true");
+    expect(rulerRoot()).toHaveAttribute("data-print", "hide");
+    expect(readout()).toBeNull();
+    expect(document.querySelector(".ruler-col")).toBeNull();
+    expect(document.querySelector(".ruler-mark-label")).toBeNull();
+    expect(rulerRoot()?.textContent).toBe("");
+  });
+
+  it("draws calmer ticks: 21 of them, 5 major", () => {
+    mount();
+    expect(document.querySelectorAll(".ruler-tick")).toHaveLength(21);
+    expect(
+      [...document.querySelectorAll<HTMLElement>(".ruler-tick[data-major]")].map((tick) => tick.style.top),
+    ).toEqual(["0%", "25%", "50%", "75%", "100%"]);
+  });
+
+  it("keeps a square marker per section, on the same scale as the full ruler, filled once passed and never 'near'", () => {
+    mount();
+    expect(marks()).toHaveLength(IDS.length);
+    expect(parseFloat(marks()[1]?.style.top ?? "")).toBeCloseTo((900 / RANGE) * 100, 3);
+    // The needle right on the work section: the full ruler would label it, the compact one does not.
+    scrollToProgress(1800 / RANGE);
+    for (const mark of marks()) {
+      expect(mark.querySelector(".ruler-mark-box")).not.toBeNull();
+      expect(mark).not.toHaveAttribute("data-near");
+    }
+    expect(marks()[2]).toHaveAttribute("data-passed");
+    expect(marks()[3]).not.toHaveAttribute("data-passed");
+  });
+
+  it("moves the needle with the scroll, hidden below 3 %, on the full ruler's rail scale", () => {
+    mount();
+    expect(needle()).not.toHaveAttribute("data-show");
+    scrollToProgress(0.5);
+    expect(needle()).toHaveAttribute("data-show");
+    expect(needle()?.style.transform).toBe(`translate3d(0,${railHeight / 2}px,0)`);
+  });
+
+  it("is a picture only: presses, moves and releases on the rail or a marker never scroll, capture or drag", () => {
+    mount();
+    scrollTo().mockClear();
+    const work = marks()[2];
+    if (!work) throw new Error("no marker");
+    for (const target of [rail(), work]) {
+      press("pointerDown", railY(0.5), target ?? undefined);
+      press("pointerMove", railY(0.8), target ?? undefined);
+      press("pointerUp", railY(0.8), target ?? undefined);
+    }
+    expect(scrollTo()).not.toHaveBeenCalled();
+    expect(Element.prototype.setPointerCapture).not.toHaveBeenCalled();
+    expect(rulerRoot()).not.toHaveAttribute("data-dragging");
+  });
+
+  it("listens to nothing more than the full ruler does: scroll and resize on the window, both passive", () => {
+    const add = vi.spyOn(window, "addEventListener");
+    mount();
+    const own = add.mock.calls.filter(([type]) => !String(type).startsWith("__"));
+    expect(own.map(([type]) => type).sort()).toEqual(["resize", "scroll"]);
+    for (const [, , options] of own) expect(options).toMatchObject({ passive: true });
+  });
+
+  it("does not show on a page that fits the window, nor away from the homepage", () => {
+    page.docHeight = VIEWPORT;
+    const first = mount();
+    expect(rulerRoot()).toBeNull();
+    first.unmount();
+    page.docHeight = 4000;
+    window.history.replaceState(null, "", "/missing");
+    route.pathname = "/missing";
+    mount();
+    expect(rulerRoot()).toBeNull();
+    expect(html.dataset.ruler).toBeUndefined();
+  });
+
+  it("follows a client navigation: gone away from the homepage, compact again on return, never claiming the bar", () => {
+    const view = mount();
+    window.history.replaceState(null, "", "/missing");
+    route.pathname = "/missing";
+    view.rerender(<Page />);
+    flushFrames();
+    expect(rulerRoot()).toBeNull();
+    window.history.replaceState(null, "", "/");
+    route.pathname = "/";
+    view.rerender(<Page />);
+    expect(html.dataset.ruler).toBeUndefined();
+    flushFrames();
+    flushFrames();
+    expect(rulerRoot()).toHaveAttribute("data-mode", "compact");
+    expect(html.dataset.ruler).toBeUndefined();
+  });
+
+  it("is hidden while <html> is scroll-locked (the loader) and visible again when the lock goes", async () => {
+    mount();
+    expect(rulerRoot()?.style.visibility).toBe("");
+    html.style.overflow = "hidden";
+    await settleMutations();
+    expect(rulerRoot()?.style.visibility).toBe("hidden");
+    html.style.overflow = "";
+    await settleMutations();
+    expect(rulerRoot()?.style.visibility).toBe("");
+  });
+
+  describe("the cat", () => {
+    beforeEach(() => {
+      vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "setInterval", "clearInterval", "Date", "performance"] });
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    function wait(ms: number) {
+      act(() => {
+        vi.advanceTimersByTime(ms);
+      });
+      flushFrames();
+    }
+
+    it("rides the needle, ignoring the pointer, and never reaches above the header's bottom edge", () => {
+      window.history.replaceState(null, "", DAY_URL);
+      mount();
+      expect(cat()).toBeNull();
+      // 40 px: his 32 px box on the needle's line (a unit, at most 4 px, above it) and the 4 px hop.
+      const reach = 40;
+      const header = 68;
+      let seen = 0;
+      for (let step = 0; step <= 100; step += 1) {
+        scrollToProgress(step / 100);
+        if (cat() === null) continue;
+        seen += 1;
+        expect(needle()?.contains(cat())).toBe(true);
+        expect(cat()).toHaveClass("pointer-events-none");
+        const needleY = Number.parseFloat(/translate3d\(0,(-?[\d.]+)px/.exec(needle()?.style.transform ?? "")?.[1] ?? "NaN");
+        expect(RAIL_TOP + needleY - reach, `at ${step} %`).toBeGreaterThanOrEqual(header);
+      }
+      // He stands lower than on the full ruler, so he shows from earlier on.
+      expect(seen).toBeGreaterThan(90);
+      scrollToProgress(0);
+      expect(cat()).toBeNull();
+    });
+
+    it("types while scrolling, sits after 150 ms, grooms after 1200 ms and naps at the bottom", () => {
+      window.history.replaceState(null, "", DAY_URL);
+      mount();
+      scrollToProgress(0.5);
+      expect(catPose()).toBe("type");
+      wait(200);
+      expect(catPose()).toBe("sit");
+      wait(1100);
+      expect(catPose()).toBe("groom");
+      scrollToProgress(0.99);
+      expect(catPose()).toBe("nap");
+    });
+
+    it("sleeps at night", () => {
+      window.history.replaceState(null, "", NIGHT_URL);
+      mount();
+      scrollToProgress(0.5);
+      expect(catPose()).toBe("sleep");
+      wait(2000);
+      expect(catPose()).toBe("sleep");
+    });
+
+    it("clears his timeout behind a scroll lock and on unmount", async () => {
+      window.history.replaceState(null, "", DAY_URL);
+      const { unmount } = mount();
+      scrollToProgress(0.5);
+      expect(vi.getTimerCount()).toBe(1);
+      html.style.overflow = "hidden";
+      await settleMutations();
+      expect(vi.getTimerCount()).toBe(0);
+      html.style.overflow = "";
+      await settleMutations();
+      unmount();
+      expect(vi.getTimerCount()).toBe(0);
+      expect(frames.size).toBe(0);
+    });
+  });
+});
+
+describe("Ruler: switching modes", () => {
+  const switchTo = (wide: boolean) => {
+    media.wide = wide;
+    act(() => media.queries[0]?.fire());
+    flushFrames();
+    flushFrames();
+  };
+
+  it("swaps the full rail for the compact one and back on the same root, claiming data-ruler only in full", () => {
+    mount();
+    const root = rulerRoot();
+    expect(readout()).not.toBeNull();
+    expect(document.querySelectorAll(".ruler-tick")).toHaveLength(51);
+
+    switchTo(false);
+    expect(rulerRoot()).toBe(root);
+    expect(rulerRoot()).toHaveAttribute("data-mode", "compact");
+    expect(html.dataset.ruler).toBeUndefined();
+    expect(window.__rulerLive).toBe(false);
+    expect(readout()).toBeNull();
+    expect(document.querySelector(".ruler-mark-label")).toBeNull();
+    expect(document.querySelectorAll(".ruler-tick")).toHaveLength(21);
+
+    switchTo(true);
+    expect(rulerRoot()).toBe(root);
+    expect(rulerRoot()).toHaveAttribute("data-mode", "full");
+    expect(html.dataset.ruler).toBe("on");
+    expect(window.__rulerLive).toBe(true);
+    expect(readout()).not.toBeNull();
+    expect(marks().map(markLabel)).toEqual(["Top", ...navItems.map((item) => item.label.en)]);
+    expect(document.querySelectorAll(".ruler-tick")).toHaveLength(51);
+  });
+
+  it("redraws the needle and the readout in the new mode at once, at the current scroll", () => {
+    mount();
+    page.scrollY = 0.25 * (4000 - VIEWPORT);
+    act(() => {
+      window.dispatchEvent(new Event("scroll"));
+    });
+    flushFrames();
+    switchTo(false);
+    expect(needle()).toHaveAttribute("data-show");
+    expect(needle()?.style.transform).toBe(`translate3d(0,${Math.round(railHeight / 4)}px,0)`);
+    page.scrollY = 0.75 * (4000 - VIEWPORT);
+    act(() => {
+      window.dispatchEvent(new Event("scroll"));
+    });
+    flushFrames();
+    switchTo(true);
+    expect(readout()?.dataset.value).toBe("75");
+    expect(needle()?.style.transform).toBe(`translate3d(0,${Math.round(railHeight * 0.75)}px,0)`);
+  });
+
+  it("only takes clicks in full mode: a press after switching to compact does nothing, and works again after", () => {
+    mount();
+    switchTo(false);
+    scrollTo().mockClear();
+    press("pointerDown", railY(0.5));
+    press("pointerUp", railY(0.5));
+    expect(scrollTo()).not.toHaveBeenCalled();
+    switchTo(true);
+    press("pointerDown", railY(0.5));
+    expect(scrollTo()).toHaveBeenLastCalledWith({
+      top: progressToScrollTop(0.5, 4000, VIEWPORT),
+      behavior: "smooth",
+    });
+    press("pointerUp", railY(0.5));
+  });
+
+  it("drops a drag that was under way when the ruler turned compact", () => {
+    mount();
+    press("pointerDown", railY(0.2));
+    press("pointerMove", railY(0.4));
+    expect(rulerRoot()).toHaveAttribute("data-dragging");
+    switchTo(false);
+    expect(rulerRoot()).not.toHaveAttribute("data-dragging");
+    switchTo(true);
+    scrollTo().mockClear();
+    // The old press is gone: a stray move does not scrub.
+    press("pointerMove", railY(0.9));
+    expect(scrollTo()).not.toHaveBeenCalled();
+  });
+
+  it("releases data-ruler and __rulerLive on unmount from either mode", () => {
+    for (const wide of [true, false]) {
+      media.wide = wide;
+      const { unmount } = mount();
+      unmount();
+      expect(html.dataset.ruler).toBeUndefined();
+      expect(window.__rulerLive).toBe(false);
+    }
+  });
+});
+
 describe("RulerGate", () => {
   it("is a server component that inlines the gate script", () => {
     const markup = renderToString(<RulerGate />);
@@ -872,6 +1217,11 @@ describe("RulerGate", () => {
     expect(markup).toContain("__rulerLive");
     expect(markup).toContain("min-width: 900px");
     expect(rulerGateScript()).toContain("__rulerLive");
+  });
+
+  it("stays full-mode only: it hides the native bar just for the wide, fine-pointer query", () => {
+    expect(rulerGateScript()).toContain('matchMedia("(min-width: 900px) and (pointer: fine)")');
+    expect(rulerGateScript()).not.toMatch(/compact|pointer: coarse/);
   });
 });
 
@@ -913,6 +1263,19 @@ describe("ruler.css", () => {
     const value = Number(z?.[1]);
     expect(value).toBeGreaterThan(1);
     expect(value).toBeLessThan(50);
+  });
+
+  it("keeps the compact rail out of the pointer's way, inside the right safe area, and never near the native bar", () => {
+    const compactRules = [...css.matchAll(/([^{}]*\[data-mode="compact"\][^{}]*)\{([^}]*)\}/g)];
+    expect(compactRules.length).toBeGreaterThan(3);
+    expect(css).toMatch(/\.ruler\[data-mode="compact"\],\s*\.ruler\[data-mode="compact"\] \*\s*\{[^}]*pointer-events:\s*none/);
+    expect(css).toMatch(/\.ruler\[data-mode="compact"\]\s*\{[^}]*right:\s*env\(safe-area-inset-right/);
+    for (const [, selector, body] of compactRules) {
+      expect(selector).not.toContain("data-ruler");
+      expect(body).not.toMatch(/pointer-events:\s*auto|cursor:\s*(pointer|grab)/);
+    }
+    // While the phone menu is open over the page, the rail steps away.
+    expect(css).toMatch(/:root:has\(#mobile-nav\) \.ruler\[data-mode="compact"\]\s*\{[^}]*visibility:\s*hidden/);
   });
 
   it("renders its text from data attributes", () => {

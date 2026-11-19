@@ -13,6 +13,12 @@ export const MINOR_STEP = 2;
 /** A labelled major tick every this many percent. */
 export const MAJOR_STEP = 10;
 
+/** The compact ruler (narrow or touch screens) is calmer: a tick every this many percent... */
+export const COMPACT_MINOR_STEP = 5;
+
+/** ...and a major one every quarter of the page. */
+export const COMPACT_MAJOR_STEP = 25;
+
 /** The needle stays hidden until the page has scrolled this far (0..1), so it does not sit on the first tick. */
 export const NEEDLE_FADE_BELOW = 0.03;
 
@@ -22,7 +28,10 @@ export const RAIL_TOP = 76;
 /** Pixels between the bottom of the rail and the bottom of the viewport. */
 export const RAIL_BOTTOM = 24;
 
-/** The ruler only shows from this viewport width (px) and up; narrower screens keep the native scrollbar. */
+/**
+ * The full ruler (it replaces the native scrollbar and takes clicks and drags) only shows from this viewport width (px)
+ * and up, with a fine pointer; narrower or touch screens get the compact, passive one beside the native scrollbar.
+ */
 export const RULER_MIN_WIDTH = 900;
 
 /** Clamps a number to 0..1, and turns NaN and infinities into 0. */
@@ -50,11 +59,17 @@ export function scrollProgress(
   return clamp01(scrollY / range);
 }
 
-/** The rail's ticks: 51 of them, every `MINOR_STEP` percent from 0 to 100, every `MAJOR_STEP` one marked major. */
-export function buildTicks(): Tick[] {
+/**
+ * The rail's ticks: by default 51 of them, every `MINOR_STEP` percent from 0 to 100, every `MAJOR_STEP` one marked
+ * major (the compact ruler passes `COMPACT_MINOR_STEP` and `COMPACT_MAJOR_STEP`: 21 ticks, 5 major). A step that is not
+ * a positive finite number falls back to the default, so the loop always ends.
+ */
+export function buildTicks(minorStep: number = MINOR_STEP, majorStep: number = MAJOR_STEP): Tick[] {
+  const minor = Number.isFinite(minorStep) && minorStep > 0 ? minorStep : MINOR_STEP;
+  const major = Number.isFinite(majorStep) && majorStep > 0 ? majorStep : MAJOR_STEP;
   const ticks: Tick[] = [];
-  for (let pct = 0; pct <= 100; pct += MINOR_STEP) {
-    ticks.push({ pct, major: pct % MAJOR_STEP === 0 });
+  for (let pct = 0; pct <= 100; pct += minor) {
+    ticks.push({ pct, major: pct % major === 0 });
   }
   return ticks;
 }

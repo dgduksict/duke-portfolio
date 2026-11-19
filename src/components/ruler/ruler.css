@@ -17,8 +17,9 @@ html[data-ruler="on"]::-webkit-scrollbar {
 
 /*
  * Hard pixels only: flat token fills, one-unit stair-step outlines (zero-blur box-shadows with the corners left
- * out), no rounding, no gradients, and motion in steps() alone. Everything snaps to --px (4px on the screens the
- * ruler shows on).
+ * out), no rounding, no gradients, and motion in steps() alone. Everything snaps to --px (4px, 3px under 30rem where
+ * only the compact ruler shows). The rules below are the full ruler's; the compact one (data-mode="compact", narrow
+ * or touch screens) overrides a few of them at the end.
  *
  * The root is the rail's own box: fixed to the right edge from RAIL_TOP to RAIL_BOTTOM (inline style), ten units
  * wide, with no gutter in the page, above the page content and the hero scene and below the header (50), the loader
@@ -257,6 +258,81 @@ html[data-ruler="on"]::-webkit-scrollbar {
 
   .ruler-strip > span::after {
     content: attr(data-d);
+  }
+
+  /* --------------------------------------------------------------- compact */
+
+  /*
+   * The compact ruler (narrow or touch screens): a slim rail beside the native scrollbar, which it never hides, and a
+   * picture only. Nothing in it takes the pointer, so every touch, scroll and click lands on the page underneath, and
+   * no hover state can ever show. Four units wide from the right safe-area inset: the outline unit, then three of
+   * panel that hold the markers, the ticks (right-aligned: 1 unit, 2 for each quarter) and the needle's line. The
+   * needle has no readout: an arrow two units wide points at its line from the left, and the cat stands on the line
+   * (his compact place is in components/cat/cat.css, next to the rest of his geometry). The section markers are three
+   * by three unit rings, filled with the lamp colour once the page has passed them, and never labelled.
+   */
+  .ruler[data-mode="compact"] {
+    right: env(safe-area-inset-right, 0px);
+    width: calc(var(--px) * 4);
+  }
+
+  .ruler[data-mode="compact"],
+  .ruler[data-mode="compact"] * {
+    pointer-events: none;
+  }
+
+  /*
+   * The phone menu (site-header.tsx, shown below 48rem) drops over the top of the page without locking the scroll:
+   * while it is open the rail steps away like it does for a scroll lock, so the cat never peeks out under its edge.
+   */
+  @media (width < 48rem) {
+    :root:has(#mobile-nav) .ruler[data-mode="compact"] {
+      visibility: hidden;
+    }
+  }
+
+  .ruler[data-mode="compact"] .ruler-rail {
+    cursor: auto;
+    touch-action: auto;
+    box-shadow:
+      calc(var(--px) * -1) 0 0 0 var(--rail-edge),
+      0 calc(var(--px) * -1) 0 0 var(--rail-edge),
+      0 var(--px) 0 0 var(--rail-edge);
+  }
+
+  .ruler[data-mode="compact"] .ruler-tick {
+    right: 0;
+    width: var(--px);
+    margin-top: 0;
+  }
+
+  .ruler[data-mode="compact"] .ruler-tick[data-major] {
+    width: calc(var(--px) * 2);
+  }
+
+  .ruler[data-mode="compact"] .ruler-mark-box {
+    left: var(--px);
+    border: 0;
+    box-shadow: inset 0 0 0 var(--px) var(--ink);
+  }
+
+  .ruler[data-mode="compact"] .ruler-needle-line {
+    top: calc(var(--px) * -1);
+  }
+
+  /* The arrow: its tip one unit on the line's row (over the rail's outline), behind it a column three units tall. */
+  .ruler[data-mode="compact"] .ruler-needle-line::before {
+    content: "";
+    position: absolute;
+    right: 100%;
+    top: 0;
+    width: var(--px);
+    height: var(--px);
+    background-color: var(--ink);
+    box-shadow:
+      calc(var(--px) * -1) 0 0 0 var(--ink),
+      calc(var(--px) * -1) calc(var(--px) * -1) 0 0 var(--ink),
+      calc(var(--px) * -1) var(--px) 0 0 var(--ink);
   }
 
   @media (prefers-reduced-motion: reduce) {

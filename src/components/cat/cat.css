@@ -290,6 +290,18 @@
   pointer-events: none;
 }
 
+/*
+ * On the compact ruler (narrow or touch screens, components/ruler/ruler.css) there is no readout: he stands on the
+ * needle's line itself, one unit above the needle, his right edge on the rail's right edge, so he leans over the
+ * page's right gutter (he ignores the pointer, so nothing under him stops working). Same 32px box, same hop: ruler.tsx
+ * counts his reach as 40px (32, the unit of at most 4px, the 4px hop).
+ */
+.ruler[data-mode="compact"] .ruler-cat {
+  left: auto;
+  right: 0;
+  bottom: var(--px);
+}
+
 .ruler-cat .cat-art {
   width: 32px;
   height: 32px;

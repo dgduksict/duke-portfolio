@@ -9,6 +9,8 @@ import { useI18n } from "@/hooks/use-i18n";
 import { useNow } from "@/hooks/use-now";
 import { GROOM_AFTER_MS, type RulerPose, rulerCatPose, TYPING_WINDOW_MS } from "@/lib/cat";
 import {
+  COMPACT_MAJOR_STEP,
+  COMPACT_MINOR_STEP,
   RAIL_BOTTOM,
   RAIL_TOP,
   RULER_MIN_WIDTH,
@@ -28,11 +30,20 @@ declare global {
   }
 }
 
-/** Where the ruler shows: the same query as the gate script. */
+/** Where the full ruler shows: the same query as the gate script. Anywhere else the ruler is compact. */
 const QUERY = `(min-width: ${RULER_MIN_WIDTH}px) and (pointer: fine)`;
 const REDUCED = "(prefers-reduced-motion: reduce)";
 
-const TICKS = buildTicks();
+/**
+ * `full`: the wide, fine-pointer ruler that replaces the native scrollbar and takes clicks and drags.
+ * `compact`: a slim, passive rail beside the native scrollbar (narrow or touch screens): it never takes the pointer.
+ */
+export type RulerMode = "full" | "compact";
+
+const TICKS: Record<RulerMode, ReturnType<typeof buildTicks>> = {
+  full: buildTicks(),
+  compact: buildTicks(COMPACT_MINOR_STEP, COMPACT_MAJOR_STEP),
+};
 const DIGITS = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"] as const;
 const COLUMNS = [0, 1, 2] as const;
 
@@ -51,13 +62,18 @@ const LIVE_SLACK_PX = 1;
  */
 const HEADER_PX = 68;
 /**
- * How far the cat's box reaches above the needle's line (px): the readout plate's top edge (26) and his 32 px box on
- * it, plus the 4 px apex of his arrival hop (cat.css). Under the page's first few percent the needle is too close to
- * the header for that, so he stays away until his top clears the header with a little air (CAT_MIN_Y, in needle px).
- * Must match the `.ruler-cat` geometry in components/cat/cat.css (box size, bottom offset, hop).
+ * How far the cat's box reaches above the needle's line (px): in the full ruler the readout plate's top edge (26) and
+ * his 32 px box on it, plus the 4 px apex of his arrival hop (cat.css); in the compact one he stands on the needle's
+ * line itself (one unit, at most 4 px, above it) with the same box and hop. Under the page's first few percent the
+ * needle is too close to the header for that, so he stays away until his top clears the header with a little air
+ * (CAT_MIN_Y, in needle px). Must match the `.ruler-cat` geometry in components/cat/cat.css (box size, bottom offset,
+ * hop) and its compact override in components/ruler/ruler.css.
  */
-const CAT_REACH_PX = 62;
-const CAT_MIN_Y = HEADER_PX + CAT_REACH_PX - RAIL_TOP + 4;
+const CAT_REACH_PX: Record<RulerMode, number> = { full: 62, compact: 40 };
+const CAT_MIN_Y: Record<RulerMode, number> = {
+  full: HEADER_PX + CAT_REACH_PX.full - RAIL_TOP + 4,
+  compact: HEADER_PX + CAT_REACH_PX.compact - RAIL_TOP + 4,
+};
 /** A pause longer than this counts as this long: the pose maths only ever sees a finite number. */
 const IDLE_CAP_MS = 60_000;
 
@@ -120,23 +136,33 @@ function scrollToSection(index: number) {
 }
 
 /**
- * The pixel ruler scrollbar: on a wide, fine-pointer homepage visit it replaces the native scrollbar (hidden through
+ * The pixel ruler scrollbar, in one of two modes (RulerMode).
+ *
+ * Full: on a wide, fine-pointer homepage visit it replaces the native scrollbar (hidden through
  * `<html data-ruler="on">`, set before hydration by RulerGate) with a narrow panel on the right edge: square ticks, an
  * arrow needle with a blocky percent readout, and a square marker for the top and for each section that names itself
  * on hover or when the needle is near. A click or a drag on the panel scrolls the page there. Native scrolling is
  * never intercepted (no wheel, touch or key listeners); the ruler is a pointer convenience, hidden from assistive tech.
  *
+ * Compact: on any other homepage visit (narrow, or a coarse pointer) a slim rail rides beside the native scrollbar,
+ * which it never hides (it never sets `data-ruler`): calmer ticks, the needle as an arrow without a readout, unlabelled
+ * square markers and the same cat. It is a picture only: no pointer handlers, and `pointer-events: none` on all of it
+ * (ruler.css), so every touch, scroll and click goes to the page underneath. It keeps clear of the header, the bottom
+ * edge and the right safe-area inset. Switching between the modes (a resize, a rotation, a mouse plugged in) happens
+ * on the media query's change event: the attribute is claimed only in full mode and released on the way out.
+ *
  * The needle is one element moved with `transform`; the ruler cat (components/cat/ruler-cat.tsx) rides it, on top of
- * its readout. He shows with the needle but only once he would clear the header (CAT_MIN_Y), and by day his pose
- * follows the scroll: the same rAF pass notes when the page last moved (no second scroll listener) and one timeout,
- * re-armed after the last scroll, wakes the pass at the 150 ms and 1200 ms marks. React hears about the cat only when
- * his pose changes (or he shows or hides), never per frame.
+ * its readout (compact: on its line). He shows with the needle but only once he would clear the header (CAT_MIN_Y, per
+ * mode), and by day his pose follows the scroll: the same rAF pass notes when the page last moved (no second scroll
+ * listener) and one timeout, re-armed after the last scroll, wakes the pass at the 150 ms and 1200 ms marks. React
+ * hears about the cat only when his pose changes (or he shows or hides), never per frame.
  * All visible text (marker names, the readout's digits) is drawn by CSS from `data-*` attributes, so find-in-page
  * never lands on it.
  *
- * It renders nothing on the server, away from the homepage (the layout mounts it on every route), below 900px,
- * without a fine pointer, and on a page no taller than the window; in those cases it also removes `data-ruler`, so the native scrollbar comes back. It hides (visibility) while something
- * locks the page scroll with `overflow: hidden` on `<html>` (the loader).
+ * It renders nothing on the server, away from the homepage (the layout mounts it on every route) and on a page no
+ * taller than the window; in those cases, and in compact mode, it also removes `data-ruler`, so the native scrollbar
+ * comes back. In both modes it hides (visibility) while something locks the page scroll with `overflow: hidden` on
+ * `<html>` (the loader).
  *
  * One passive scroll listener, one passive resize listener, a ResizeObserver on the body, a MutationObserver on
  * `<html>`'s style and the media query's change event do nothing but schedule one coalesced animation frame. That
@@ -145,7 +171,8 @@ function scrollToSection(index: number) {
  */
 export function Ruler() {
   const { dict, language, t } = useI18n();
-  const [live, setLive] = useState(false);
+  // null: not shown (server, first render, another route, a page that fits the window).
+  const [mode, setMode] = useState<RulerMode | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
   const needleRef = useRef<HTMLDivElement>(null);
   const readoutRef = useRef<HTMLSpanElement>(null);
@@ -166,7 +193,7 @@ export function Ruler() {
     const root = document.documentElement;
     const media = window.matchMedia(QUERY);
     let raf = 0;
-    let isLive = false;
+    let current: RulerMode | null = null;
     let dirty = true;
     let written = freshWritten();
     // Measured only when the layout may have changed (resize, body size, media query, language), not on every scroll.
@@ -195,14 +222,19 @@ export function Ruler() {
 
     // Going live needs a document a little taller than the viewport, staying live only a taller one: a page within a
     // pixel of the viewport (hiding the native bar can make it just fit) would otherwise flip between the two forever.
-    const wanted = () =>
-      window.location.pathname === "/" &&
-      media.matches &&
-      Number.isFinite(viewport) &&
-      viewport > 0 &&
-      docHeight > viewport + (isLive ? 0 : LIVE_SLACK_PX);
+    // Live, the mode is the media query's: full where it matches, compact anywhere else.
+    const wanted = (): RulerMode | null => {
+      const show =
+        window.location.pathname === "/" &&
+        Number.isFinite(viewport) &&
+        viewport > 0 &&
+        docHeight > viewport + (current !== null ? 0 : LIVE_SLACK_PX);
+      if (!show) return null;
+      return media.matches ? "full" : "compact";
+    };
 
     // The attribute hides the native scrollbar; the flag tells the gate's safety release that the ruler took over.
+    // Only the full ruler does either: the compact one sits beside the native scrollbar.
     const claim = (on: boolean) => {
       window.__rulerLive = on;
       if (on && root.dataset.ruler !== "on") root.dataset.ruler = "on";
@@ -246,13 +278,13 @@ export function Ruler() {
     const pass = () => {
       raf = 0;
       if (dirty) measure();
-      const on = wanted();
-      claim(on);
-      if (on !== isLive) {
-        isLive = on;
-        setLive(on);
+      const next = wanted();
+      claim(next === "full");
+      if (next !== current) {
+        current = next;
+        setMode(next);
       }
-      if (!on) {
+      if (next === null) {
         clearTimer();
         if (catPose !== null) {
           catPose = null;
@@ -261,8 +293,10 @@ export function Ruler() {
       }
       const box = rootRef.current;
       const needle = needleRef.current;
+      // Only the full ruler has a readout.
       const readout = readoutRef.current;
-      if (!on || !box || !needle || !readout) return;
+      // Until React has drawn the new mode the DOM is the old one; the render's effect asks for a fresh pass.
+      if (next === null || !box || !needle || box.dataset.mode !== next) return;
 
       // Reads first (style only: the layout was measured above), then writes.
       const locked = getComputedStyle(root).overflow === "hidden";
@@ -277,7 +311,7 @@ export function Ruler() {
         box.style.visibility = locked ? "hidden" : "";
       }
       if (locked) clearTimer();
-      else updateCat(progress, shown && needleY >= CAT_MIN_Y);
+      else updateCat(progress, shown && needleY >= CAT_MIN_Y[next]);
 
       if (needleY !== written.needleY) {
         written.needleY = needleY;
@@ -290,7 +324,7 @@ export function Ruler() {
       }
 
       const pct = Math.round(progress * 100);
-      if (pct !== written.pct) {
+      if (readout && pct !== written.pct) {
         written.pct = pct;
         readout.dataset.value = String(pct);
         const digits = [Math.floor(pct / 100), Math.floor(pct / 10) % 10, pct % 10];
@@ -312,7 +346,7 @@ export function Ruler() {
         const top = sectionTops[i] ?? null;
         const p = top === null ? null : markerProgress(top, docHeight, viewport);
         const passed = p !== null && progress >= p - 0.001;
-        const near = p !== null && shown && Math.abs(p * rail.height - needleY) < NEAR_PX;
+        const near = next === "full" && p !== null && shown && Math.abs(p * rail.height - needleY) < NEAR_PX;
         const key = p === null ? "off" : `${p.toFixed(4)}|${passed}|${near}`;
         if (key === written.marks[i]) return;
         written.marks[i] = key;
@@ -347,17 +381,18 @@ export function Ruler() {
     // native scrollbar for a frame.
     syncRef.current = () => {
       measure();
-      claim(wanted());
+      claim(wanted() === "full");
       remeasure();
     };
     window.__rulerLive = true;
     measure();
-    claim(wanted());
+    claim(wanted() === "full");
     schedule();
 
     window.addEventListener("scroll", schedule, { passive: true });
     window.addEventListener("resize", remeasure, { passive: true });
     media.addEventListener("change", remeasure);
+    // The media query's change is also how the ruler switches between full and compact (a rotation, a mouse).
     // The page grows and shrinks without a resize: images load, fonts swap, a language switch reflows.
     const bodyObserver = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(remeasure);
     bodyObserver?.observe(document.body);
@@ -380,10 +415,15 @@ export function Ruler() {
     };
   }, []);
 
-  // The rail's DOM is new when it goes live; and a language switch moves the sections (and renames the markers).
+  // The rail's DOM is new when it goes live or changes mode; and a language switch moves the sections (and renames the
+  // markers). A press cannot outlive the full ruler: the compact one has no handlers to end it.
   useEffect(() => {
+    if (mode !== "full") {
+      press.current = null;
+      if (rootRef.current) delete rootRef.current.dataset.dragging;
+    }
     refreshRef.current();
-  }, [live, language]);
+  }, [mode, language]);
 
   // The sky flipped (or the time became known): the pass works the cat's pose out again.
   useEffect(() => {
@@ -431,22 +471,33 @@ export function Ruler() {
     if (released && !current.dragging && current.mark !== null) scrollToSection(current.mark);
   };
 
-  if (!live) return null;
+  if (mode === null) return null;
 
+  const full = mode === "full";
   const labels = [dict.ruler.top, ...navItems.map((item) => t(item.label))];
+  // The compact rail is a picture: no handlers at all (and no pointer events in ruler.css).
+  const handlers = full
+    ? {
+        onPointerDown,
+        onPointerMove,
+        onPointerUp: (event: ReactPointerEvent<HTMLDivElement>) => endPress(event, true),
+        onPointerCancel: (event: ReactPointerEvent<HTMLDivElement>) => endPress(event, false),
+        onLostPointerCapture: (event: ReactPointerEvent<HTMLDivElement>) => endPress(event, false),
+      }
+    : {};
 
   return (
-    <div ref={rootRef} className="ruler" aria-hidden="true" data-print="hide" style={{ top: RAIL_TOP, bottom: RAIL_BOTTOM }}>
-      <div
-        className="ruler-rail"
-        onPointerDown={onPointerDown}
-        onPointerMove={onPointerMove}
-        onPointerUp={(event) => endPress(event, true)}
-        onPointerCancel={(event) => endPress(event, false)}
-        onLostPointerCapture={(event) => endPress(event, false)}
-      >
+    <div
+      ref={rootRef}
+      className="ruler"
+      aria-hidden="true"
+      data-print="hide"
+      data-mode={mode}
+      style={{ top: RAIL_TOP, bottom: RAIL_BOTTOM }}
+    >
+      <div className="ruler-rail" {...handlers}>
         <div className="ruler-track">
-          {TICKS.map((tick) => (
+          {TICKS[mode].map((tick) => (
             <span
               key={tick.pct}
               className="ruler-tick"
@@ -465,31 +516,33 @@ export function Ruler() {
               data-mark={i}
             >
               <i className="ruler-mark-box" />
-              <span className="ruler-mark-label" data-label={labels[i]} />
+              {full ? <span className="ruler-mark-label" data-label={labels[i]} /> : null}
             </span>
           ))}
 
           <div ref={needleRef} className="ruler-needle">
             <span className="ruler-needle-line" />
             {cat !== null ? <RulerCat state={catState} msSinceScroll={cat.ms} progress={cat.progress} /> : null}
-            <span ref={readoutRef} className="ruler-readout" data-value="0">
-              {COLUMNS.map((i) => (
-                <span
-                  key={i}
-                  ref={(el) => {
-                    colRefs.current[i] = el;
-                  }}
-                  className="ruler-col"
-                  data-col={i}
-                >
-                  <span className="ruler-strip">
-                    {DIGITS.map((d) => (
-                      <span key={d} data-d={d} />
-                    ))}
+            {full ? (
+              <span ref={readoutRef} className="ruler-readout" data-value="0">
+                {COLUMNS.map((i) => (
+                  <span
+                    key={i}
+                    ref={(el) => {
+                      colRefs.current[i] = el;
+                    }}
+                    className="ruler-col"
+                    data-col={i}
+                  >
+                    <span className="ruler-strip">
+                      {DIGITS.map((d) => (
+                        <span key={d} data-d={d} />
+                      ))}
+                    </span>
                   </span>
-                </span>
-              ))}
-            </span>
+                ))}
+              </span>
+            ) : null}
           </div>
         </div>
       </div>

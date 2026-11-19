@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  COMPACT_MAJOR_STEP,
+  COMPACT_MINOR_STEP,
   buildTicks,
   markerProgress,
   needleVisible,
@@ -39,6 +41,23 @@ describe("buildTicks", () => {
     const majors = ticks.filter((t) => t.major);
     expect(majors).toHaveLength(11);
     expect(majors.every((t) => t.pct % 10 === 0)).toBe(true);
+  });
+
+  it("is calmer for the compact ruler: a tick every 5 % with a major one every 25 %", () => {
+    const ticks = buildTicks(COMPACT_MINOR_STEP, COMPACT_MAJOR_STEP);
+    expect(ticks).toHaveLength(21);
+    expect(ticks[0]?.pct).toBe(0);
+    expect(ticks[ticks.length - 1]?.pct).toBe(100);
+    expect(ticks.filter((t) => t.major).map((t) => t.pct)).toEqual([0, 25, 50, 75, 100]);
+  });
+
+  it("falls back to the default steps for a step that would never end the loop", () => {
+    for (const bad of [0, -5, Number.NaN, Number.POSITIVE_INFINITY]) {
+      expect(buildTicks(bad)).toHaveLength(51);
+      expect(buildTicks(COMPACT_MINOR_STEP, bad).filter((t) => t.major).map((t) => t.pct)).toEqual([
+        0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100,
+      ]);
+    }
   });
 });
 

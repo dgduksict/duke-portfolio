@@ -98,13 +98,15 @@ If React never takes over, the script releases the page by itself after a few se
 
 On wide screens with a fine pointer, the homepage swaps the native scrollbar for a pixel ruler
 ([`src/components/ruler/`](src/components/ruler)): ticks and a marker per section, a needle you can drag
-or click, and the mini cat riding it. It is desktop only; touch and narrow screens keep the native
-scrollbar. Geometry and maths are in [`src/lib/ruler.ts`](src/lib/ruler.ts).
+or click, and the mini cat riding it. Touch and narrow screens get a compact version beside the native
+scrollbar (which they keep): a slim rail with calmer ticks, unlabelled markers, an arrow needle and the
+same cat, purely decorative (it never takes a touch or a click). The two swap on a resize or rotation.
+Geometry and maths are in [`src/lib/ruler.ts`](src/lib/ruler.ts).
 
 A gate script ([`ruler-gate.tsx`](src/components/ruler/ruler-gate.tsx),
 [`src/lib/ruler-gate.ts`](src/lib/ruler-gate.ts)) sets `html[data-ruler]` before first paint, which hides the
-native scrollbar so the page does not shift sideways when the ruler mounts. If the ruler never takes over,
-the scrollbar comes back after a few seconds.
+native scrollbar so the page does not shift sideways when the ruler mounts (full mode only; the compact
+ruler never hides it). If the ruler never takes over, the scrollbar comes back after a few seconds.
 
 ## How it's built
 
