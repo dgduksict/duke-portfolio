@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { render } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { CatArt } from "@/components/cat/cat-art";
-import { PALETTE } from "@/components/cat/sprites";
+import { PALETTE, SPIN_BODY } from "@/components/cat/sprites";
 import type { RulerPose } from "@/lib/cat";
 
 const POSES: readonly RulerPose[] = ["type", "sit", "groom", "sleep", "nap"];
@@ -12,7 +12,7 @@ const DAY_PARTS = ["cat-head", "cat-eye", "cat-ear-l", "cat-ear-r", "cat-tail", 
 const FOREIGN_PAINT = ["#ef4445", "#eb4397", "#8253a2", "#3f5fac", "#3ea3db", "--c-pink", "--grad"];
 
 describe("CatArt (hero)", () => {
-  it.each(["day", "night"] as const)("spins awake by %s: the sitting cat whole in one cat-spin group", (state) => {
+  it.each(["day", "night"] as const)("spins awake by %s: the sitting cat whole in the one cat-spin group", (state) => {
     const { container } = render(<CatArt variant="hero" state={state} uiia />);
     const svg = container.querySelector("svg");
     expect(svg).toHaveAttribute("data-state", state);
@@ -25,6 +25,37 @@ describe("CatArt (hero)", () => {
     expect(container.querySelector(".cat-zzz")).toBeNull();
     // His props stay where they were: the laptop by day, the mug by night.
     expect(container.querySelector(state === "day" ? '[data-layer="laptop"]' : '[data-layer="mug"]')).not.toBeNull();
+  });
+
+  it.each(["day", "night"] as const)("turns the UIIA cat through four drawn frames by %s", (state) => {
+    const { container } = render(<CatArt variant="hero" state={state} uiia />);
+    const frames = [...container.querySelectorAll(".cat-spin > .cat-spin-frame")];
+    expect(frames).toHaveLength(4);
+    expect(container.querySelectorAll(".cat-spin-frame")).toHaveLength(4);
+    expect(frames.map((frame) => frame.getAttribute("data-frame"))).toEqual(["side", "front", "mirror", "back"]);
+    // Every frame is a whole drawing; only the front looks at you with his two eyes.
+    for (const frame of frames) expect(frame.querySelector("rect"), frame.getAttribute("data-frame") ?? "").not.toBeNull();
+    const eyes = (frame: Element) => frame.querySelectorAll('rect[fill="var(--cat-eye)"]').length;
+    expect(eyes(frames[1] as Element)).toBe(2);
+    expect(eyes(frames[3] as Element)).toBe(0);
+  });
+
+  it("mirrors the side frame about his own body", () => {
+    const { container } = render(<CatArt variant="hero" state="day" uiia />);
+    const wrapper = container.querySelector('.cat-spin-frame[data-frame="mirror"] > g');
+    expect(wrapper).toHaveAttribute("transform", `translate(${(SPIN_BODY.x1 + 1) * 6} 0) scale(-1 1)`);
+    expect(wrapper).toHaveAttribute("transform", "translate(126 0) scale(-1 1)");
+    expect(wrapper?.querySelector(".cat-head")).not.toBeNull();
+    // The side frame itself stands where he always sits.
+    expect(container.querySelector('.cat-spin-frame[data-frame="side"] > .cat-head')).not.toBeNull();
+  });
+
+  it("lifts the front and back frames one cell", () => {
+    const { container } = render(<CatArt variant="hero" state="day" uiia />);
+    for (const frame of ["front", "back"]) {
+      const wrapper = container.querySelector(`.cat-spin-frame[data-frame="${frame}"] > g`);
+      expect(wrapper, frame).toHaveAttribute("transform", "translate(0 -6)");
+    }
   });
 
   it("carries no data-uiia and no cat-spin group outside the easter egg", () => {
@@ -144,22 +175,26 @@ describe("CatArt markup", () => {
     }
   });
 
+  /**
+   * Every resting drawing stays under 15 KB of markup. The spin holds four whole drawings (side, front, side mirrored,
+   * back) and only ever renders on the client after five pokes, never in the page's HTML, so it gets 24 KB.
+   */
   const variants = [
-    { name: "hero day", node: <CatArt variant="hero" state="day" /> },
-    { name: "hero night", node: <CatArt variant="hero" state="night" /> },
-    { name: "hero day, spinning", node: <CatArt variant="hero" state="day" uiia /> },
-    { name: "hero night, spinning", node: <CatArt variant="hero" state="night" uiia /> },
-    ...POSES.map((pose) => ({ name: `mini ${pose}`, node: <CatArt variant="mini" pose={pose} /> })),
+    { name: "hero day", kb: 15, node: <CatArt variant="hero" state="day" /> },
+    { name: "hero night", kb: 15, node: <CatArt variant="hero" state="night" /> },
+    { name: "hero day, spinning", kb: 24, node: <CatArt variant="hero" state="day" uiia /> },
+    { name: "hero night, spinning", kb: 24, node: <CatArt variant="hero" state="night" uiia /> },
+    ...POSES.map((pose) => ({ name: `mini ${pose}`, kb: 15, node: <CatArt variant="mini" pose={pose} /> })),
   ];
 
-  it.each(variants)("paints $name in the portfolio palette only, under 15 KB", ({ node }) => {
+  it.each(variants)("paints $name in the portfolio palette only, under $kb KB", ({ node, kb }) => {
     const { container } = render(node);
     const markup = container.innerHTML;
     for (const foreign of FOREIGN_PAINT) {
       expect(markup).not.toContain(foreign);
     }
     expect(markup).not.toMatch(/gradient/i);
-    expect(markup.length).toBeLessThan(15 * 1024);
+    expect(markup.length).toBeLessThan(kb * 1024);
   });
 
   it.each(variants)("draws $name in hard pixels only: crisp rects in --cat-* colours", ({ node }) => {

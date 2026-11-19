@@ -35,8 +35,9 @@ function prefersReducedMotion(): boolean {
  * clean-code line by day, "shh" at night) shown as a pixel speech box that clears after a few seconds.
  *
  * The easter egg: five pokes within 1.5 s (lib/cat.ts, `UIIA`) and he becomes the spinning "UIIA" cat for 3.2 s, awake
- * even at night, turning in 90-degree frames (cat.css) while the box says "UIIA UIIA"; then he settles back into his
- * pose. Pokes while he spins do nothing. Under reduced motion he does not move or change pose: only the box speaks.
+ * even at night, turning on the spot in four drawn frames (cat.css) while the box says "UIIA UIIA"; then he settles
+ * back into his pose. Pokes while he spins do nothing. Under reduced motion he does not move or change pose: only the
+ * box speaks.
  */
 export function HeroCat({ now }: { readonly now: Date | null }) {
   const { dict } = useI18n();

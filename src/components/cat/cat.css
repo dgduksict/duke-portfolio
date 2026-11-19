@@ -160,24 +160,29 @@
 }
 
 /*
- * The easter egg (five quick pokes, hero-cat.tsx): the spinning "UIIA" cat. CatArt draws him awake and sitting up in a
- * `cat-spin` group, which turns about its own centre in four 90-degree frames, 400 ms a turn, for as long as he is in
- * the mood; his parts hold still meanwhile. Upright and upside down he stands on the sill; side-on he is lifted half a
- * body clear of it, so every quarter turn reads as a little hop. A 90-degree turn keeps every pixel square and on a
- * whole screen pixel (half a sprite pixel is 3px in the 168px slot, 2px in the 112px one), so he stays crisp.
+ * The easter egg (five quick pokes, hero-cat.tsx): the spinning "UIIA" cat. He turns on the spot like the meme cat,
+ * on his vertical axis: CatArt draws four frames in his `cat-spin` group (side, front, side mirrored, back), and each
+ * shows for the first 100 ms of a 400 ms loop, started 100 ms after the one before, for as long as he is in the mood;
+ * his parts hold still meanwhile. The front and back are drawn a cell higher (cat-art.tsx), so each half-turn reads as
+ * a little hop. Only opacity moves and every frame is a whole drawing, so he stays crisp. Without the loop (a still
+ * render) only the side frame shows.
  */
-.hero-cat .cat-art[data-uiia] .cat-spin {
-  transform-box: fill-box;
-  transform-origin: center;
-  animation: cat-uiia 400ms steps(4, end) infinite;
+.cat-art[data-uiia] .cat-spin-frame:not([data-frame="side"]) {
+  opacity: 0;
 }
 
-.hero-cat .cat-art[data-uiia] .cat-spin * {
+.hero-cat .cat-art[data-uiia] .cat-spin-frame[data-frame="side"] { animation: cat-uiia-frame 400ms steps(1, end) 0ms infinite; }
+.hero-cat .cat-art[data-uiia] .cat-spin-frame[data-frame="front"] { animation: cat-uiia-frame 400ms steps(1, end) 100ms infinite; }
+.hero-cat .cat-art[data-uiia] .cat-spin-frame[data-frame="mirror"] { animation: cat-uiia-frame 400ms steps(1, end) 200ms infinite; }
+.hero-cat .cat-art[data-uiia] .cat-spin-frame[data-frame="back"] { animation: cat-uiia-frame 400ms steps(1, end) 300ms infinite; }
+
+.hero-cat .cat-art[data-uiia] .cat-spin-frame * {
   animation: none;
 }
 
-@keyframes cat-uiia {
-  to { transform: rotate(360deg); }
+@keyframes cat-uiia-frame {
+  0% { opacity: 1; }
+  25%, 100% { opacity: 0; }
 }
 
 /*

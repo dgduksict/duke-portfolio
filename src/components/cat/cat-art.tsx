@@ -1,8 +1,10 @@
 import { isBlank, pickColours, PixelSprite, splitParts } from "@/components/cat/pixel-sprite";
 import {
   type CatPart,
+  HERO_BACK,
   HERO_DAY,
   HERO_DAY_PARTS,
+  HERO_FRONT,
   HERO_NIGHT,
   HERO_NIGHT_PARTS,
   LAPTOP,
@@ -15,6 +17,7 @@ import {
   MINI_TYPE,
   MUG,
   SCREEN_COLOURS,
+  SPIN_BODY,
   type Sprite,
   STEAM_1,
   STEAM_2,
@@ -29,8 +32,9 @@ export type CatArtProps = (
       variant: "hero";
       state: CatState;
       /**
-       * The easter egg: he is up and awake whatever the hour, his sitting silhouette in its own `cat-spin` group for
-       * cat.css to turn. By day the laptop stays where it is; by night the mug stays and he sits where the loaf was.
+       * The easter egg: he is up and awake whatever the hour, turning on the spot in four drawn frames (side, front,
+       * side mirrored, back) in their own `cat-spin` group for cat.css to cycle. By day the laptop stays where it is; by
+       * night the mug stays and he sits where the loaf was.
        */
       uiia?: boolean;
     }
@@ -54,8 +58,8 @@ const Z_SMALL_AT = { x: 25, y: 1 } as const;
 const MINI_LAPTOP_AT = { x: 10, y: 10 } as const;
 const MINI_Z_AT = { x: 13, y: 1 } as const;
 /**
- * By night the spinning cat sits eight pixels right of his day spot, on the loaf's place: clear of the mug when upright,
- * and side-on (a 25-pixel-wide frame) he reaches past the slot by no more than a pixel and a half, onto the window frame.
+ * By night the spinning cat sits eight pixels right of his day spot, on the loaf's place: clear of the mug, and every
+ * frame of the turn (columns 0-20, SPIN_BODY) reaches past the slot by no more than a pixel, onto the window frame.
  */
 const NIGHT_SPIN_SHIFT = 8;
 
@@ -175,15 +179,39 @@ function HeroNight() {
   );
 }
 
+/** The side view mirrored about his own body (columns SPIN_BODY), not the frame: he turns on the spot. */
+const SPIN_MIRROR = `translate(${(SPIN_BODY.x1 + 1) * HERO_SCALE} 0) scale(-1 1)`;
+/** The front and back frames sit one cell higher: a little hop each half-turn. */
+const SPIN_LIFT = `translate(0 -${HERO_SCALE})`;
+
 /**
- * The easter egg's drawing: the day silhouette (awake, sitting up) in a `cat-spin` group, which cat.css turns about its
- * own centre in 90-degree frames. By day it keeps the laptop beside him; by night the mug (and its steam) with him
- * shifted onto the loaf's spot, and no z's. The shift is on a plain wrapper, never on a `cat-*` part.
+ * The easter egg's drawing: he turns on the spot like the meme cat, in four drawn frames inside a `cat-spin` group
+ * (side, front, side mirrored, back, each a `cat-spin-frame`), which cat.css shows one at a time. The side frames are
+ * the day silhouette (awake, sitting up) on the sill; the front and back are lifted a cell. By day it keeps the laptop
+ * beside him; by night the mug (and its steam) with him shifted onto the loaf's spot, and no z's. Every placement is
+ * on a plain wrapper, never on a `cat-*` part.
  */
 function HeroSpin({ state }: { state: CatState }) {
   const cat = (
     <g className="cat-spin">
-      <Cat parts={DAY} scale={HERO_SCALE} />
+      <g className="cat-spin-frame" data-frame="side">
+        <Cat parts={DAY} scale={HERO_SCALE} />
+      </g>
+      <g className="cat-spin-frame" data-frame="front">
+        <g transform={SPIN_LIFT}>
+          <PixelSprite map={HERO_FRONT} scale={HERO_SCALE} />
+        </g>
+      </g>
+      <g className="cat-spin-frame" data-frame="mirror">
+        <g transform={SPIN_MIRROR}>
+          <Cat parts={DAY} scale={HERO_SCALE} />
+        </g>
+      </g>
+      <g className="cat-spin-frame" data-frame="back">
+        <g transform={SPIN_LIFT}>
+          <PixelSprite map={HERO_BACK} scale={HERO_SCALE} />
+        </g>
+      </g>
     </g>
   );
   if (state === "day") {
