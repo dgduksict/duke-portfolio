@@ -1,6 +1,7 @@
 // Pure rules for the programmer cat: whether it is awake (from the sky phase) and which pose the ruler cat takes.
 // No DOM in here, so it is unit-tested.
 import type { SkyPhase } from "@/lib/sky";
+import type { SunPosition } from "@/lib/sun";
 
 /** Whether the cat is awake at its desk (day) or asleep (night). */
 export type CatState = "day" | "night";
@@ -30,6 +31,22 @@ export function countPoke(recent: readonly number[], now: number): { recent: num
   const kept = recent.filter((at) => now - at < UIIA.windowMs);
   kept.push(now);
   return kept.length >= UIIA.clicks ? { recent: [], uiia: true } : { recent: kept, uiia: false };
+}
+
+/**
+ * The hero cat's sunrise wake (ms): when night turns to day under an open page, or on a morning arrival, he yawns for
+ * the first half and stretches for the second (cat.css steps the two drawn frames over the same time), then settles
+ * into his day pose.
+ */
+export const WAKE_MS = 1600;
+
+/**
+ * Whether the hero cat wakes (yawn, stretch) right after his hop-in: only when he first appears in the morning's
+ * twilight or golden light, the sun still in the eastern half of the sky (azimuth under 180 degrees, before solar
+ * noon). Evening light (the sun in the west), full day and night never wake him.
+ */
+export function wakesOnArrival(sun: SunPosition, phase: SkyPhase): boolean {
+  return (phase === "twilight" || phase === "golden") && sun.azimuth < 180;
 }
 
 /**

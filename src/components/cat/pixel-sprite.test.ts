@@ -7,6 +7,8 @@ import {
   HERO_BACK,
   HERO_DAY,
   HERO_FRONT,
+  HERO_STRETCH,
+  HERO_YAWN,
   PALETTE,
   POUNCE,
   PROUD,
@@ -79,6 +81,8 @@ describe("sprite maps", () => {
       "heroNight",
       "heroFront",
       "heroBack",
+      "heroYawn",
+      "heroStretch",
       "laptop",
       "mug",
       "steam1",
@@ -138,6 +142,33 @@ describe("sprite maps", () => {
     // The side view itself fits the same span: the mirror about it is pixel-exact.
     for (const row of HERO_DAY) expect(row.slice(SPIN_BODY.x1 + 1)).toMatch(/^\.*$/);
     expect(SPIN_BODY.x0).toBe(0);
+  });
+
+  it.each([
+    ["yawn", HERO_YAWN],
+    ["stretch", HERO_STRETCH],
+  ] as const)("draws the sunrise %s as the same black cat, 28 x 28, feet on row 27, beside his laptop", (name, map) => {
+    expect(map).toHaveLength(28);
+    for (const row of map) expect(row).toHaveLength(28);
+    expect(map[27]).toMatch(/[^.]/);
+    // Ink, rim and his eye; the yawn's open mouth may add coffee (the inside) and cream (a fang). Nothing else.
+    expect(map.join("")).toMatch(/^[.krecw]+$/);
+    expect(map.join("")).toContain("k");
+    // The day cat's own span (SPIN_BODY), so the laptop at column 17 stays in view.
+    for (const row of map) expect(row.slice(SPIN_BODY.x1 + 1), name).toMatch(/^\.*$/);
+    // Nothing under him: a rim pixel over empty space always meets the outside on its left, right or top too.
+    const at = (x: number, y: number) => map[y]?.[x] ?? ".";
+    map.forEach((row, y) =>
+      [...row].forEach((pixel, x) => {
+        if (pixel !== "r" || at(x, y + 1) !== "." || y === 27) return;
+        expect([at(x - 1, y), at(x + 1, y), at(x, y - 1)], `${name} rim under him at ${x},${y}`).toContain(".");
+      }),
+    );
+  });
+
+  it("opens the yawn's mouth and keeps the stretch's eye", () => {
+    expect(HERO_YAWN.join("")).toContain("c");
+    expect(HERO_STRETCH.join("")).toContain("e");
   });
 
   it.each([

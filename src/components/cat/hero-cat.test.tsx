@@ -4,7 +4,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { HeroCat } from "@/components/cat/hero-cat";
 import { useCatState } from "@/components/cat/use-cat-state";
 import { WindowScene } from "@/components/scene/window-scene";
-import { UIIA } from "@/lib/cat";
+import { useNow } from "@/hooks/use-now";
+import { UIIA, WAKE_MS } from "@/lib/cat";
 import { dictionaries } from "@/lib/i18n";
 import { LANGUAGES } from "@/types";
 import { resetPortfolioStore, usePortfolioStore } from "@/store/portfolio-store";
@@ -327,16 +328,199 @@ describe("HeroCat", () => {
     });
   });
 
-  it("cross-fades when the sky flips from day to night, then keeps only the new drawing", () => {
+  it("day to night still cross-fades, then keeps only the new drawing", () => {
     const { rerender, container } = render(<HeroCat now={DAY} />);
     rerender(<HeroCat now={NIGHT} />);
     expect(container.querySelector('svg[data-state="day"]')).not.toBeNull();
     expect(container.querySelector('svg[data-state="night"]')).not.toBeNull();
+    expect(container.querySelector('.hero-cat-layer[data-fade="out"]')).not.toBeNull();
+    expect(container.querySelector(".cat-wake-frame")).toBeNull();
     act(() => {
       vi.advanceTimersByTime(700);
     });
     expect(container.querySelector('svg[data-state="day"]')).toBeNull();
     expect(container.querySelector('svg[data-state="night"]')).not.toBeNull();
+    expect(container.querySelector(".cat-wake-frame")).toBeNull();
+  });
+
+  describe("the sunrise wake", () => {
+    const wakeFrames = (container: HTMLElement) => container.querySelectorAll(".cat-art[data-wake] .cat-wake-frame");
+    /** The day drawing at rest: his typing paws are back. */
+    const atRest = (container: HTMLElement) =>
+      container.querySelector('svg[data-state="day"]:not([data-wake]) .cat-paw-l') !== null;
+
+    /** HeroCat driven by the page's own clock, as the hero mounts him (so `?time=` previews drive him too). */
+    function Clocked() {
+      return <HeroCat now={useNow()} />;
+    }
+
+    afterEach(() => {
+      window.history.replaceState(null, "", "/");
+    });
+
+    it("yawns and stretches when night turns to day", () => {
+      const { rerender, container } = render(<HeroCat now={NIGHT} />);
+      rerender(<HeroCat now={DAY} />);
+      expect(wakeFrames(container)).toHaveLength(2);
+      expect(container.querySelector('svg[data-state="day"]')).toHaveAttribute("data-wake");
+      // The wake replaces the cross-fade: no fading layer, and the night drawing is gone at once.
+      expect(container.querySelector("[data-fade]")).toBeNull();
+      expect(container.querySelector('svg[data-state="night"]')).toBeNull();
+      expect(container.querySelectorAll("svg.cat-art")).toHaveLength(1);
+      act(() => {
+        vi.advanceTimersByTime(WAKE_MS - 1);
+      });
+      expect(wakeFrames(container)).toHaveLength(2);
+      act(() => {
+        vi.advanceTimersByTime(1);
+      });
+      expect(wakeFrames(container)).toHaveLength(0);
+      expect(atRest(container)).toBe(true);
+    });
+
+    it("speaks normally when poked during the wake", () => {
+      const { rerender, container } = render(<HeroCat now={NIGHT} />);
+      rerender(<HeroCat now={DAY} />);
+      fireEvent.click(screen.getByRole("button"));
+      expect(screen.getByRole("status")).toHaveTextContent(en.cat.quotes[0]);
+      expect(wakeFrames(container)).toHaveLength(2);
+    });
+
+    it("wakes on arrival on a morning sky", () => {
+      vi.setSystemTime(new Date("2026-10-05T04:00:00Z"));
+      window.history.replaceState(null, "", "/?time=07:20"); // golden, the sun rising in the east
+      const { container } = render(<Clocked />);
+      expect(container.querySelector('svg[data-state="day"]')).not.toBeNull();
+      // He hops in first (1000 ms), then yawns and stretches.
+      act(() => {
+        vi.advanceTimersByTime(999);
+      });
+      expect(wakeFrames(container)).toHaveLength(0);
+      act(() => {
+        vi.advanceTimersByTime(1);
+      });
+      expect(wakeFrames(container)).toHaveLength(2);
+      act(() => {
+        vi.advanceTimersByTime(WAKE_MS);
+      });
+      expect(wakeFrames(container)).toHaveLength(0);
+      expect(atRest(container)).toBe(true);
+      // Once only.
+      act(() => {
+        vi.advanceTimersByTime(10_000);
+      });
+      expect(wakeFrames(container)).toHaveLength(0);
+    });
+
+    it("does not wake on arrival on an evening sky, or at noon", () => {
+      vi.setSystemTime(new Date("2026-10-05T04:00:00Z"));
+      for (const time of ["18:00", "12:50"]) {
+        window.history.replaceState(null, "", `/?time=${time}`); // golden in the west; full day
+        const { container, unmount } = render(<Clocked />);
+        expect(container.querySelector('svg[data-state="day"]'), time).not.toBeNull();
+        for (let ms = 0; ms < 1000 + WAKE_MS; ms += 100) {
+          act(() => {
+            vi.advanceTimersByTime(100);
+          });
+          expect(wakeFrames(container), `${time} +${ms}`).toHaveLength(0);
+        }
+        unmount();
+      }
+    });
+
+    it("waits for the loading screen: the hop, then the wake, start when he first shows", async () => {
+      vi.setSystemTime(new Date("2026-10-05T04:00:00Z"));
+      window.history.replaceState(null, "", "/?time=07:20");
+      setLoader("run");
+      const { container } = render(<Clocked />);
+      act(() => {
+        vi.advanceTimersByTime(5000);
+      });
+      expect(container).toBeEmptyDOMElement();
+      await act(async () => {
+        setLoader("done");
+      });
+      act(() => {
+        vi.advanceTimersByTime(999);
+      });
+      expect(wakeFrames(container)).toHaveLength(0);
+      act(() => {
+        vi.advanceTimersByTime(1);
+      });
+      expect(wakeFrames(container)).toHaveLength(2);
+    });
+
+    it("no wake under reduced motion: a plain swap", () => {
+      vi.spyOn(window, "matchMedia").mockImplementation(
+        (query: string) => ({ matches: query.includes("reduce"), media: query }) as MediaQueryList,
+      );
+      const { rerender, container } = render(<HeroCat now={NIGHT} />);
+      rerender(<HeroCat now={DAY} />);
+      expect(wakeFrames(container)).toHaveLength(0);
+      expect(container.querySelector(".cat-wake-frame")).toBeNull();
+      expect(container.querySelector('.hero-cat-layer:not([data-fade="out"]) svg[data-state="day"]')).not.toBeNull();
+      act(() => {
+        vi.advanceTimersByTime(700);
+      });
+      expect(container.querySelector('svg[data-state="night"]')).toBeNull();
+      expect(atRest(container)).toBe(true);
+    });
+
+    it("no wake on a morning arrival under reduced motion", () => {
+      vi.spyOn(window, "matchMedia").mockImplementation(
+        (query: string) => ({ matches: query.includes("reduce"), media: query }) as MediaQueryList,
+      );
+      vi.setSystemTime(new Date("2026-10-05T04:00:00Z"));
+      window.history.replaceState(null, "", "/?time=07:20");
+      const { container } = render(<Clocked />);
+      act(() => {
+        vi.advanceTimersByTime(1000 + WAKE_MS);
+      });
+      expect(container.querySelector(".cat-wake-frame")).toBeNull();
+      expect(atRest(container)).toBe(true);
+    });
+
+    it("UIIA cancels a wake", () => {
+      const { rerender, container } = render(<HeroCat now={NIGHT} />);
+      rerender(<HeroCat now={DAY} />);
+      expect(wakeFrames(container)).toHaveLength(2);
+      const button = screen.getByRole("button");
+      for (let i = 0; i < UIIA.clicks; i += 1) {
+        if (i > 0) {
+          act(() => {
+            vi.advanceTimersByTime(100);
+          });
+        }
+        fireEvent.click(button);
+      }
+      expect(container.querySelectorAll(".cat-spin-frame")).toHaveLength(4);
+      expect(container.querySelector(".cat-wake-frame")).toBeNull();
+      expect(container.querySelector("[data-wake]")).toBeNull();
+      // The wake does not come back after the spin: he settles straight into his day pose.
+      act(() => {
+        vi.advanceTimersByTime(UIIA.durationMs);
+      });
+      expect(container.querySelector(".cat-spin-frame")).toBeNull();
+      expect(container.querySelector(".cat-wake-frame")).toBeNull();
+      expect(atRest(container)).toBe(true);
+    });
+
+    it("leaves no timer running when he unmounts mid-wake", () => {
+      const { rerender, unmount } = render(<HeroCat now={NIGHT} />);
+      rerender(<HeroCat now={DAY} />);
+      expect(vi.getTimerCount()).toBeGreaterThan(0);
+      unmount();
+      expect(vi.getTimerCount()).toBe(0);
+    });
+
+    it("leaves no timer running when he unmounts before a morning wake begins", () => {
+      vi.setSystemTime(new Date("2026-10-05T04:00:00Z"));
+      window.history.replaceState(null, "", "/?time=07:20");
+      const { unmount } = render(<Clocked />);
+      expect(vi.getTimerCount()).toBeGreaterThan(0);
+      unmount();
+      expect(vi.getTimerCount()).toBe(0);
+    });
   });
 });
 
@@ -400,6 +584,18 @@ describe("cat.css", () => {
     // On a phone the day box grows upwards from his head, so a longer line never runs off the bottom of the scene.
     const narrow = css.slice(css.indexOf("@media (width < 30rem)"));
     expect(narrow).toMatch(/\.hero-cat\[data-mood="day"\] \.hero-cat-bubble\s*\{[^}]*top:\s*auto;[^}]*bottom:/);
+  });
+
+  it("plays the wake in two drawn frames: the yawn for the first half of 1.6 s, the stretch for the second", () => {
+    expect(css).toMatch(/\.cat-art\[data-wake\] \.cat-wake-frame\[data-frame="stretch"\]\s*\{\s*opacity:\s*0;\s*\}/);
+    for (const frame of ["yawn", "stretch"]) {
+      const rule = new RegExp(
+        `\\.hero-cat \\.cat-art\\[data-wake\\] \\.cat-wake-frame\\[data-frame="${frame}"\\]\\s*\\{([^}]*)\\}`,
+      ).exec(css)?.[1];
+      expect(rule, frame).toMatch(new RegExp(`animation:\\s*cat-wake-${frame} ${WAKE_MS}ms steps\\(1, end\\) both;`));
+    }
+    expect(css).toMatch(/@keyframes cat-wake-yawn\s*\{\s*0%\s*\{\s*opacity:\s*1;\s*\}\s*50%,\s*100%\s*\{\s*opacity:\s*0;\s*\}\s*\}/);
+    expect(css).toMatch(/@keyframes cat-wake-stretch\s*\{\s*0%\s*\{\s*opacity:\s*0;\s*\}\s*50%,\s*100%\s*\{\s*opacity:\s*1;\s*\}\s*\}/);
   });
 
   it("switches every hero animation off under reduced motion", () => {

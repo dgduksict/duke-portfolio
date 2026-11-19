@@ -7,6 +7,8 @@ import {
   rulerCatPose,
   TYPING_WINDOW_MS,
   UIIA,
+  WAKE_MS,
+  wakesOnArrival,
 } from "./cat";
 
 /** Feeds pokes at the given times through countPoke; returns whether each one triggered the spin. */
@@ -63,6 +65,27 @@ describe("catStateForPhase", () => {
 
   it("is awake when the phase is unknown", () => {
     expect(catStateForPhase(undefined)).toBe("day");
+  });
+});
+
+describe("wakesOnArrival (the sunrise yawn)", () => {
+  it("holds the agreed length: 1.6 s, yawn then stretch", () => {
+    expect(WAKE_MS).toBe(1600);
+  });
+
+  it("wakes on a morning golden sky, the sun in the east", () => {
+    expect(wakesOnArrival({ elevation: 2, azimuth: 110 }, "golden")).toBe(true);
+    expect(wakesOnArrival({ elevation: -6, azimuth: 95 }, "twilight")).toBe(true);
+  });
+
+  it("never wakes in the evening, the sun in the west", () => {
+    expect(wakesOnArrival({ elevation: 2, azimuth: 250 }, "golden")).toBe(false);
+    expect(wakesOnArrival({ elevation: -6, azimuth: 265 }, "twilight")).toBe(false);
+  });
+
+  it("never wakes by full day or by night", () => {
+    expect(wakesOnArrival({ elevation: 30, azimuth: 150 }, "day")).toBe(false);
+    expect(wakesOnArrival({ elevation: -20, azimuth: 60 }, "night")).toBe(false);
   });
 });
 

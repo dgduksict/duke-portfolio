@@ -189,6 +189,28 @@
 }
 
 /*
+ * The sunrise wake (hero-cat.tsx, WAKE_MS in lib/cat.ts): when night turns to day under an open page, or on a morning
+ * arrival right after the hop, CatArt draws two whole frames beside the laptop: the yawn shows for the first half of
+ * 1.6 s, the stretch for the second, then he is back in his day pose. Only opacity moves, in one step each. Without
+ * the animation (a still render) only the yawn shows; under reduced motion he never wakes like this at all.
+ */
+.cat-art[data-wake] .cat-wake-frame[data-frame="stretch"] {
+  opacity: 0;
+}
+
+.hero-cat .cat-art[data-wake] .cat-wake-frame[data-frame="yawn"] { animation: cat-wake-yawn 1600ms steps(1, end) both; }
+.hero-cat .cat-art[data-wake] .cat-wake-frame[data-frame="stretch"] { animation: cat-wake-stretch 1600ms steps(1, end) both; }
+
+@keyframes cat-wake-yawn {
+  0% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+@keyframes cat-wake-stretch {
+  0% { opacity: 0; }
+  50%, 100% { opacity: 1; }
+}
+
+/*
  * The speech box, left of the cat: a pixel box (.px-box, from pixel.css: the panel fill, a stepped outline, square
  * corners) with a stair-step tail on its right edge pointing at him, in the body face at 20px. It carries its own
  * ground (--panel) and ink (--ink, held to AA on it in both themes), so it reads over the wall and over the glass
@@ -281,7 +303,8 @@
 
 /*
  * Reduced motion: a still pose, no hop, no loops, no spin (hero-cat.tsx then does not even change his pose for the
- * easter egg; only the box speaks), and a flip between day and night swaps the drawings at once.
+ * easter egg; only the box speaks), no sunrise wake (hero-cat.tsx never starts one), and a flip between day and night
+ * swaps the drawings at once.
  */
 @media (prefers-reduced-motion: reduce) {
   .hero-cat-hop,
