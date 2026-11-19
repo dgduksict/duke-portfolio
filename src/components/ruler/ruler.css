@@ -282,6 +282,20 @@ html[data-ruler="on"]::-webkit-scrollbar {
   }
 
   /*
+   * Hides when the page is still: ruler.tsx sets data-idle IDLE_AFTER_MS after the last scroll and removes it on the
+   * next one. The rail and the cat on it fade out slowly and come back quickly, in whole steps. It stays in the layout
+   * and never took the pointer, so nothing else changes; the cat's pose logic runs on unseen.
+   */
+  .ruler[data-mode="compact"] {
+    transition: opacity 150ms steps(3, end);
+  }
+
+  .ruler[data-mode="compact"][data-idle] {
+    opacity: 0;
+    transition: opacity 300ms steps(3, end);
+  }
+
+  /*
    * The phone menu (site-header.tsx, shown below 48rem) drops over the top of the page without locking the scroll:
    * while it is open the rail steps away like it does for a scroll lock, so the cat never peeks out under its edge.
    */
@@ -336,6 +350,7 @@ html[data-ruler="on"]::-webkit-scrollbar {
   }
 
   @media (prefers-reduced-motion: reduce) {
+    .ruler,
     .ruler *,
     .ruler *::before,
     .ruler *::after {

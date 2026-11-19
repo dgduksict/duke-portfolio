@@ -11,7 +11,7 @@
  * - `sessionKey`: the `sessionStorage` key set once the loader has been seen, so a reload in the same tab skips it.
  */
 export const LOADER = {
-  minMs: 1400,
+  minMs: 1000,
   maxMs: 3500,
   reducedMinMs: 600,
   safetyMs: 3000,

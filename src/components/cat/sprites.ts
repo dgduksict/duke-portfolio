@@ -89,6 +89,86 @@ export const HERO_DAY: Sprite = [
 ];
 
 /**
+ * The columns the sitting side view's body spans (tail to paws, inclusive). The UIIA turn mirrors HERO_DAY about this
+ * span, not the whole frame, and draws HERO_FRONT and HERO_BACK on it, so he turns on the spot.
+ */
+export const SPIN_BODY = { x0: 0, x1: 20 } as const;
+
+/**
+ * The hero facing you (a UIIA frame): sitting up, both ears, both eyes as half-lidded slits, a rim dot of a nose, the
+ * front legs and paws together down his chest, his tail wrapped round his left side along the floor. The same sitting
+ * height as HERO_DAY (ears on row 3, feet on row 27), on its body columns (SPIN_BODY). 28 x 28.
+ */
+export const HERO_FRONT: Sprite = [
+// 0123456789012345678901234567
+  "............................", // 0
+  "............................", // 1
+  "............................", // 2
+  ".....r.........r............", // 3
+  ".....rr.......rr............", // 4
+  ".....rkr.....rkr............", // 5
+  ".....rkkrrrrrkkr............", // 6
+  "....rkkkkkkkkkkkr...........", // 7
+  "...rkkkkkkkkkkkkkr..........", // 8
+  "...rkkeekkkkkeekkr..........", // 9
+  "...rkkkkkkrkkkkkkr..........", // 10
+  "....rkkkkkkkkkkkr...........", // 11
+  ".....rkkkkkkkkkr............", // 12
+  "......rkkkkkkkr.............", // 13
+  ".....rkkkkkkkkkr............", // 14
+  ".....rkkkkkkkkkr............", // 15
+  "....rkkkkkkkkkkkr...........", // 16
+  "....rkkkkkkkkkkkr...........", // 17
+  "....rkkkkkkkkkkkr...........", // 18
+  "...rkkkkkkkkkkkkkr..........", // 19
+  "...rkkkrkkkkkrkkkr..........", // 20
+  "...rkkkrkkkkkrkkkr..........", // 21
+  "...rkkkrkkkkkrkkkr..........", // 22
+  "..rkkkkrkkkkkrkkkkr.........", // 23
+  "..rkkkkrkkrkkrkkkkr.........", // 24
+  "..rkkkkrkkrkkrrrrkr.........", // 25
+  "..rkkkkrkkrkkrkkkkr.........", // 26
+  "..rkkkkrkkrkkrkkkkr.........", // 27
+];
+
+/**
+ * The hero from behind (a UIIA frame): sitting up, ears and the back of his head, no face, his tail wrapped round his
+ * left side along the floor, its tip curled up beside him. The same outline as HERO_FRONT, on the same rows and
+ * columns. 28 x 28.
+ */
+export const HERO_BACK: Sprite = [
+// 0123456789012345678901234567
+  "............................", // 0
+  "............................", // 1
+  "............................", // 2
+  ".....r.........r............", // 3
+  ".....rr.......rr............", // 4
+  ".....rkr.....rkr............", // 5
+  ".....rkkrrrrrkkr............", // 6
+  "....rkkkkkkkkkkkr...........", // 7
+  "...rkkkkkkkkkkkkkr..........", // 8
+  "...rkkkkkkkkkkkkkr..........", // 9
+  "...rkkkkkkkkkkkkkr..........", // 10
+  "....rkkkkkkkkkkkr...........", // 11
+  ".....rkkkkkkkkkr............", // 12
+  "......rkkkkkkkr.............", // 13
+  ".....rkkkkkkkkkr............", // 14
+  ".....rkkkkkkkkkr............", // 15
+  "....rkkkkkkkkkkkr...........", // 16
+  "....rkkkkkkkkkkkr...........", // 17
+  "....rkkkkkkkkkkkr...........", // 18
+  "...rkkkkkkkkkkkkkr..........", // 19
+  "...rkkkkkkkkkkkkkr..........", // 20
+  "rr.rkkkkkkkkkkkkkr..........", // 21
+  "rk.rkkkkkkkkkkkkkr..........", // 22
+  "rkrkkkkkkkkkkkkkkkr.........", // 23
+  "rkrkkkkkkkkkkkkkkkr.........", // 24
+  "rkrrrrrrrrkkkkkkkkr.........", // 25
+  "rkkkkkkkkkkkkkkkkkr.........", // 26
+  "rkkkkkkkkkkkkkkkkkr.........", // 27
+];
+
+/**
  * The hero by night: loafed and asleep, ears up, eye shut, tail wrapped along the front. 28 x 28.
  */
 export const HERO_NIGHT: Sprite = [
@@ -396,6 +476,8 @@ export const MINI_PARTS: Readonly<Record<"type" | "sit" | "groom" | "sleep" | "n
 export const SPRITES: Readonly<Record<string, Sprite>> = {
   heroDay: HERO_DAY,
   heroNight: HERO_NIGHT,
+  heroFront: HERO_FRONT,
+  heroBack: HERO_BACK,
   laptop: LAPTOP,
   mug: MUG,
   steam1: STEAM_1,

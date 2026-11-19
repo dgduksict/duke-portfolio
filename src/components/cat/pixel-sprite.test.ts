@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { isBlank, pickColours, splitParts, spriteRects } from "@/components/cat/pixel-sprite";
-import { PALETTE, SPRITES } from "@/components/cat/sprites";
+import { HERO_BACK, HERO_DAY, HERO_FRONT, PALETTE, SPIN_BODY, SPRITES } from "@/components/cat/sprites";
 
 describe("spriteRects", () => {
   it("merges horizontal runs of one colour, skips empty pixels and keeps rows and columns", () => {
@@ -61,6 +61,8 @@ describe("sprite maps", () => {
     for (const name of [
       "heroDay",
       "heroNight",
+      "heroFront",
+      "heroBack",
       "laptop",
       "mug",
       "steam1",
@@ -87,6 +89,30 @@ describe("sprite maps", () => {
         if (pixel !== ".") expect(PALETTE, `"${pixel}" is not in the legend`).toHaveProperty(pixel);
       }
     }
+  });
+
+  it("draws the front and back on the side view's footing", () => {
+    /** The rows that hold any ink. */
+    const inked = (map: readonly string[]) => map.flatMap((row, y) => (/[^.]/.test(row) ? [y] : []));
+    for (const [name, map] of [
+      ["front", HERO_FRONT],
+      ["back", HERO_BACK],
+    ] as const) {
+      expect(map, name).toHaveLength(28);
+      map.forEach((row, y) => {
+        expect(row, `${name} row ${y}`).toHaveLength(28);
+        // Only on the side view's body columns, so the turn happens on the spot.
+        expect(row.slice(SPIN_BODY.x1 + 1), `${name} row ${y}`).toMatch(/^\.*$/);
+      });
+      // Feet on the same row as the side view's, ears as high: the same sitting height.
+      expect(map[27], name).toMatch(/[^.]/);
+      expect(inked(map)[0], name).toBe(inked(HERO_DAY)[0]);
+    }
+    expect(HERO_FRONT.join("")).toContain("e");
+    expect(HERO_BACK.join("")).not.toContain("e");
+    // The side view itself fits the same span: the mirror about it is pixel-exact.
+    for (const row of HERO_DAY) expect(row.slice(SPIN_BODY.x1 + 1)).toMatch(/^\.*$/);
+    expect(SPIN_BODY.x0).toBe(0);
   });
 
   it("maps every legend colour to a --cat-* variable defined in the base .cat-art block", () => {

@@ -365,19 +365,28 @@ describe("cat.css", () => {
       }
     }
     expect(css).not.toMatch(/scale\(/);
-    // The one turn is the easter egg's spin (its own keyframes), never a part's move.
-    expect(css.match(/rotate\(/g)).toHaveLength(1);
-    expect(css).toMatch(/@keyframes cat-uiia\s*\{\s*to\s*\{\s*transform:\s*rotate\(360deg\);\s*\}\s*\}/);
+    // Nothing turns in the plane: the easter egg is drawn frames, not a rotation.
+    expect(css).not.toMatch(/rotate\(/);
   });
 
-  it("spins the easter-egg cat in four 90-degree frames about his own centre, parts held still", () => {
-    const spin = /\.hero-cat \.cat-art\[data-uiia\] \.cat-spin\s*\{([^}]*)\}/.exec(css)?.[1] ?? "";
-    expect(spin).toMatch(/animation:\s*cat-uiia 400ms steps\(4, end\) infinite;/);
-    expect(spin).toMatch(/transform-box:\s*fill-box;/);
-    expect(spin).toMatch(/transform-origin:\s*center;/);
-    expect(css).toMatch(/\.hero-cat \.cat-art\[data-uiia\] \.cat-spin \*\s*\{\s*animation:\s*none;\s*\}/);
+  it("turns the easter-egg cat through its four drawn frames, 100 ms each, parts held still", () => {
+    const uiia = css.slice(css.indexOf("[data-uiia]"), css.indexOf(".hero-cat-bubble"));
+    expect(uiia).not.toBe("");
+    expect(uiia).not.toMatch(/rotate\(/);
+    expect(css).not.toMatch(/@keyframes cat-uiia\s*\{/);
+    const delays = { side: 0, front: 100, mirror: 200, back: 300 };
+    for (const [frame, delay] of Object.entries(delays)) {
+      const rule = new RegExp(
+        `\\.hero-cat \\.cat-art\\[data-uiia\\] \\.cat-spin-frame\\[data-frame="${frame}"\\]\\s*\\{([^}]*)\\}`,
+      ).exec(css)?.[1];
+      expect(rule, frame).toMatch(new RegExp(`animation:\\s*cat-uiia-frame 400ms steps\\(1, end\\) ${delay}ms infinite;`));
+    }
+    // One frame shows for the first quarter of each turn; the others wait hidden until their delay is up.
+    expect(css).toMatch(/@keyframes cat-uiia-frame\s*\{\s*0%\s*\{\s*opacity:\s*1;\s*\}\s*25%,\s*100%\s*\{\s*opacity:\s*0;\s*\}\s*\}/);
+    expect(css).toMatch(/\.cat-art\[data-uiia\] \.cat-spin-frame:not\(\[data-frame="side"\]\)\s*\{\s*opacity:\s*0;\s*\}/);
+    expect(css).toMatch(/\.hero-cat \.cat-art\[data-uiia\] \.cat-spin-frame \*\s*\{\s*animation:\s*none;\s*\}/);
     // The hold comes after the day and night part loops, so it wins their equal specificity.
-    expect(css.indexOf(".cat-art[data-uiia] .cat-spin *")).toBeGreaterThan(
+    expect(css.indexOf(".cat-art[data-uiia] .cat-spin-frame *")).toBeGreaterThan(
       css.lastIndexOf('[data-state="night"] .cat-steam'),
     );
   });

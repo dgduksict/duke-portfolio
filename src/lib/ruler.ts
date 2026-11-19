@@ -34,6 +34,9 @@ export const RAIL_BOTTOM = 24;
  */
 export const RULER_MIN_WIDTH = 900;
 
+/** The compact ruler fades away once the page has been still for this long (ms); the next scroll brings it back. */
+export const IDLE_AFTER_MS = 1500;
+
 /** Clamps a number to 0..1, and turns NaN and infinities into 0. */
 function clamp01(n: number): number {
   return Number.isFinite(n) ? Math.min(1, Math.max(0, n)) : 0;
