@@ -1,11 +1,57 @@
 import { describe, expect, it } from "vitest";
 import {
   catStateForPhase,
+  countPoke,
   GROOM_AFTER_MS,
   NAP_FROM,
   rulerCatPose,
   TYPING_WINDOW_MS,
+  UIIA,
 } from "./cat";
+
+/** Feeds pokes at the given times through countPoke; returns whether each one triggered the spin. */
+function poke(times: readonly number[]): boolean[] {
+  let recent: number[] = [];
+  return times.map((at) => {
+    const result = countPoke(recent, at);
+    recent = result.recent;
+    return result.uiia;
+  });
+}
+
+describe("countPoke (the UIIA easter egg)", () => {
+  it("holds the agreed numbers: five pokes in 1.5 s, a 3.2 s spin", () => {
+    expect(UIIA).toEqual({ clicks: 5, windowMs: 1500, durationMs: 3200 });
+  });
+
+  it("does not trigger on four fast pokes", () => {
+    expect(poke([0, 100, 200, 300])).toEqual([false, false, false, false]);
+  });
+
+  it("triggers on the fifth fast poke", () => {
+    expect(poke([0, 100, 200, 300, 400])).toEqual([false, false, false, false, true]);
+  });
+
+  it("never triggers on slow pokes, however many", () => {
+    expect(poke([0, 400, 800, 1200, 1600, 2000, 2400, 2800]).some(Boolean)).toBe(false);
+  });
+
+  it("slides the window: an old poke drops out, the next fast one fills it again", () => {
+    // 0 is 1500 ms old at 1500, so only four count; at 1700 the four from 400 on plus this one make five.
+    expect(poke([0, 400, 800, 1200, 1500, 1700])).toEqual([false, false, false, false, false, true]);
+  });
+
+  it("starts over after a trigger", () => {
+    expect(poke([0, 1, 2, 3, 4, 5, 6, 7, 8])).toEqual([false, false, false, false, true, false, false, false, false]);
+    expect(poke([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]).filter(Boolean)).toHaveLength(2);
+  });
+
+  it("leaves the list it was given alone", () => {
+    const recent = [0, 100];
+    countPoke(recent, 200);
+    expect(recent).toEqual([0, 100]);
+  });
+});
 
 describe("catStateForPhase", () => {
   it("sleeps only at night", () => {

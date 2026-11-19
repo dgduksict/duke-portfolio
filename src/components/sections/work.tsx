@@ -1,5 +1,6 @@
 "use client";
 
+import { reveal } from "@/components/reveal/reveal";
 import { PixelIcon } from "@/components/ui/pixel-icons";
 import { Section } from "@/components/ui/section";
 import { Pipeline } from "@/components/work/pipeline";
@@ -24,6 +25,7 @@ export function Work() {
           return (
             <article
               key={project.id}
+              {...reveal}
               id={`project-${project.id}`}
               aria-labelledby={headingId}
               className="project px-box scroll-mt-24 p-5 sm:p-8"

@@ -77,8 +77,8 @@ The programmer cat ([`src/components/cat/`](src/components/cat)) is drawn from p
 ([`sprites.ts`](src/components/cat/sprites.ts), [`cat-art.tsx`](src/components/cat/cat-art.tsx)).
 
 - **Hero cat**: sits on the window sill. Its day or night state comes from the sky phase for the current
-  (or previewed) time: working at a laptop by day, asleep with a mug and drifting z's at night. It is
-  hidden on narrow screens.
+  (or previewed) time: working at a laptop by day, asleep with a mug and drifting z's at night. It shows
+  at every width (smaller on phones); a tap makes him say a line in a speech box that stays on screen.
 - **Mini cat**: rides the needle of the ruler scrollbar and changes pose with the scroll and idle time
   (logic in [`src/lib/cat.ts`](src/lib/cat.ts)). It also appears on the 404 page, asleep in the window.
 
@@ -98,13 +98,15 @@ If React never takes over, the script releases the page by itself after a few se
 
 On wide screens with a fine pointer, the homepage swaps the native scrollbar for a pixel ruler
 ([`src/components/ruler/`](src/components/ruler)): ticks and a marker per section, a needle you can drag
-or click, and the mini cat riding it. It is desktop only; touch and narrow screens keep the native
-scrollbar. Geometry and maths are in [`src/lib/ruler.ts`](src/lib/ruler.ts).
+or click, and the mini cat riding it. Touch and narrow screens get a compact version beside the native
+scrollbar (which they keep): a slim rail with calmer ticks, unlabelled markers, an arrow needle and the
+same cat, purely decorative (it never takes a touch or a click). The two swap on a resize or rotation.
+Geometry and maths are in [`src/lib/ruler.ts`](src/lib/ruler.ts).
 
 A gate script ([`ruler-gate.tsx`](src/components/ruler/ruler-gate.tsx),
 [`src/lib/ruler-gate.ts`](src/lib/ruler-gate.ts)) sets `html[data-ruler]` before first paint, which hides the
-native scrollbar so the page does not shift sideways when the ruler mounts. If the ruler never takes over,
-the scrollbar comes back after a few seconds.
+native scrollbar so the page does not shift sideways when the ruler mounts (full mode only; the compact
+ruler never hides it). If the ruler never takes over, the scrollbar comes back after a few seconds.
 
 ## How it's built
 

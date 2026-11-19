@@ -160,17 +160,49 @@
 }
 
 /*
+ * The easter egg (five quick pokes, hero-cat.tsx): the spinning "UIIA" cat. CatArt draws him awake and sitting up in a
+ * `cat-spin` group, which turns about its own centre in four 90-degree frames, 400 ms a turn, for as long as he is in
+ * the mood; his parts hold still meanwhile. Upright and upside down he stands on the sill; side-on he is lifted half a
+ * body clear of it, so every quarter turn reads as a little hop. A 90-degree turn keeps every pixel square and on a
+ * whole screen pixel (half a sprite pixel is 3px in the 168px slot, 2px in the 112px one), so he stays crisp.
+ */
+.hero-cat .cat-art[data-uiia] .cat-spin {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: cat-uiia 400ms steps(4, end) infinite;
+}
+
+.hero-cat .cat-art[data-uiia] .cat-spin * {
+  animation: none;
+}
+
+@keyframes cat-uiia {
+  to { transform: rotate(360deg); }
+}
+
+/*
  * The speech box, left of the cat: a pixel box (.px-box, from pixel.css: the panel fill, a stepped outline, square
  * corners) with a stair-step tail on its right edge pointing at him, in the body face at 20px. It carries its own
  * ground (--panel) and ink (--ink, held to AA on it in both themes), so it reads over the wall and over the glass
  * alike. By day it sits level with his head, by night above the loaf, left of his ears. Empty, it takes no room.
+ *
+ * It never reaches past the page's left gutter: its width is capped by the room between the gutter (1rem, plus the
+ * outline unit) and its right edge, which is --reach cells into the slot. The slot's left edge comes from the scene's
+ * own geometry (scene.css, .scene-cat-slot), and cqw is the scene's width (it is the size container). On wide screens
+ * the cap is far above 14rem; on a phone it narrows the box, and the day box then grows upwards from his head
+ * (anchored at its bottom, the tail low on its edge, like the night one) so a longer line stays inside the scene.
  */
 .hero-cat-bubble {
+  --reach: 2;
+
   position: absolute;
   top: calc(var(--cu) * 3);
-  right: calc(100% - var(--cu) * 2);
+  right: calc(100% - var(--cu) * var(--reach));
   width: max-content;
-  max-width: 14rem;
+  max-width: min(
+    14rem,
+    calc(50cqw + var(--glass-w, 0px) / 2 + var(--u, 0px) - var(--cat-size, 168px) + var(--cu) * var(--reach) - 1rem - var(--px))
+  );
   padding: calc(var(--px) * 2) calc(var(--px) * 3);
   font-size: 20px;
   line-height: 24px;
@@ -179,9 +211,21 @@
 }
 
 .hero-cat[data-mood="night"] .hero-cat-bubble {
+  --reach: 15;
+
   top: auto;
-  right: calc(100% - var(--cu) * 15);
   bottom: calc(100% - var(--cu) * 13);
+}
+
+@media (width < 30rem) {
+  .hero-cat[data-mood="day"] .hero-cat-bubble {
+    top: auto;
+    bottom: calc(100% - var(--cu) * 11);
+  }
+
+  .hero-cat[data-mood="day"] .hero-cat-bubble::after {
+    top: calc(100% - var(--px) * 8);
+  }
 }
 
 .hero-cat-bubble:empty {
@@ -227,7 +271,10 @@
   display: none;
 }
 
-/* Reduced motion: a still pose, no hop, no loops, and a flip between day and night swaps the drawings at once. */
+/*
+ * Reduced motion: a still pose, no hop, no loops, no spin (hero-cat.tsx then does not even change his pose for the
+ * easter egg; only the box speaks), and a flip between day and night swaps the drawings at once.
+ */
 @media (prefers-reduced-motion: reduce) {
   .hero-cat-hop,
   .hero-cat-layer,
@@ -265,6 +312,18 @@
   height: 32px;
   transform: scaleX(-1);
   pointer-events: none;
+}
+
+/*
+ * On the compact ruler (narrow or touch screens, components/ruler/ruler.css) there is no readout: he stands on the
+ * needle's line itself, one unit above the needle, his right edge on the rail's right edge, so he leans over the
+ * page's right gutter (he ignores the pointer, so nothing under him stops working). Same 32px box, same hop: ruler.tsx
+ * counts his reach as 40px (32, the unit of at most 4px, the 4px hop).
+ */
+.ruler[data-mode="compact"] .ruler-cat {
+  left: auto;
+  right: 0;
+  bottom: var(--px);
 }
 
 .ruler-cat .cat-art {

@@ -1,6 +1,7 @@
 "use client";
 
 import { Fragment } from "react";
+import { reveal } from "@/components/reveal/reveal";
 import { Section } from "@/components/ui/section";
 import { experience } from "@/data/experience";
 import { projects } from "@/data/projects";
@@ -22,6 +23,7 @@ export function Experience() {
           return (
             <li
               key={entry.id}
+              {...reveal}
               id={`role-${entry.id}`}
               aria-labelledby={headingId}
               className="px-box grid scroll-mt-24 gap-x-8 gap-y-2 p-5 sm:grid-cols-[9rem_minmax(0,1fr)] sm:p-6"

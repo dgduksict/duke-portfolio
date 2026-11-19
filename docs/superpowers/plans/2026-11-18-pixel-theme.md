@@ -10,7 +10,7 @@
 
 **Spec:** `docs/superpowers/specs/2026-11-18-pixel-theme-design.md` (binding for appearance). Behaviour specs that still hold: `2026-11-18-cat-ruler-polish-design.md` (§3.1 behaviour, §3.2 ruler mechanics) and `2026-11-18-loading-screen-design.md` (§3 behaviour). Paths are relative to the repo root `duke-portfolio/`.
 
-**Where we are:** the earlier plan `2026-11-18-cat-ruler-loader-polish.md` is done through its Task 4 (logic; a vector cat; a loader; a hero cat; all committed on branch `feature-cat-ruler-loader`). Its Tasks 5–8 are **superseded by this plan**. The vector `CatArt`, `cat.css`, the loader's visuals and the hero cat's placement are re-skinned here. A read-only reference for the ruler's mechanics exists in the sibling repo `C:\Users\dulguun.batt\Desktop\Development\mongolcontent-web-v2` (branch `feature-cat-ruler`: `apps/web/src/components/home/Ruler.tsx`, `RulerGate.tsx`, ruler CSS in `styles/site.css`, `components/cat/RulerCat.tsx`; commits `00556ef`, `ef86cbd`): port the mechanics, never its look, colours, names or Mongolian copy.
+**Where we are:** the earlier plan `2026-11-18-cat-ruler-loader-polish.md` is done through its Task 4 (logic; a vector cat; a loader; a hero cat; all committed on branch `feature-cat-ruler-loader`). Its Tasks 5–8 are **superseded by this plan**. The vector `CatArt`, `cat.css`, the loader's visuals and the hero cat's placement are re-skinned here. The ruler's mechanics are those of the earlier plan; only the look changes.
 
 ## Global Constraints
 
@@ -22,7 +22,7 @@
 - **Motion:** `steps()` timing; only `transform`, `opacity` and `stroke-dashoffset` animate; reduced motion = static pose/scene, no loops, no hop; no per-frame React state.
 - **Layers:** header `z-50`; ruler below header and loader and any open mobile menu; loader `z-[100]`; `data-print="hide"` on decorative layers.
 - Repo conventions: double-quoted TS, ESLint must pass (inline type imports, no `console.log`, no `any`, `eqeqeq`), `Dictionary` en/mn identical, text only through the dictionary, Next 16 notes in `node_modules/next/dist/docs/` when unsure.
-- Dev server: `http://localhost:3114` is running (do not start or stop servers; port 3000 is another app). Playwright: `import { chromium } from "file:///C:/Users/dulguun.batt/Desktop/Development/mongolcontent-web-v2/node_modules/playwright-core/index.mjs"` with `chromium.launch({ channel: "chrome", ignoreDefaultArgs: ["--hide-scrollbars"] })`; scripts and PNGs live outside the repo (`%TEMP%`). Seed `sessionStorage["duke:loader-seen"]="1"` via an init script to skip the loader except where testing it.
+- Dev server: `http://localhost:3114` is running (do not start or stop servers; port 3000 is another app). Playwright: `import { chromium } from "playwright-core"` with `chromium.launch({ channel: "chrome", ignoreDefaultArgs: ["--hide-scrollbars"] })`; scripts and PNGs live outside the repo (`%TEMP%`). Seed `sessionStorage["duke:loader-seen"]="1"` via an init script to skip the loader except where testing it.
 - Commit after each task with `Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>` (an implementer model may use its own name). Branch: `feature-cat-ruler-loader`. Commands from the repo root: `npm test -- <path>`, `npm run typecheck`, `npm run lint`.
 
 ## Review Focus

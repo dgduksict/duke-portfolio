@@ -2,6 +2,7 @@
 @import "./pixel.css";
 @import "../components/cat/cat.css";
 @import "../components/loader/loader.css";
+@import "../components/reveal/reveal.css";
 @import "../components/ruler/ruler.css";
 @import "../components/scene/scene.css";
 
@@ -730,10 +731,11 @@
     }
   }
 
+  /* Parked wholly above the viewport (its bottom on the header's top), however many lines it wraps to on a phone. */
   .skip-link {
     position: absolute;
     left: 1rem;
-    top: -4rem;
+    bottom: 100%;
     z-index: 60;
     padding: 0.75rem 1rem;
     border-radius: 0;
@@ -745,6 +747,7 @@
 
   .skip-link:focus {
     top: 0.75rem;
+    bottom: auto;
   }
 }
 

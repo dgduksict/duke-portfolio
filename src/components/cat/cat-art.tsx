@@ -24,7 +24,18 @@ import {
 import type { CatState, RulerPose } from "@/lib/cat";
 import { cn } from "@/lib/utils";
 
-export type CatArtProps = ({ variant: "hero"; state: CatState } | { variant: "mini"; pose: RulerPose }) & {
+export type CatArtProps = (
+  | {
+      variant: "hero";
+      state: CatState;
+      /**
+       * The easter egg: he is up and awake whatever the hour, his sitting silhouette in its own `cat-spin` group for
+       * cat.css to turn. By day the laptop stays where it is; by night the mug stays and he sits where the loaf was.
+       */
+      uiia?: boolean;
+    }
+  | { variant: "mini"; pose: RulerPose }
+) & {
   className?: string;
 };
 
@@ -42,6 +53,11 @@ const Z_BIG_AT = { x: 21, y: 6 } as const;
 const Z_SMALL_AT = { x: 25, y: 1 } as const;
 const MINI_LAPTOP_AT = { x: 10, y: 10 } as const;
 const MINI_Z_AT = { x: 13, y: 1 } as const;
+/**
+ * By night the spinning cat sits eight pixels right of his day spot, on the loaf's place: clear of the mug when upright,
+ * and side-on (a 25-pixel-wide frame) he reaches past the slot by no more than a pixel and a half, onto the window frame.
+ */
+const NIGHT_SPIN_SHIFT = 8;
 
 /** Each drawing split into its animated parts once, at module load. */
 const DAY = splitParts(HERO_DAY, HERO_DAY_PARTS);
@@ -82,8 +98,9 @@ export function CatArt(props: CatArtProps) {
         shapeRendering="crispEdges"
         className={cn("cat-art block overflow-visible", props.className)}
         data-state={props.state}
+        data-uiia={props.uiia === true ? "" : undefined}
       >
-        {props.state === "day" ? <HeroDay /> : <HeroNight />}
+        {props.uiia === true ? <HeroSpin state={props.state} /> : props.state === "day" ? <HeroDay /> : <HeroNight />}
       </svg>
     );
   }
@@ -154,6 +171,36 @@ function HeroNight() {
         <PixelSprite map={Z_BIG} scale={HERO_SCALE} {...Z_BIG_AT} />
         <PixelSprite map={Z_SMALL} scale={HERO_SCALE} {...Z_SMALL_AT} />
       </g>
+    </>
+  );
+}
+
+/**
+ * The easter egg's drawing: the day silhouette (awake, sitting up) in a `cat-spin` group, which cat.css turns about its
+ * own centre in 90-degree frames. By day it keeps the laptop beside him; by night the mug (and its steam) with him
+ * shifted onto the loaf's spot, and no z's. The shift is on a plain wrapper, never on a `cat-*` part.
+ */
+function HeroSpin({ state }: { state: CatState }) {
+  const cat = (
+    <g className="cat-spin">
+      <Cat parts={DAY} scale={HERO_SCALE} />
+    </g>
+  );
+  if (state === "day") {
+    return (
+      <>
+        <PixelSprite map={LAPTOP_CASE} scale={HERO_SCALE} {...LAPTOP_AT} layer="laptop" />
+        <PixelSprite map={LAPTOP_SCREEN} scale={HERO_SCALE} {...LAPTOP_AT} className="cat-screen" />
+        {cat}
+      </>
+    );
+  }
+  return (
+    <>
+      <PixelSprite map={MUG} scale={HERO_SCALE} {...MUG_AT} layer="mug" />
+      <PixelSprite map={STEAM_1} scale={HERO_SCALE} {...STEAM_AT} className="cat-steam" layer="steam-1" />
+      <PixelSprite map={STEAM_2} scale={HERO_SCALE} {...STEAM_AT} className="cat-steam" layer="steam-2" />
+      <g transform={`translate(${NIGHT_SPIN_SHIFT * HERO_SCALE} 0)`}>{cat}</g>
     </>
   );
 }

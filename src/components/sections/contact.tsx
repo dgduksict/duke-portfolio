@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import type { ComponentType, SVGProps } from "react";
+import { reveal } from "@/components/reveal/reveal";
 import {
   FacebookIcon,
   GithubIcon,
@@ -28,7 +29,10 @@ export function Contact() {
 
   return (
     <Section id="contact" title={dict.contact.title}>
-      <div className="grid gap-x-12 gap-y-8 sm:grid-cols-[minmax(0,11rem)_minmax(0,1fr)] md:grid-cols-[minmax(0,14rem)_minmax(0,1fr)]">
+      <div
+        {...reveal}
+        className="grid gap-x-12 gap-y-8 sm:grid-cols-[minmax(0,11rem)_minmax(0,1fr)] md:grid-cols-[minmax(0,14rem)_minmax(0,1fr)]"
+      >
         <Image
           src="/avatar.jpg"
           alt={dict.contact.avatarAlt}

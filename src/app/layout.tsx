@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { Providers } from "@/components/layout/providers";
 import { LoaderGate } from "@/components/loader/loader-gate";
 import { LoadingScreen } from "@/components/loader/loading-screen";
+import { RevealGate } from "@/components/reveal/reveal-gate";
 import { Ruler } from "@/components/ruler/ruler";
 import { RulerGate } from "@/components/ruler/ruler-gate";
 import { profile } from "@/data/profile";
@@ -39,7 +40,13 @@ export const metadata: Metadata = {
     siteName: `${profile.name.en} – Portfolio`,
   },
   twitter: { card: "summary", title, description },
-  icons: { icon: "/icon.svg", apple: "/apple-icon.png" },
+  icons: {
+    icon: [
+      { url: "/icon.svg", type: "image/svg+xml" },
+      { url: "/icon-32x32.png", sizes: "32x32", type: "image/png" },
+    ],
+    apple: "/apple-icon.png",
+  },
 };
 
 export const viewport: Viewport = {
@@ -57,6 +64,7 @@ export default function RootLayout({ children }: { readonly children: ReactNode 
       <body>
         <LoaderGate />
         <RulerGate />
+        <RevealGate />
         <Providers>
           <LoadingScreen />
           {children}

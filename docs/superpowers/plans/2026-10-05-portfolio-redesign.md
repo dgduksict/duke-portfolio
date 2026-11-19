@@ -554,7 +554,7 @@ export interface Testimonial { id: string; quote: Localized; author: string; rol
 ```
 
 - Produces functions: `normalizeTool(name: string): string`, `buildEvidence(skills, roles, projects): SkillEvidence[]` with `SkillEvidence = { skill: Skill; places: readonly EvidencePlace[] }` and `EvidencePlace = { kind: "role" | "project"; id: string; label: Localized; href: string }` (`#role-<id>` / `#project-<id>`); `formatYearRange(start: string, end: string | null, presentLabel: string): string`; keeps `roundTo`, `formatNumber`, `formatMetric`.
-- Content: experience from Duke's April history (Mongol Content, MobiCom, ErchimLabs, NumadLabs; years only; URLs only where they resolve: mongolcontent.mn, mobicom.mn); projects Gogo.mn, Gogo newsletter, Article similarity monitor, Sonsy tickets with stages from the READMEs; `availability: null`, `resumeUrl: null`, `testimonials: []`.
+- Content: experience from Duke's April history (MobiCom, ErchimLabs, NumadLabs; years only; URLs only where they resolve: mobicom.mn); projects Gogo.mn, Gogo newsletter, Article similarity monitor, Sonsy tickets with stages from the READMEs; `availability: null`, `resumeUrl: null`, `testimonials: []`.
 
 - [ ] **Step 1: Write the failing tests** (`src/lib/evidence.test.ts`)
 

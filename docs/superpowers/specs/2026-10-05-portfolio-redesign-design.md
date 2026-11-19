@@ -77,7 +77,7 @@ text stays at `SHRP 0`.
 │ I build backends and AI services for Gogo.mn …               │
 │ [Email me] LinkedIn GitHub          14:32 in Ulaanbaatar, 6 h ahead of you │
 ├───────────────────────────────────────────────────────────────┤
-│ Experience │ 2026 – now ● Software Developer, Mongol Content  │
+│ Experience │ 2026 – now ● Software Developer, Company A      │
 │ (sticky)   │            summary · highlights · stack          │
 ├───────────────────────────────────────────────────────────────┤
 │ Work       │ Gogo.mn                          2026  gogo.mn ↗ │

@@ -2,11 +2,11 @@
 
 **Date:** 2026-11-18
 **Status:** approved by the user on 2026-11-18 (they approved the design as laid out in conversation; this writes it down)
-**Builds on:** `2026-10-05-portfolio-redesign-design.md` (the sky-over-Ulaanbaatar portfolio). Modelled on the Mongol Content site's loading screen (`mongolcontent-web-v2`, `HomeLoader`, `lib/motion/loader.ts`, `intro-gate.ts`).
+**Builds on:** `2026-10-05-portfolio-redesign-design.md` (the sky-over-Ulaanbaatar portfolio).
 
 ## 1. Intent
 
-The user asked: "add loading screen when going in web. look at mongolcontent-web-v2 to improvise." After checking, the target is **duke-portfolio** (their personal site) and the Mongol Content loader is the reference for feel and rules. The user's trademark, the **programmer cat** (smug about clean code, drawn for the Mongol Content homepage and approved by them), goes in it.
+The user asked for a loading screen when going into the web. The target is **duke-portfolio** (their personal site). The user's trademark, the **programmer cat** (smug about clean code, approved by them), goes in it.
 
 ## 2. Goals, non-goals, anti-goals
 
@@ -37,7 +37,7 @@ The user asked: "add loading screen when going in web. look at mongolcontent-web
 
 ## 4. Approaches
 
-One sensible way: SVG and CSS, a pure-logic module with tests, a gate script, no libraries. A canvas or Lottie loader would add weight and art tooling the project doesn't have; copying the Mongol Content ribbon-and-two-characters loader wouldn't use this site's own sky and would need art that doesn't exist here.
+One sensible way: SVG and CSS, a pure-logic module with tests, a gate script, no libraries. A canvas or Lottie loader would add weight and art tooling the project doesn't have; a ribbon-and-characters loader wouldn't use this site's own sky and would need art that doesn't exist here.
 
 ## 5. Constraints
 
@@ -45,7 +45,7 @@ Next 16 (App Router), React 19, Tailwind v4, vitest with jsdom and Testing Libra
 
 ## 6. Left to the builder
 
-The exact cat placement on the ridge, the percent readout's styling, easing and hold times, how the cat art is recoloured for this palette (its Mongol Content version uses that site's brand tokens), and how the ridge edge path is exposed from `ridges.tsx`.
+The exact cat placement on the ridge, the percent readout's styling, easing and hold times, how the cat art is drawn in this palette, and how the ridge edge path is exposed from `ridges.tsx`.
 
 ## 7. The author's calls (confirmed by the user's approval of the design)
 

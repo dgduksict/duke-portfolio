@@ -1,6 +1,7 @@
 "use client";
 
 import { Fragment } from "react";
+import { reveal } from "@/components/reveal/reveal";
 import { Section } from "@/components/ui/section";
 import { experience } from "@/data/experience";
 import { projects } from "@/data/projects";
@@ -20,7 +21,9 @@ export function Stack() {
 
   return (
     <Section id="stack" title={dict.stack.title}>
-      <p className="measure text-ink-soft">{dict.stack.intro}</p>
+      <p {...reveal} className="measure text-ink-soft">
+        {dict.stack.intro}
+      </p>
 
       <div className="mt-10 grid gap-x-12 gap-y-12 md:grid-cols-2 md:items-start">
         {SKILL_GROUPS.map((group) => {
@@ -29,7 +32,7 @@ export function Stack() {
           const unused = items.filter((item) => item.places.length === 0);
 
           return (
-            <div key={group} className="px-box p-5 sm:p-6">
+            <div key={group} {...reveal} className="px-box p-5 sm:p-6">
               <h3 className="type-label">{dict.stack.groups[group]}</h3>
 
               {used.length > 0 ? (

@@ -75,6 +75,8 @@ export interface Dictionary {
     readonly quotes: readonly [string, string, string, string];
     /** What he says when poked in the night. */
     readonly sleeping: string;
+    /** The easter egg's line while he spins (the "oiia" cat): the same sound in every language. */
+    readonly uiia: string;
   };
   readonly notFound: {
     readonly title: string;
@@ -155,6 +157,7 @@ const en: Dictionary = {
       "Tidy code explains itself. You're welcome.",
     ],
     sleeping: "shh",
+    uiia: "UIIA UIIA",
   },
   notFound: {
     title: "Nothing here",
@@ -235,6 +238,7 @@ const mn: Dictionary = {
       "Цэвэр код өөрөө өөрийгөө тайлбарладаг.",
     ],
     sleeping: "Ш-ш, унтаж байна",
+    uiia: "UIIA UIIA",
   },
   notFound: {
     title: "Энд юу ч алга",
