@@ -18,6 +18,8 @@ const SNOW_SEED = 20_261_119;
 const SNOW_COUNT = 36;
 const FIREFLY_SEED = 31_415_926;
 const FIREFLY_COUNT = 7;
+/** One blink-and-wander loop in seconds (scene.css); the flies' delays spread evenly across it. */
+const FIREFLY_PERIOD = 3.6;
 
 /** The window's wooden bars: two uprights (three panes across, so the noon sun is never behind one) and a cross bar. */
 const UPRIGHTS = [42, 83] as const;
@@ -114,19 +116,19 @@ const FLAKES = snowflakes(SNOW_SEED, SNOW_COUNT, GLASS_COLS, GLASS_ROWS);
 const FIREFLIES = fireflies(FIREFLY_SEED, FIREFLY_COUNT, GLASS_COLS, GLASS_ROWS);
 
 /**
- * Falling snow: two depths (the near flakes are 2 x 2 and fall faster, the far ones are single cells). Each flake is
- * drawn twice, at its cell and one glass height above it, and the group steps down by exactly that height, so the loop
+ * Falling snow: one-cell flakes in two depths (the near ones fall faster and are brighter, the far ones slower and
+ * dimmer). Each flake is drawn twice, at its cell and one glass height above it, and the group steps down by exactly that height, so the loop
  * has no seam (see scene.css). A one-cell sideways drift runs on an inner group.
  */
 function Snow({ night }: { night: boolean }) {
   return (
     <g data-layer="snow" fill={night ? SNOW_NIGHT : SNOW_DAY} opacity="0.9">
       {([0, 1] as const).map((depth) => (
-        <g key={depth} className={`scene-snow-${depth}`}>
+        <g key={depth} className={`scene-snow-${depth}`} opacity={depth === 0 ? 0.7 : 1}>
           <g className="scene-snow-drift">
             {FLAKES.filter((flake) => flake.depth === depth).flatMap((flake, i) =>
               [flake.y, flake.y - GLASS_ROWS].map((y) => (
-                <rect key={`${i}.${y}`} x={flake.x} y={y} width={depth + 1} height={depth + 1} />
+                <rect key={`${i}.${y}`} x={flake.x} y={y} width={1} height={1} />
               )),
             )}
           </g>
@@ -144,7 +146,7 @@ function Fireflies() {
         <rect
           key={i}
           className="scene-firefly"
-          style={{ animationDelay: `${(-i * 0.9).toFixed(1)}s` }}
+          style={{ animationDelay: `${((-i * FIREFLY_PERIOD) / FIREFLY_COUNT).toFixed(2)}s` }}
           x={cell.x}
           y={cell.y}
           width={1}

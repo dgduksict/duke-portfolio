@@ -126,6 +126,10 @@ describe("WindowScene", () => {
     const rects = [...(snow?.querySelectorAll("rect") ?? [])];
     expect(rects).toHaveLength(72);
     expect(near.length + far.length).toBe(72);
+    for (const rect of rects) {
+      expect(rect).toHaveAttribute("width", "1");
+      expect(rect).toHaveAttribute("height", "1");
+    }
     const onGlass = rects.filter((rect) => Number(rect.getAttribute("y")) >= 0);
     expect(onGlass).toHaveLength(36);
     expect(new Set(onGlass.map((rect) => `${rect.getAttribute("x")},${rect.getAttribute("y")}`)).size).toBe(36);
@@ -147,6 +151,8 @@ describe("WindowScene", () => {
     const flies = night.querySelector('[data-layer="fireflies"]');
     expect(flies).not.toBeNull();
     expect(flies?.querySelectorAll("rect")).toHaveLength(7);
+    const delays = [...(flies?.querySelectorAll("rect") ?? [])].map((rect) => (rect as SVGElement).style.animationDelay);
+    expect(new Set(delays).size).toBe(7);
     expect(night.querySelector('[data-layer="snow"]')).toBeNull();
     expect(render(<WindowScene now={NOON} season="summer" />).container.querySelector('[data-layer="fireflies"]')).toBeNull();
     expect(render(<WindowScene now={MIDNIGHT} season="winter" />).container.querySelector('[data-layer="fireflies"]')).toBeNull();

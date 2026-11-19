@@ -408,7 +408,7 @@
   }
 }
 
-/* A blink and a wander of one to two cells, every move a whole cell. */
+/* Blinks fully off and on, wandering of one to two cells, every move a whole cell. */
 @keyframes scene-firefly {
   0%,
   100% {
@@ -416,7 +416,7 @@
     transform: translate(0, 0);
   }
   25% {
-    opacity: 0.25;
+    opacity: 0;
     transform: translate(1px, 0);
   }
   50% {
@@ -424,7 +424,7 @@
     transform: translate(1px, -1px);
   }
   75% {
-    opacity: 0.25;
+    opacity: 0;
     transform: translate(2px, -1px);
   }
 }
