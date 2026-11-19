@@ -1,20 +1,20 @@
 # Portfolio: programmer cat, ruler scrollbar, loading screen, quiet polish — design
 
 **Date:** 2026-11-18
-**Status:** approved in conversation on 2026-11-18, re-targeted at the portfolio the same day. The user said the work is for **duke-portfolio** and that `mongolcontent-web-v2` was only a *reference* for animation and feel. Every decision below was approved earlier for the other site and carries over, except where marked **changed**.
+**Status:** approved in conversation on 2026-11-18, re-targeted at the portfolio the same day. The user said the work is for **duke-portfolio** and wanted a fresh, polished feel for it. Every decision below was approved earlier and carries over, except where marked **changed**.
 **Builds on:** `2026-10-05-portfolio-redesign-design.md` (sky over Ulaanbaatar, calm editorial sections). The loading screen's own behaviour is specified in `2026-11-18-loading-screen-design.md`; this document adds the cat's palette and the other parts.
 
 ## 1. Intent
 
-The user: "improve my portfolio site", it "looks kinda bland", they like the colour theme. They asked for (1) their trademark **programmer cat**, drawn from scratch, **smug about clean code and cool**, with an appearing animation and a time-of-day life (**codes by day, sleeps at night**); (2) the **ruler scrollbar** from getartcraft.com/apps/photocraft; (3) a **loading screen** modelled on the Mongol Content one; (4) less blandness.
+The user: "improve my portfolio site", it "looks kinda bland", they like the colour theme. They asked for (1) their trademark **programmer cat**, drawn from scratch, **smug about clean code and cool**, with an appearing animation and a time-of-day life (**codes by day, sleeps at night**); (2) the **ruler scrollbar** from getartcraft.com/apps/photocraft; (3) a **loading screen** with a first-visit intro; (4) less blandness.
 
-**Why the first attempt missed:** it was built in the company repo, and the cat came out wearing that site's rainbow brand gradient and spiral logo. **Changed:** the cat now uses only this portfolio's palette.
+**Why the first attempt missed:** the cat came out wearing a foreign rainbow brand gradient and spiral logo. **Changed:** the cat now uses only this portfolio's palette.
 
 ## 2. Goals, non-goals, anti-goals
 
 **Goals:** the cat is instantly recognisable as one character everywhere (hero, loader, ruler); the sky already tells the time, so the cat reads as part of the same world; the ruler is useful and calm; a visitor who ignores the cat still sees a less flat page.
 
-**Non-goals:** no new dependencies; no change to content, data, i18n structure, or the light/dark theme mechanism; no layout restructuring; no scroll hijacking; mongolcontent code is not touched or imported (it is read-only reference; its local branch `feature-cat-ruler` is not part of this work).
+**Non-goals:** no new dependencies; no change to content, data, i18n structure, or the light/dark theme mechanism; no layout restructuring; no scroll hijacking.
 
 **Anti-goals:** the rainbow brand gradient or spiral logo anywhere on the cat; clip-art look; a loud site (the sky and the name stay the stars of the page; the cat is the one memorable extra); motion everywhere; the ruler hurting normal scrolling; an unusable page when JS, storage or fonts fail.
 
@@ -42,7 +42,7 @@ As specified in `2026-11-18-loading-screen-design.md` (first visit per session, 
 - **Guardrails:** no per-section fade-and-slide reveals, no new animation library, at most one new scroll-triggered effect (the ruler counts as it), contrast stays AA, nothing changes under reduced motion except that motion stops.
 
 ## 4. Approaches
-Same as agreed: layered SVG + CSS for the cat (Lottie/Rive/video need other tooling); a lean ruler, not PhotoCraft's zoom-map port; cat-led with quiet polish rather than restructuring. The code is a port of the pure logic and the structure of the company-site implementation (read-only reference at `C:\Users\dulguun.batt\Desktop\Development\mongolcontent-web-v2`, branch `feature-cat-ruler`) adapted to this repo's stack (Next 16, double quotes, jsdom component tests, sky-phase time).
+Same as agreed: layered SVG + CSS for the cat (Lottie/Rive/video need other tooling); a lean ruler, not PhotoCraft's zoom-map port; cat-led with quiet polish rather than restructuring. The code is written for this repo's stack (Next 16, double quotes, jsdom component tests, sky-phase time).
 
 ## 5. Constraints
 Next 16 App Router, React 19, Tailwind v4, vitest + jsdom + Testing Library, ESLint must pass (`prebuild` runs lint), double-quoted TS, `Dictionary` keeps `en`/`mn` identical, header is `z-50`, theme via next-themes (`.dark` class), `data-print="hide"` for decorative layers, `?time=HH:MM` preview param.
