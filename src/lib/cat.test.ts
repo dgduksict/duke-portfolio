@@ -1,9 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
+  addPaw,
   catStateForPhase,
   countPoke,
   GROOM_AFTER_MS,
   NAP_FROM,
+  type Paw,
+  PAWS,
   PURR,
   rulerCatPose,
   TYPING_WINDOW_MS,
@@ -137,5 +140,38 @@ describe("rulerCatPose", () => {
       rulerCatPose({ state: "night", msSinceScroll: Number.NaN, progress: Number.NaN }),
     );
     expect(day(Number.NaN, Number.NaN)).toBe("type");
+  });
+});
+
+describe("PAWS and addPaw (paw prints on click)", () => {
+  const paw = (id: number): Paw => ({ id, x: id * 10, y: id * 20 });
+
+  it("holds at most four pairs for a second", () => {
+    expect(PAWS).toEqual({ maxPairs: 4, lifeMs: 1000 });
+  });
+
+  it("appends a pair and keeps the order", () => {
+    expect(addPaw([paw(0)], paw(1))).toEqual([paw(0), paw(1)]);
+    expect(addPaw([], paw(0))).toEqual([paw(0)]);
+  });
+
+  it("caps at four, keeping the newest four", () => {
+    let list: Paw[] = [];
+    for (let id = 0; id < 6; id += 1) list = addPaw(list, paw(id));
+    expect(list.map((p) => p.id)).toEqual([2, 3, 4, 5]);
+  });
+
+  it("takes its own cap", () => {
+    const list = [paw(0), paw(1), paw(2)];
+    expect(addPaw(list, paw(3), 2).map((p) => p.id)).toEqual([2, 3]);
+    expect(addPaw(list, paw(3), 0)).toEqual([]);
+  });
+
+  it("leaves the input untouched", () => {
+    const list = Object.freeze([paw(0), paw(1), paw(2), paw(3)]);
+    const next = addPaw(list, paw(4));
+    expect(next).not.toBe(list);
+    expect(list.map((p) => p.id)).toEqual([0, 1, 2, 3]);
+    expect(next.map((p) => p.id)).toEqual([1, 2, 3, 4]);
   });
 });

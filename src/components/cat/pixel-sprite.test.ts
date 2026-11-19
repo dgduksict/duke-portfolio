@@ -105,6 +105,7 @@ describe("sprite maps", () => {
       "proud",
       "yarnBall",
       "heart",
+      "paw",
     ]) {
       expect(SPRITES, name).toHaveProperty(name);
     }

@@ -721,6 +721,18 @@ export const HEART: Sprite = [
   "..p..", // 4
 ];
 
+/**
+ * One paw print (paw-prints.tsx): two toes over a pad. Drawn in ink like the rest, but cat.css repaints it with the
+ * page's --ink-soft, so the prints sit on the page rather than on the cat. 4 x 4.
+ */
+export const PAW: Sprite = [
+// 0123
+  "k..k", // 0
+  ".kk.", // 1
+  "kkkk", // 2
+  ".kk.", // 3
+];
+
 /* ---------- part boxes (first match wins; ears before the head that holds them) ---------- */
 
 export const HERO_DAY_PARTS: readonly PartBox[] = [
@@ -809,4 +821,5 @@ export const SPRITES: Readonly<Record<string, Sprite>> = {
   proud: PROUD,
   yarnBall: YARN_BALL,
   heart: HEART,
+  paw: PAW,
 };

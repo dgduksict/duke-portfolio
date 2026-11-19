@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
+import { PawPrints } from "@/components/cat/paw-prints";
 import { Providers } from "@/components/layout/providers";
 import { LoaderGate } from "@/components/loader/loader-gate";
 import { LoadingScreen } from "@/components/loader/loading-screen";
@@ -69,6 +70,7 @@ export default function RootLayout({ children }: { readonly children: ReactNode 
           <LoadingScreen />
           {children}
           <Ruler />
+          <PawPrints />
         </Providers>
       </body>
     </html>

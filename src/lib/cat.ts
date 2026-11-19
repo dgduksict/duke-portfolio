@@ -41,6 +41,25 @@ export function countPoke(recent: readonly number[], now: number): { recent: num
 export const PURR = { holdMs: 500, heartEveryMs: 350, maxHearts: 3, heartLifeMs: 1200 } as const;
 
 /**
+ * Paw prints on click (components/cat/paw-prints.tsx): a click or tap on the homepage drops a pair of tiny prints that
+ * fade out after `lifeMs`; never more than `maxPairs` at once (a fresh one pushes the oldest out).
+ */
+export const PAWS = { maxPairs: 4, lifeMs: 1000 } as const;
+
+/** One pair of prints: `id` keys it, `x` and `y` are where it was dropped (viewport px). */
+export interface Paw {
+  readonly id: number;
+  readonly x: number;
+  readonly y: number;
+}
+
+/** `list` with `paw` appended, the oldest dropped beyond `max`. Pure: it returns a new list and never touches `list`. */
+export function addPaw(list: readonly Paw[], paw: Paw, max: number = PAWS.maxPairs): Paw[] {
+  const all = [...list, paw];
+  return max > 0 ? all.slice(-max) : [];
+}
+
+/**
  * The hero cat's sunrise wake (ms): when night turns to day under an open page, or on a morning arrival, he yawns for
  * the first half and stretches for the second (cat.css steps the two drawn frames over the same time), then settles
  * into his day pose.

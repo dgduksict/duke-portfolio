@@ -375,6 +375,61 @@
 }
 
 /*
+ * ---------- paw prints on click (components/cat/paw-prints.tsx, PAWS in lib/cat.ts) ----------
+ * A fixed layer over the page: above the ruler (41), below the header (50) and the loader (100). It never takes the
+ * pointer, so a click always reaches what is under it. A pair is 7 x 7 --px units (two 4 x 4 prints, a step apart: the back foot low on the left, the front foot three
+ * units up and ahead), centred on the click point on whole units. The prints are the page's soft ink at half opacity
+ * (the sprite's ink repainted here, so they follow the theme rather than the cat's fixed palette) and fade out in four
+ * steps over their 1 s life; only opacity moves. Under reduced motion paw-prints.tsx drops none, so nothing animates.
+ */
+.paw-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 45;
+  pointer-events: none;
+}
+
+.paw-pair {
+  position: absolute;
+  width: calc(var(--px) * 7);
+  height: calc(var(--px) * 7);
+  margin: calc(var(--px) * -3) 0 0 calc(var(--px) * -3);
+  opacity: 0.5;
+  animation: paw-fade 1000ms steps(4, end) both;
+}
+
+.paw-print {
+  position: absolute;
+  width: calc(var(--px) * 4);
+  height: calc(var(--px) * 4);
+}
+
+.paw-print[data-foot="back"] {
+  left: 0;
+  top: calc(var(--px) * 3);
+}
+
+.paw-print[data-foot="front"] {
+  left: calc(var(--px) * 3);
+  top: 0;
+}
+
+.paw-pair rect {
+  fill: var(--ink-soft);
+}
+
+@keyframes paw-fade {
+  from { opacity: 0.5; }
+  to { opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .paw-pair {
+    animation: none !important;
+  }
+}
+
+/*
  * ---------- MINI-CAT-RULES: the ruler cat (components/cat/ruler-cat.tsx) ----------
  * The same pixel discipline as the hero cat: every animation is stepped (steps()), every move is a whole sprite cell
  * and only transform and opacity move. A cell is `--cu` inside the drawing (the 48-unit viewBox, 3 per sprite pixel)
