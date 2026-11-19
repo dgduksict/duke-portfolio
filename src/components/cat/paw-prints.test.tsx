@@ -185,6 +185,23 @@ describe("PawPrints", () => {
     expect(pairs(container)).toHaveLength(0);
   });
 
+  it("ignores a click on the cat whose target is gone by the time it reaches the document", () => {
+    // The fifth poke starts UIIA: React swaps the drawing during the click, so the clicked rect is detached before
+    // the document listener runs and `closest` no longer finds the cat button.
+    const { container } = render(
+      <>
+        <PawPrints />
+        <button type="button" className="hero-cat-button">
+          <span data-testid="drawn" />
+        </button>
+      </>,
+    );
+    const button = container.querySelector(".hero-cat-button") as Element;
+    button.addEventListener("click", () => button.replaceChildren());
+    click(container.querySelector('[data-testid="drawn"]') as Element, 40, 40);
+    expect(pairs(container)).toHaveLength(0);
+  });
+
   it("still prints over the compact ruler, which takes no clicks", () => {
     const { container } = render(
       <>
