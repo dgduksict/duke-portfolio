@@ -15,6 +15,14 @@ describe("NotFound", () => {
     expect(screen.getByRole("link", { name: /portfolio/i })).toHaveAttribute("href", "/");
   });
 
+  it("lets the way home wrap, so a 320px phone never scrolls sideways", () => {
+    // .btn is white-space: nowrap, and this label in Press Start 2P is wider than a 320px column: the link must be
+    // allowed to wrap and never grow past its container (jsdom has no layout, so the classes are the guard).
+    render(<NotFound />);
+    const home = screen.getByRole("link", { name: /portfolio/i });
+    expect(home).toHaveClass("btn", "max-w-full", "whitespace-normal");
+  });
+
   it("shows the pixel night window with the cat asleep, above the copy", () => {
     const { container } = render(<NotFound />);
     const scene = container.querySelector("[data-scene]");
