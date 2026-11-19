@@ -532,6 +532,14 @@ describe("loader.css", () => {
     expect(code).toMatch(/\[data-yarn-colour="amber"\][^{]*\{[^}]*--cat-yarn:\s*#e9a420;[^}]*--cat-yarn-shade:\s*#b9770f;/);
   });
 
+  it("jumps the ball and cat block by block: no transition on their place", () => {
+    // A transition restarts on every new block (they light 20 to 50 ms apart) and would freeze them, then land between cells.
+    for (const [, selectors, body] of code.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+      if (!/\.yarn-(?:ball|cat)\b/.test(selectors ?? "")) continue;
+      expect(body, selectors).not.toMatch(/transition/);
+    }
+  });
+
   it("has no window scene left in it", () => {
     expect(code).not.toMatch(/\.scene\b/);
     expect(code).not.toMatch(/data-cat-slot/);

@@ -93,7 +93,8 @@ html[data-loader="run"] .loader,
  * its loose strand lies on the lit yarn; with the bar full its right edge is the bar's. The cat stands one unit left of
  * the bar at its start (his 20-cell frame; at the narrowest blocks his nose overlaps the ball's back by a few cells,
  * the ball drawn in front). Until the component writes them the places are the start: the ball 4 blocks in
- * (`YARN.ballStart`), the cat at the left end.
+ * (`YARN.ballStart`), the cat at the left end. They jump a block each time one lights, with no transition: blocks
+ * light tens of milliseconds apart, so a transition would keep restarting and leave them behind, between cells.
  */
 .yarn-stage {
   --pitch: calc(var(--px) * (var(--block-w) + 1));
@@ -144,12 +145,6 @@ html[data-loader="run"] .loader,
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  /* Cat and ball follow the fill in two quick steps (a block is 6 cells: 3 a step). */
-  .yarn-cat,
-  .yarn-ball {
-    transition: transform 120ms steps(2, end);
-  }
-
   /* While moving, about to, or ending: no plain sitting (the tumble brings it back, dazed). */
   .loader[data-yarn-motion="run"] .yarn-cat [data-cat-frame="sit"],
   .loader[data-yarn-motion="stall"] .yarn-cat [data-cat-frame="sit"],
@@ -242,14 +237,6 @@ html[data-loader="run"] .loader,
 
   .loader[data-yarn-motion="end"][data-yarn-ending="sit"] [data-cat-frame="proud"] {
     animation: yarn-sit-proud 700ms steps(1, end) both;
-  }
-}
-
-/* At the narrow blocks a block is 5 cells: five steps, one cell each, keep the cat and the ball on the grid. */
-@media (prefers-reduced-motion: no-preference) and (width < 26rem) {
-  .yarn-cat,
-  .yarn-ball {
-    transition: transform 120ms steps(5, end);
   }
 }
 
