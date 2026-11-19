@@ -11,6 +11,7 @@ import { GROOM_AFTER_MS, type RulerPose, rulerCatPose, TYPING_WINDOW_MS } from "
 import {
   COMPACT_MAJOR_STEP,
   COMPACT_MINOR_STEP,
+  IDLE_AFTER_MS,
   RAIL_BOTTOM,
   RAIL_TOP,
   RULER_MIN_WIDTH,
@@ -156,6 +157,9 @@ function scrollToSection(index: number) {
  * mode), and by day his pose follows the scroll: the same rAF pass notes when the page last moved (no second scroll
  * listener) and one timeout, re-armed after the last scroll, wakes the pass at the 150 ms and 1200 ms marks. React
  * hears about the cat only when his pose changes (or he shows or hides), never per frame.
+ * The compact rail also steps away when the page is still: a second timeout of its own (IDLE_AFTER_MS after the last
+ * scroll, at night too) sets `data-idle` on the root, the next scroll removes it, and ruler.css fades it. The full
+ * ruler never hides.
  * All visible text (marker names, the readout's digits) is drawn by CSS from `data-*` attributes, so find-in-page
  * never lands on it.
  *
@@ -207,6 +211,10 @@ export function Ruler() {
     let catPose: RulerPose | null = null;
     let timer: ReturnType<typeof setTimeout> | undefined;
     let timerDue = 0;
+    // The compact rail's idle mark: its own timeout (the cat's does not run at night or near the bottom), re-armed
+    // whenever the page has moved, and the scroll position it last saw.
+    let idleTimer: ReturnType<typeof setTimeout> | undefined;
+    let idleY = window.scrollY;
 
     const measure = () => {
       dirty = false;
@@ -244,6 +252,33 @@ export function Ruler() {
     const clearTimer = () => {
       if (timer !== undefined) clearTimeout(timer);
       timer = undefined;
+    };
+
+    const clearIdleTimer = () => {
+      if (idleTimer !== undefined) clearTimeout(idleTimer);
+      idleTimer = undefined;
+    };
+
+    // Called once per pass that has the DOM of the current mode. Compact: a scroll wakes the rail and restarts the count
+    // to IDLE_AFTER_MS, and a rail with nothing pending and not yet idle (it just showed, or the scroll lock lifted)
+    // starts it too. Full: the ruler is the scrollbar and never hides. Setting the mark needs no pass: it is one attribute.
+    const updateIdle = (box: HTMLElement, compact: boolean) => {
+      if (!compact) {
+        clearIdleTimer();
+        delete box.dataset.idle;
+        return;
+      }
+      const y = window.scrollY;
+      const moved = y !== idleY;
+      idleY = y;
+      if (moved) delete box.dataset.idle;
+      else if (idleTimer !== undefined || box.dataset.idle !== undefined) return;
+      clearIdleTimer();
+      idleTimer = setTimeout(() => {
+        idleTimer = undefined;
+        const el = rootRef.current;
+        if (el && el.dataset.mode === "compact") el.dataset.idle = "";
+      }, IDLE_AFTER_MS);
     };
 
     // Called once per pass while the ruler shows: stamps a scroll, works the pose out from the clock (so a late timeout
@@ -284,6 +319,7 @@ export function Ruler() {
         current = next;
         setMode(next);
       }
+      if (next !== "compact") clearIdleTimer();
       if (next === null) {
         clearTimer();
         if (catPose !== null) {
@@ -310,8 +346,13 @@ export function Ruler() {
         written.hidden = locked;
         box.style.visibility = locked ? "hidden" : "";
       }
-      if (locked) clearTimer();
-      else updateCat(progress, shown && needleY >= CAT_MIN_Y[next]);
+      if (locked) {
+        clearTimer();
+        clearIdleTimer();
+      } else {
+        updateCat(progress, shown && needleY >= CAT_MIN_Y[next]);
+        updateIdle(box, next === "compact");
+      }
 
       if (needleY !== written.needleY) {
         written.needleY = needleY;
@@ -403,6 +444,7 @@ export function Ruler() {
     return () => {
       cancelAnimationFrame(raf);
       clearTimer();
+      clearIdleTimer();
       window.removeEventListener("scroll", schedule);
       window.removeEventListener("resize", remeasure);
       media.removeEventListener("change", remeasure);

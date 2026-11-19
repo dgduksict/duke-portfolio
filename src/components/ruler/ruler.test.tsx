@@ -1103,7 +1103,8 @@ describe("Ruler: compact mode (narrow or touch screens)", () => {
       window.history.replaceState(null, "", DAY_URL);
       const { unmount } = mount();
       scrollToProgress(0.5);
-      expect(vi.getTimerCount()).toBe(1);
+      // His pose timeout and the rail's idle timeout.
+      expect(vi.getTimerCount()).toBe(2);
       html.style.overflow = "hidden";
       await settleMutations();
       expect(vi.getTimerCount()).toBe(0);
@@ -1112,6 +1113,123 @@ describe("Ruler: compact mode (narrow or touch screens)", () => {
       unmount();
       expect(vi.getTimerCount()).toBe(0);
       expect(frames.size).toBe(0);
+    });
+  });
+
+  describe("the idle rail", () => {
+    beforeEach(() => {
+      vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "setInterval", "clearInterval", "Date", "performance"] });
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    function wait(ms: number) {
+      act(() => {
+        vi.advanceTimersByTime(ms);
+      });
+      flushFrames();
+    }
+
+    it("marks the compact ruler idle 1500 ms after the last scroll", () => {
+      window.history.replaceState(null, "", DAY_URL);
+      mount();
+      scrollToProgress(0.5);
+      expect(rulerRoot()).not.toHaveAttribute("data-idle");
+      wait(1499);
+      expect(rulerRoot()).not.toHaveAttribute("data-idle");
+      wait(1);
+      expect(rulerRoot()).toHaveAttribute("data-idle");
+    });
+
+    it("counts the 1500 ms from the latest scroll, not the first", () => {
+      window.history.replaceState(null, "", DAY_URL);
+      mount();
+      scrollToProgress(0.5);
+      wait(1000);
+      scrollToProgress(0.55);
+      wait(1499);
+      expect(rulerRoot()).not.toHaveAttribute("data-idle");
+      wait(1);
+      expect(rulerRoot()).toHaveAttribute("data-idle");
+    });
+
+    it("is idle without any scroll once 1500 ms have passed since it first showed", () => {
+      window.history.replaceState(null, "", DAY_URL);
+      mount();
+      expect(rulerRoot()).not.toHaveAttribute("data-idle");
+      wait(1500);
+      expect(rulerRoot()).toHaveAttribute("data-idle");
+    });
+
+    it("clears idle on the next scroll, and goes idle again after it", () => {
+      window.history.replaceState(null, "", DAY_URL);
+      mount();
+      scrollToProgress(0.5);
+      wait(1500);
+      expect(rulerRoot()).toHaveAttribute("data-idle");
+      scrollToProgress(0.6);
+      expect(rulerRoot()).not.toHaveAttribute("data-idle");
+      wait(1500);
+      expect(rulerRoot()).toHaveAttribute("data-idle");
+    });
+
+    it("never marks the full ruler idle", () => {
+      media.wide = true;
+      window.history.replaceState(null, "", DAY_URL);
+      mount();
+      scrollToProgress(0.5);
+      wait(5000);
+      expect(rulerRoot()).toHaveAttribute("data-mode", "full");
+      expect(rulerRoot()).not.toHaveAttribute("data-idle");
+    });
+
+    it("marks idle at night too, when the cat's own timer is not armed", () => {
+      window.history.replaceState(null, "", NIGHT_URL);
+      mount();
+      scrollToProgress(0.5);
+      expect(catPose()).toBe("sleep");
+      expect(vi.getTimerCount()).toBe(1);
+      wait(1500);
+      expect(rulerRoot()).toHaveAttribute("data-idle");
+    });
+
+    it("leaves idle behind when the ruler turns full, and arms nothing there", () => {
+      window.history.replaceState(null, "", DAY_URL);
+      mount();
+      scrollToProgress(0.5);
+      wait(5000);
+      expect(rulerRoot()).toHaveAttribute("data-idle");
+      media.wide = true;
+      act(() => media.queries[0]?.fire());
+      flushFrames();
+      flushFrames();
+      expect(rulerRoot()).toHaveAttribute("data-mode", "full");
+      expect(rulerRoot()).not.toHaveAttribute("data-idle");
+      expect(vi.getTimerCount()).toBe(0);
+    });
+
+    it("drops its timer when the ruler goes away, and on unmount", () => {
+      window.history.replaceState(null, "", NIGHT_URL);
+      const { unmount } = mount();
+      scrollToProgress(0.5);
+      expect(vi.getTimerCount()).toBe(1);
+      page.docHeight = VIEWPORT;
+      page.scrollY = 0;
+      act(() => ResizeObserverStub.instances[0]?.fire());
+      flushFrames();
+      expect(rulerRoot()).toBeNull();
+      expect(vi.getTimerCount()).toBe(0);
+
+      page.docHeight = 4000;
+      act(() => ResizeObserverStub.instances[0]?.fire());
+      flushFrames();
+      flushFrames();
+      expect(rulerRoot()).not.toBeNull();
+      expect(vi.getTimerCount()).toBe(1);
+      unmount();
+      expect(vi.getTimerCount()).toBe(0);
     });
   });
 });
@@ -1276,6 +1394,17 @@ describe("ruler.css", () => {
     }
     // While the phone menu is open over the page, the rail steps away.
     expect(css).toMatch(/:root:has\(#mobile-nav\) \.ruler\[data-mode="compact"\]\s*\{[^}]*visibility:\s*hidden/);
+  });
+
+  it("fades the idle compact rail out in steps, and back in faster, with no transition under reduced motion", () => {
+    const idle = css.match(/\.ruler\[data-mode="compact"\]\[data-idle\]\s*\{([^}]*)\}/);
+    expect(idle).not.toBeNull();
+    expect(idle?.[1]).toMatch(/opacity:\s*0\b/);
+    expect(idle?.[1]).toMatch(/transition:[^;]*steps\(/);
+    const awake = css.match(/\.ruler\[data-mode="compact"\]\s*\{[^}]*transition:\s*opacity (\d+)ms steps\(/);
+    expect(awake).not.toBeNull();
+    expect(Number(awake?.[1])).toBeLessThan(Number(idle?.[1]?.match(/opacity (\d+)ms/)?.[1]));
+    expect(css).toMatch(/prefers-reduced-motion: reduce\)\s*\{\s*\.ruler,\s*\.ruler \*/);
   });
 
   it("renders its text from data attributes", () => {
