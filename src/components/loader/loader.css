@@ -1,12 +1,13 @@
 /*
- * The first-visit loading screen (components/loader/loading-screen.tsx): a small pixel scene, the hero's window with
- * its live sky, the sill and the programmer cat standing on it, and a row of chunky blocks that fills with progress.
+ * The first-visit loading screen (components/loader/loading-screen.tsx): a plain wall, a row of chunky blocks in a
+ * wooden trough that fills with progress, and on top of the trough the black pixel cat chasing a ball of yarn
+ * (components/loader/yarn-stage.tsx). The lit blocks are the unwound yarn, in the yarn's colour.
  * Hard pixels only: flat fills, one-unit borders, no gradients, no blur, no rounding, and motion in steps() alone.
  *
  * It is part of the server HTML and hidden unless the gate marked <html data-loader="on"> (or the component took
- * over and marked itself run / exit), so it is up in the first paint and never shows without JavaScript. Like the sky
- * it does not follow the light/dark theme: the component puts the shared `.dark` class on it, so its colours are the
- * dark theme's tokens (globals.css) and the night room's `--scene-*` colours (scene.css), with nothing copied here.
+ * over and marked itself run / exit), so it is up in the first paint and never shows without JavaScript. It does not
+ * follow the light/dark theme: the component puts the shared `.dark` class on it, so its colours are the dark theme's
+ * tokens (globals.css) and the night room's `--scene-*` colours (scene.css), with nothing copied here.
  */
 
 /* Until React takes over (it then locks scrolling itself and marks "run"), the page behind must not scroll. */
@@ -15,6 +16,9 @@ html[data-loader="on"] {
 }
 
 .loader {
+  /* A block is this many units wide; the bar and the yarn stage above it both read it. */
+  --block-w: 5;
+
   display: none;
   position: fixed;
   /* 100vw, not inset-0: the width stays put when scrolling is locked or released and a classic scrollbar comes or goes. */
@@ -24,7 +28,6 @@ html[data-loader="on"] {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: calc(var(--px) * 7);
   padding: env(safe-area-inset-top, 0px) 0 env(safe-area-inset-bottom, 0px);
   background-color: var(--scene-wall);
   color: var(--ink);
@@ -39,30 +42,301 @@ html[data-loader="run"] .loader,
   display: flex;
 }
 
-/* A short landscape phone: the same scene on a smaller unit so the bar still fits under it. */
+/* A short landscape phone: the same picture on a smaller unit. */
 @media (height < 30rem) {
   .loader {
     --px: 3px;
   }
+}
 
-  .loader .scene {
-    --cat-size: 112px;
+/* A narrow phone: narrower blocks, so the bar (and the stage on it) fits a 320px screen. */
+@media (width < 26rem) {
+  .loader {
+    --block-w: 4;
   }
 }
 
-/* The scene is a full-width container (its glass reads the container's width); it stands free on the wall. */
-.loader .scene {
-  flex: none;
-  width: 100%;
+/* ---------------------------------------------------------------------- yarn */
+
+/*
+ * The yarn's colour pairs (fill and shade). The ball is drawn through `--cat-yarn` and `--cat-yarn-shade`, which
+ * cat.css defines on `.cat-art` itself, so each pair is set on the stage's drawings as well as on the overlay (whose
+ * lit blocks read it). Amber is the cat's own default; rose and sky are as bright on the trough's deep wood.
+ */
+.loader,
+.loader .cat-art,
+.loader[data-yarn-colour="amber"],
+.loader[data-yarn-colour="amber"] .cat-art {
+  --cat-yarn: #e9a420;
+  --cat-yarn-shade: #b9770f;
 }
 
-/* The cat waits for the sky to have a time, so he never shows awake and then falls asleep. */
-.loader [data-cat-slot] {
+.loader[data-yarn-colour="rose"],
+.loader[data-yarn-colour="rose"] .cat-art {
+  --cat-yarn: #ec7a96;
+  --cat-yarn-shade: #b24a68;
+}
+
+.loader[data-yarn-colour="sky"],
+.loader[data-yarn-colour="sky"] .cat-art {
+  --cat-yarn: #5cb6ea;
+  --cat-yarn-shade: #2f7fb8;
+}
+
+/*
+ * The stage: a strip exactly as wide as the bar, standing on it (its bottom is the trough's top edge, the floor the
+ * cat and the ball stand on). Places are in blocks: `--ball` and `--cat` are written by the component as blocks light
+ * (lib/yarn.ts), and one block is `--pitch` (its width and the one-unit gap). The bar is 20 blocks, the gaps between
+ * them, and a unit of padding and of border on each side.
+ *
+ * The ball's right edge sits one unit into the first dark block, so it covers the boundary with the last lit one and
+ * its loose strand lies on the lit yarn; with the bar full its right edge is the bar's. The cat stands one unit left of
+ * the bar at its start (his 20-cell frame; at the narrowest blocks his nose overlaps the ball's back by a few cells,
+ * the ball drawn in front). Until the component writes them the places are the start: the ball 4 blocks in
+ * (`YARN.ballStart`), the cat at the left end. They jump a block each time one lights, with no transition: blocks
+ * light tens of milliseconds apart, so a transition would keep restarting and leave them behind, between cells.
+ */
+.yarn-stage {
+  --pitch: calc(var(--px) * (var(--block-w) + 1));
+
+  position: relative;
+  flex: none;
+  width: calc(var(--px) * (20 * (var(--block-w) + 1) + 3));
+  height: calc(var(--px) * 16);
+}
+
+.yarn-cat,
+.yarn-ball {
+  position: absolute;
+  bottom: 0;
+}
+
+.yarn-cat {
+  left: calc(var(--px) * -1);
+  width: calc(var(--px) * 20);
+  height: calc(var(--px) * 16);
+  transform: translateX(calc(var(--cat, 0) * var(--pitch)));
+}
+
+.yarn-ball {
+  left: calc(var(--px) * -4);
+  width: calc(var(--px) * 7);
+  height: calc(var(--px) * 7);
+  transform: translateX(calc(var(--ball, 4) * var(--pitch)));
+}
+
+.yarn-stage .cat-art {
+  width: 100%;
+  height: 100%;
+}
+
+/* Reduced motion: the cat sits at the bar's left end; only the ball moves, block to block with the fill. */
+.loader[data-yarn-motion="still"] .yarn-cat {
+  transform: none;
+}
+
+/* One frame of the cat at a time: sitting, unless a motion below picks others. */
+.yarn-cat [data-cat-frame] {
   opacity: 0;
 }
 
-.loader[data-ready="true"] [data-cat-slot] {
+.yarn-cat [data-cat-frame="sit"] {
   opacity: 1;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  /* While moving, about to, or ending: no plain sitting (the tumble brings it back, dazed). */
+  .loader[data-yarn-motion="run"] .yarn-cat [data-cat-frame="sit"],
+  .loader[data-yarn-motion="stall"] .yarn-cat [data-cat-frame="sit"],
+  .loader[data-yarn-motion="end"] .yarn-cat [data-cat-frame="sit"] {
+    opacity: 0;
+  }
+
+  /* The chase: the gallop's two frames in turn, and the ball rolling in quarter turns. */
+  .loader[data-yarn-motion="run"] [data-cat-frame="run-1"] {
+    animation: yarn-frame-first 240ms steps(1, end) infinite;
+  }
+
+  .loader[data-yarn-motion="run"] [data-cat-frame="run-2"] {
+    animation: yarn-frame-second 240ms steps(1, end) infinite;
+  }
+
+  .loader[data-yarn-motion="run"] .yarn-ball .cat-art {
+    animation: yarn-roll 480ms steps(4, end) infinite;
+  }
+
+  /* Stalled: crouched, the rear wiggling between its two frames, the ball at rest. */
+  .loader[data-yarn-motion="stall"] [data-cat-frame="crouch-1"] {
+    animation: yarn-frame-first 360ms steps(1, end) infinite;
+  }
+
+  .loader[data-yarn-motion="stall"] [data-cat-frame="crouch-2"] {
+    animation: yarn-frame-second 360ms steps(1, end) infinite;
+  }
+
+  /*
+   * The endings, 700ms each (YARN.endingMs), held on their last frame until the wipe. The bar is full: the ball at the
+   * bar's right end, the cat 4 blocks behind. Offsets are whole cells (pitch is a whole number of cells).
+   */
+
+  /* Pounce: wind up, leap in an arc at most 4 cells high, land crouched with his front paws pinning the ball. */
+  .loader[data-yarn-motion="end"][data-yarn-ending="pounce"] .yarn-cat {
+    z-index: 1;
+  }
+
+  .loader[data-yarn-motion="end"][data-yarn-ending="pounce"] .yarn-cat > .cat-art {
+    animation: yarn-pounce-arc 700ms steps(1, end) both;
+  }
+
+  .loader[data-yarn-motion="end"][data-yarn-ending="pounce"] [data-cat-frame="crouch-2"] {
+    animation: yarn-pounce-wind 700ms steps(1, end) both;
+  }
+
+  .loader[data-yarn-motion="end"][data-yarn-ending="pounce"] [data-cat-frame="pounce"] {
+    animation: yarn-pounce-air 700ms steps(1, end) both;
+  }
+
+  .loader[data-yarn-motion="end"][data-yarn-ending="pounce"] [data-cat-frame="crouch-1"] {
+    animation: yarn-pounce-land 700ms steps(1, end) both;
+  }
+
+  /* Tumble: curled up, he and the ball roll over together in quarter turns, then he sits up, dazed, and sways. */
+  .loader[data-yarn-motion="end"][data-yarn-ending="tumble"] .yarn-cat > .cat-art {
+    transform-origin: calc(var(--px) * 10) calc(var(--px) * 10);
+    animation: yarn-tumble-cat 700ms steps(1, end) both;
+  }
+
+  .loader[data-yarn-motion="end"][data-yarn-ending="tumble"] .yarn-ball .cat-art {
+    animation: yarn-tumble-ball 700ms steps(1, end) both;
+  }
+
+  .loader[data-yarn-motion="end"][data-yarn-ending="tumble"] [data-cat-frame="tumble"] {
+    animation: yarn-tumble-roll 700ms steps(1, end) both;
+  }
+
+  .loader[data-yarn-motion="end"][data-yarn-ending="tumble"] [data-cat-frame="sit"] {
+    animation: yarn-tumble-daze 700ms steps(1, end) both;
+  }
+
+  /* Sit: he trots up and hops onto the ball, which rolls back under him, and sits on it proudly. */
+  .loader[data-yarn-motion="end"][data-yarn-ending="sit"] .yarn-cat > .cat-art {
+    animation: yarn-sit-cat 700ms steps(1, end) both;
+  }
+
+  .loader[data-yarn-motion="end"][data-yarn-ending="sit"] .yarn-ball .cat-art {
+    animation: yarn-sit-ball 700ms steps(1, end) both;
+  }
+
+  .loader[data-yarn-motion="end"][data-yarn-ending="sit"] [data-cat-frame="run-1"] {
+    animation: yarn-trot-first 700ms steps(1, end) both;
+  }
+
+  .loader[data-yarn-motion="end"][data-yarn-ending="sit"] [data-cat-frame="run-2"] {
+    animation: yarn-trot-second 700ms steps(1, end) both;
+  }
+
+  .loader[data-yarn-motion="end"][data-yarn-ending="sit"] [data-cat-frame="proud"] {
+    animation: yarn-sit-proud 700ms steps(1, end) both;
+  }
+}
+
+/* Two frames in turn: the first shows for the first half of the loop, the second for the other. */
+@keyframes yarn-frame-first {
+  0% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+@keyframes yarn-frame-second {
+  0% { opacity: 0; }
+  50%, 100% { opacity: 1; }
+}
+
+@keyframes yarn-roll {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Pounce. Forward by a quarter of (4 blocks - 20 cells) a step: on the narrowest blocks he leaps straight up. */
+@keyframes yarn-pounce-arc {
+  0% { transform: translate(0, 0); }
+  20% { transform: translate(calc(var(--pitch) - var(--px) * 5), calc(var(--px) * -2)); }
+  40% { transform: translate(calc(var(--pitch) * 2 - var(--px) * 10), calc(var(--px) * -4)); }
+  60% { transform: translate(calc(var(--pitch) * 3 - var(--px) * 15), calc(var(--px) * -2)); }
+  75%, 100% { transform: translate(calc(var(--pitch) * 4 - var(--px) * 20), 0); }
+}
+@keyframes yarn-pounce-wind {
+  0% { opacity: 1; }
+  20%, 100% { opacity: 0; }
+}
+@keyframes yarn-pounce-air {
+  0% { opacity: 0; }
+  20% { opacity: 1; }
+  75%, 100% { opacity: 0; }
+}
+@keyframes yarn-pounce-land {
+  0% { opacity: 0; }
+  75%, 100% { opacity: 1; }
+}
+
+/*
+ * Tumble. The curl turns about the cell corner (10, 10) of his frame, which keeps every cell on the grid; each quarter
+ * turn is lifted so the curl rests on the floor (4 cells up on its side, 1 upside down).
+ */
+@keyframes yarn-tumble-cat {
+  0% { transform: translate(0, 0) rotate(0deg); }
+  14% { transform: translate(0, calc(var(--px) * -4)) rotate(90deg); }
+  28% { transform: translate(0, calc(var(--px) * -1)) rotate(180deg); }
+  43% { transform: translate(0, calc(var(--px) * -4)) rotate(270deg); }
+  57% { transform: translate(0, 0) rotate(360deg); }
+  71% { transform: translate(0, 0) rotate(0deg); }
+  79% { transform: translate(calc(var(--px) * -1), 0) rotate(0deg); }
+  86% { transform: translate(0, 0) rotate(0deg); }
+  93%, 100% { transform: translate(calc(var(--px) * -1), 0) rotate(0deg); }
+}
+@keyframes yarn-tumble-ball {
+  0% { transform: rotate(0deg); }
+  14% { transform: rotate(90deg); }
+  28% { transform: rotate(180deg); }
+  43% { transform: rotate(270deg); }
+  57%, 100% { transform: rotate(360deg); }
+}
+@keyframes yarn-tumble-roll {
+  0% { opacity: 1; }
+  71%, 100% { opacity: 0; }
+}
+@keyframes yarn-tumble-daze {
+  0% { opacity: 0; }
+  71%, 100% { opacity: 1; }
+}
+
+/*
+ * Sit. He ends with his seat (columns 4 to 16 of the proud frame) centred on the ball, 7 cells up on its top; the ball
+ * rolls 3 cells back under him so neither passes the bar's right end.
+ */
+@keyframes yarn-sit-cat {
+  0% { transform: translate(0, 0); }
+  15% { transform: translate(calc(var(--pitch) - var(--px) * 3), 0); }
+  30% { transform: translate(calc(var(--pitch) * 2 - var(--px) * 6), calc(var(--px) * -3)); }
+  45%, 100% { transform: translate(calc(var(--pitch) * 4 - var(--px) * 13), calc(var(--px) * -7)); }
+}
+@keyframes yarn-sit-ball {
+  0% { transform: translate(0, 0); }
+  30% { transform: translate(calc(var(--px) * -1), 0); }
+  45%, 100% { transform: translate(calc(var(--px) * -3), 0); }
+}
+@keyframes yarn-trot-first {
+  0% { opacity: 1; }
+  15% { opacity: 0; }
+  30% { opacity: 1; }
+  45%, 100% { opacity: 0; }
+}
+@keyframes yarn-trot-second {
+  0% { opacity: 0; }
+  15% { opacity: 1; }
+  30%, 100% { opacity: 0; }
+}
+@keyframes yarn-sit-proud {
+  0% { opacity: 0; }
+  45%, 100% { opacity: 1; }
 }
 
 /* ------------------------------------------------------------------ progress */
@@ -77,8 +351,6 @@ html[data-loader="run"] .loader,
 
 /* A wooden trough with a stepped edge; the blocks sit in it side by side, one unit apart. */
 .loader-bar {
-  --block-w: 5;
-
   display: flex;
   gap: var(--px);
   padding: var(--px);
@@ -86,13 +358,7 @@ html[data-loader="run"] .loader,
   border: var(--px) solid var(--scene-wood);
 }
 
-@media (width < 26rem) {
-  .loader-bar {
-    --block-w: 4;
-  }
-}
-
-/* An empty block: dark wood with a slightly lighter lip. Filled, it lights up in the accent with a bright lip. */
+/* An empty block: dark wood with a slightly lighter lip. Filled, it is the unwound yarn: its colour, a shaded strand. */
 .loader-block {
   flex: none;
   box-sizing: border-box;
@@ -103,8 +369,8 @@ html[data-loader="run"] .loader,
 }
 
 .loader-block[data-on="true"] {
-  background-color: var(--accent);
-  border-top-color: var(--accent-hi);
+  background-color: var(--cat-yarn);
+  border-top-color: var(--cat-yarn-shade);
 }
 
 /* The readout is the pixel display face at a multiple of 8 so it stays crisp; four characters wide at most. */

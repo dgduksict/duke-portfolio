@@ -1,5 +1,7 @@
+import { ShootingStar } from "@/components/scene/shooting-star";
 import { Ridge, Skyline } from "@/components/scene/skyline";
 import { bandRows, type Cell, pixelStars, quantizeBands, snap } from "@/lib/pixel-sky";
+import { fireflies, type Season, snowflakes } from "@/lib/season";
 import type { SkyState } from "@/lib/sky";
 
 /** The picture behind the glass, in cells (one cell is one `--u`). The glass may show less of it on a narrow screen. */
@@ -12,6 +14,13 @@ const RIDGE_MAX = 19;
 const STAR_SEED = 47_918_106;
 const STAR_COUNT = 46;
 const STAR_ROWS = 44;
+/** Winter's snow and summer's fireflies: fixed seeds and counts, like the stars. */
+const SNOW_SEED = 20_261_119;
+const SNOW_COUNT = 36;
+const FIREFLY_SEED = 31_415_926;
+const FIREFLY_COUNT = 7;
+/** One blink-and-wander loop in seconds (scene.css); the flies' delays spread evenly across it. */
+const FIREFLY_PERIOD = 3.6;
 
 /** The window's wooden bars: two uprights (three panes across, so the noon sun is never behind one) and a cross bar. */
 const UPRIGHTS = [42, 83] as const;
@@ -22,6 +31,9 @@ const SUN_CORE = "#fff7dc";
 const MOON = "#f4ecd0";
 const MOON_SHADE = "#d6cba6";
 const STAR = "#fff8e0";
+const SNOW_NIGHT = "#fff8e0";
+const SNOW_DAY = "#ffffff";
+const FIREFLY = "#ffe58a";
 
 /** The rows of a pixel disc of radius `r` around a cell, as one span per row. */
 function disc(cx: number, cy: number, r: number): { x: number; y: number; w: number }[] {
@@ -101,6 +113,51 @@ function Stars({ strength }: { strength: number }) {
   );
 }
 
+const FLAKES = snowflakes(SNOW_SEED, SNOW_COUNT, GLASS_COLS, GLASS_ROWS);
+const FIREFLIES = fireflies(FIREFLY_SEED, FIREFLY_COUNT, GLASS_COLS, GLASS_ROWS);
+
+/**
+ * Falling snow: one-cell flakes in two depths (the near ones fall faster and are brighter, the far ones slower and
+ * dimmer). Each flake is drawn twice, at its cell and one glass height above it, and the group steps down by exactly that height, so the loop
+ * has no seam (see scene.css). A one-cell sideways drift runs on an inner group.
+ */
+function Snow({ night }: { night: boolean }) {
+  return (
+    <g data-layer="snow" fill={night ? SNOW_NIGHT : SNOW_DAY} opacity="0.9">
+      {([0, 1] as const).map((depth) => (
+        <g key={depth} className={`scene-snow-${depth}`} opacity={depth === 0 ? 0.7 : 1}>
+          <g className="scene-snow-drift">
+            {FLAKES.filter((flake) => flake.depth === depth).flatMap((flake, i) =>
+              [flake.y, flake.y - GLASS_ROWS].map((y) => (
+                <rect key={`${i}.${y}`} x={flake.x} y={y} width={1} height={1} />
+              )),
+            )}
+          </g>
+        </g>
+      ))}
+    </g>
+  );
+}
+
+/** A few fireflies low over the roofs, each blinking and wandering a cell or two out of step with the others. */
+function Fireflies() {
+  return (
+    <g data-layer="fireflies" fill={FIREFLY}>
+      {FIREFLIES.map((cell, i) => (
+        <rect
+          key={i}
+          className="scene-firefly"
+          style={{ animationDelay: `${((-i * FIREFLY_PERIOD) / FIREFLY_COUNT).toFixed(2)}s` }}
+          x={cell.x}
+          y={cell.y}
+          width={1}
+          height={1}
+        />
+      ))}
+    </g>
+  );
+}
+
 /** The wooden bars across the glass, each with a lit edge and a shaded one (theme colours, like the frame). */
 function Bars() {
   return (
@@ -137,15 +194,17 @@ export interface PixelSkyProps {
   readonly sky: SkyState | null;
   /** Where the moon sits (fractions of the glass), or `null` for no moon. */
   readonly moon: Cell | null;
+  /** Winter drops snow on the glass, summer lights fireflies on its nights; `null` (the default) shows neither. */
+  readonly season?: Season | null;
 }
 
 /**
  * The window glass: the live sky over Ulaanbaatar quantised into flat bands, a stepped glow and a pixel sun on the
  * sun's computed spot (or a moon opposite it), grid stars, the Bogd Khan ridge and the city skyline in front, then
- * the window's own bars and glints. One cell is one pixel unit; the picture is pinned to the bottom centre of the
+ * the season's snow or fireflies and the window's own bars and glints. One cell is one pixel unit; the picture is pinned to the bottom centre of the
  * glass, so a narrow window crops its sides. Carries `data-ready`/`data-phase` like the old smooth sky did.
  */
-export function PixelSky({ sky, moon }: PixelSkyProps) {
+export function PixelSky({ sky, moon, season = null }: PixelSkyProps) {
   const bands = sky === null ? [] : quantizeBands(sky, BANDS);
   const rows = bandRows(GLASS_ROWS, BANDS);
   const sunAt =
@@ -170,12 +229,15 @@ export function PixelSky({ sky, moon }: PixelSkyProps) {
           <>
             <Halo sky={sky} at={sunAt} />
             <Stars strength={sky.stars} />
+            <ShootingStar active={sky.phase === "night"} />
             {moonAt !== null ? <Moon at={moonAt} strength={sky.stars} /> : null}
             <Sun sky={sky} at={sunAt} />
           </>
         ) : null}
         <Ridge sky={sky} cols={GLASS_COLS} rows={GLASS_ROWS} maxH={RIDGE_MAX} />
         <Skyline sky={sky} cols={GLASS_COLS} rows={GLASS_ROWS} />
+        {sky !== null && season === "winter" ? <Snow night={sky.phase === "night"} /> : null}
+        {sky !== null && season === "summer" && sky.phase === "night" ? <Fireflies /> : null}
         <Glints />
         <Bars />
       </svg>

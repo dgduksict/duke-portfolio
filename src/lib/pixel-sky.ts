@@ -29,7 +29,7 @@ export interface Cell {
 const MID_AT = 0.55;
 
 /** mulberry32: a tiny seeded generator. */
-function seeded(seed: number): () => number {
+export function seeded(seed: number): () => number {
   let state = seed | 0;
   return () => {
     state = (state + 0x6d2b79f5) | 0;

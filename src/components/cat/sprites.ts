@@ -6,13 +6,15 @@
  *   r  rim: the 1-pixel lighter    g  glow (cursor, bright code) n  laptop shade, keys
  *      edge that keeps the ink     w  white / cream (code, mug)  c  coffee
  *      readable on a dark sky      t  steam                      z  sleeping z
- *   e  eye (a half-lidded yellow slit)
+ *   e  eye (a half-lidded yellow slit)                           y  yarn
+ *                                                                h  yarn shade (the wound thread)
  *
  * The rim sits on the top, left and right edges of the silhouette (never under it: he sits on a table) and draws the
  * few inner lines (a shut eye, a tucked tail). `PALETTE` maps each character to the `--cat-*` colour variable it is
  * painted with; the values live in cat.css, fixed so the cat never repaints when the theme flips. `pixel-sprite.tsx`
  * turns a map into rects (one per horizontal run), and `CatArt` splits the cat maps into their animated parts with the
- * boxes below. Hero sprites are 28 x 28 (shown at 6 units a pixel), minis 16 x 16 (3 units a pixel).
+ * boxes below. Hero sprites are 28 x 28 (shown at 6 units a pixel), minis 16 x 16 (3 units a pixel), and the loader's
+ * yarn cat 20 x 16 (one unit a pixel, drawn at --px a cell) beside his 7 x 7 ball of yarn.
  */
 
 export type Sprite = readonly string[];
@@ -47,6 +49,8 @@ export const PALETTE: Readonly<Record<string, string>> = {
   c: "--cat-coffee",
   t: "--cat-steam",
   z: "--cat-zzz",
+  y: "--cat-yarn",
+  h: "--cat-yarn-shade",
 };
 
 /** The legend colours of a screen: picked out of a laptop into its own `cat-screen` layer. */
@@ -414,6 +418,217 @@ export const MINI_NAP: Sprite = [
   "r..rkkkkkkkkkkkr", // 15
 ];
 
+/*
+ * ---------- the loader's yarn cat (components/loader/yarn-stage.tsx) ----------
+ * One cat on one shared 20 x 16 grid, facing right (towards the ball), every frame standing on row 15 so swapping
+ * frames never makes him hop or sink. The loader shows one frame at a time (loader.css picks it).
+ */
+
+/**
+ * Yarn cat: sitting calmly, chin up, front legs together, tail curled round on the floor behind him. 20 x 16.
+ */
+export const YARN_SIT: Sprite = [
+// 01234567890123456789
+  "....................", // 0
+  "....................", // 1
+  "........r...r.......", // 2
+  ".......rkr.rkr......", // 3
+  ".......rkkrkkr......", // 4
+  ".......rkkkkkkr.....", // 5
+  "......rkkkkkeekr....", // 6
+  "......rkkkkkkkkkr...", // 7
+  ".......rkkkkkkkr....", // 8
+  "........rkkkkkr.....", // 9
+  "...r...rkkkkkkkr....", // 10
+  "..rkr.rkkkkkkkkkr...", // 11
+  ".rkr.rkkkkkkrkkkr...", // 12
+  ".rkrrrkkkkkkrkkkr...", // 13
+  "..rkkrkkkkkkrkkkr...", // 14
+  "....rkkkkkkkrkkkr...", // 15
+];
+
+/**
+ * Yarn cat: running, frame 1 of the gallop. Stretched out: front legs reaching forward, hind legs kicked back, tail
+ * streaming behind. 20 x 16.
+ */
+export const RUN_1: Sprite = [
+// 01234567890123456789
+  "....................", // 0
+  "....................", // 1
+  "....................", // 2
+  ".............r...r..", // 3
+  "............rkr.rkr.", // 4
+  ".r..........rkkrkkr.", // 5
+  "rkr.........rkkkkkr.", // 6
+  ".rkrrrrrrrrrkkkkeekr", // 7
+  ".rkkkkkkkkkkkkkkkkkr", // 8
+  "..rkkkkkkkkkkkkkkkr.", // 9
+  "..rkkkkkkkkkkkkkkr..", // 10
+  ".rkkkkkkr...rkkkkkr.", // 11
+  "rkkkkr.......rkkkkkr", // 12
+  "rkkkr.........rkkkkr", // 13
+  "rkkr............rkkr", // 14
+  "rkr.............rkkr", // 15
+];
+
+/**
+ * Yarn cat: running, frame 2 of the gallop. Gathered: back arched, all four legs bunched under him, tail up. The head
+ * stays where RUN_1 has it, so the gallop reads as the body working under a steady head. 20 x 16.
+ */
+export const RUN_2: Sprite = [
+// 01234567890123456789
+  "....................", // 0
+  "....................", // 1
+  "....................", // 2
+  ".............r...r..", // 3
+  ".r..........rkr.rkr.", // 4
+  "rkr...rrrr..rkkrkkr.", // 5
+  ".rkrrrkkkkrrrkkkkkr.", // 6
+  ".rkrkkkkkkkkkkkkeekr", // 7
+  "..rkkkkkkkkkkkkkkkkr", // 8
+  "..rkkkkkkkkkkkkkkkr.", // 9
+  "...rkkkkkkkkkkkkkr..", // 10
+  "....rkkkkkkkkkkkkr..", // 11
+  "....rkkkkr.rkkkkr...", // 12
+  ".....rkkkr.rkkkr....", // 13
+  ".....rkkkrrkkkr.....", // 14
+  "......rkkrrkkr......", // 15
+];
+
+/**
+ * Yarn cat: crouched to pounce, frame 1 of the wiggle. Head low over his front paws, rear up, tail low behind. 20 x 16.
+ */
+export const CROUCH_1: Sprite = [
+// 01234567890123456789
+  "....................", // 0
+  "....................", // 1
+  "....................", // 2
+  "....................", // 3
+  "....................", // 4
+  "....................", // 5
+  "...rrr..............", // 6
+  "..rkkkrr............", // 7
+  ".rkkkkkkrr..r...r...", // 8
+  ".rkkkkkkkkrrkr.rkr..", // 9
+  ".rkkkkkkkkkrkkrkkr..", // 10
+  ".rkkkkkkkkkkkkkkkkr.", // 11
+  "..rkkkkkkkkkkkkeekr.", // 12
+  ".rkkkkkkkkkkkkkkkkkr", // 13
+  "rkrkkkkkkkkkkkkkkkr.", // 14
+  "rkrkkkkkrrkkkkkkkkkr", // 15
+];
+
+/**
+ * Yarn cat: crouched to pounce, frame 2 of the wiggle. The same crouch with the rear swung one cell right and the tail
+ * tip flicked up, so the two frames make the butt wiggle. 20 x 16.
+ */
+export const CROUCH_2: Sprite = [
+// 01234567890123456789
+  "....................", // 0
+  "....................", // 1
+  "....................", // 2
+  "....................", // 3
+  "....................", // 4
+  "....................", // 5
+  "....rrr.............", // 6
+  "...rkkkrr...........", // 7
+  "..rkkkkkkr..r...r...", // 8
+  ".rkkkkkkkkrrkr.rkr..", // 9
+  ".rkkkkkkkkkrkkrkkr..", // 10
+  ".rkkkkkkkkkkkkkkkkr.", // 11
+  "rkrkkkkkkkkkkkkeekr.", // 12
+  "rkrkkkkkkkkkkkkkkkkr", // 13
+  ".rkkkkkkkkkkkkkkkkr.", // 14
+  ".rkkkkkkrrkkkkkkkkkr", // 15
+];
+
+/**
+ * Yarn cat: the pounce. Launched and stretched out on a rising diagonal, front legs reaching out under his chin, hind
+ * toes just leaving the floor (row 15), tail straight out behind. 20 x 16.
+ */
+export const POUNCE: Sprite = [
+// 01234567890123456789
+  "....................", // 0
+  "...........r...r....", // 1
+  "..........rkr.rkr...", // 2
+  "..........rkkrkkr...", // 3
+  "..........rkkkkkkr..", // 4
+  ".........rkkkkkeekr.", // 5
+  "........rrkkkkkkkkr.", // 6
+  "......rrkkkkkkkkkr..", // 7
+  "....rrkkkkkkkkkkrrr.", // 8
+  ".rrrkkkkkkkkkkkkkkkr", // 9
+  "rkkkkkkkkkkkrkkkkkkr", // 10
+  "..rkkkkkkkkr........", // 11
+  "..rkkkkkr...........", // 12
+  ".rkkkr..............", // 13
+  "rkkkr...............", // 14
+  "rkkr................", // 15
+];
+
+/**
+ * Yarn cat: the tumble. Curled up tight mid-roll, ears and an open eye at the front, a front paw tucked under his chin
+ * and the tail wrapped round underneath (the rim line). Round enough to roll in 90-degree steps. 20 x 16.
+ */
+export const TUMBLE: Sprite = [
+// 01234567890123456789
+  "....................", // 0
+  "....................", // 1
+  "....................", // 2
+  ".............r...r..", // 3
+  "......rrrr..rkr.rkr.", // 4
+  "....rrkkkkrrrkkrkkr.", // 5
+  "...rkkkkkkkkrkkkkkr.", // 6
+  "..rkkkkkkkkkkkkkkkkr", // 7
+  ".rkkkkkkkkkkkkkeekkr", // 8
+  ".rkkkkkkkkkkkkkkkkkr", // 9
+  "rkkkkkkkkkkkkkkkkkr.", // 10
+  "rkkkkkkkkkkkkkkkkkkr", // 11
+  "rkkkkkkkkkkkkkrkkkr.", // 12
+  "rkkkkkkrrrrrrrkkkkr.", // 13
+  ".rkkkkkkkkkkkkkkkr..", // 14
+  "...rkkkkkkkkkkkkr...", // 15
+];
+
+/**
+ * Yarn cat: proud and smug (he sits like this on top of the ball). Upright, chest out, chin and nose raised, eye
+ * half-lidded, tail up and hooked over at the tip. 20 x 16.
+ */
+export const PROUD: Sprite = [
+// 01234567890123456789
+  "........r...r.......", // 0
+  ".......rkr.rkr......", // 1
+  ".......rkkrkkkr.....", // 2
+  ".......rkkkkkkkr....", // 3
+  "......rkkkkkeekkr...", // 4
+  "......rkkkkkkkkr....", // 5
+  "..r....rkkkkkkr.....", // 6
+  ".rkr....rkkkkr......", // 7
+  "rkrkr..rkkkkkkr.....", // 8
+  "rkr...rkkkkkkkkr....", // 9
+  "rkr...rkkkkkkkkkr...", // 10
+  ".rkr..rkkkkkkkkkr...", // 11
+  ".rkr.rkkkkkkrkkkr...", // 12
+  "..rkrrkkkkkkrkkkr...", // 13
+  "...rkkkkkkkkrkkkr...", // 14
+  "....rkkkkkkkrkkkr...", // 15
+];
+
+/**
+ * The ball of yarn: round, its wound thread in the yarn colour and its shade, the loose strand curling off its lower
+ * left onto the floor (towards the unwound yarn of the bar). No rim: the yarn is bright enough on the dark wall. 7 x 7.
+ */
+export const YARN_BALL: Sprite = [
+// 0123456
+  "..yyyy.", // 0
+  ".yhhhyy", // 1
+  ".yyyyhy", // 2
+  ".yhhyyh", // 3
+  ".hyyhyh", // 4
+  "y.hhyh.", // 5
+  ".yy....", // 6
+];
+
 /* ---------- part boxes (first match wins; ears before the head that holds them) ---------- */
 
 export const HERO_DAY_PARTS: readonly PartBox[] = [
@@ -490,4 +705,13 @@ export const SPRITES: Readonly<Record<string, Sprite>> = {
   miniGroom: MINI_GROOM,
   miniSleep: MINI_SLEEP,
   miniNap: MINI_NAP,
+  yarnSit: YARN_SIT,
+  run1: RUN_1,
+  run2: RUN_2,
+  crouch1: CROUCH_1,
+  crouch2: CROUCH_2,
+  pounce: POUNCE,
+  tumble: TUMBLE,
+  proud: PROUD,
+  yarnBall: YARN_BALL,
 };

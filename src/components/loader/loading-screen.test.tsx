@@ -6,11 +6,14 @@ import { LoadingScreen } from "@/components/loader/loading-screen";
 import { useLoaderDone } from "@/components/loader/use-loader-done";
 import { dictionaries } from "@/lib/i18n";
 import { displayedProgress, LOADER } from "@/lib/loader";
+import { YARN } from "@/lib/yarn";
 import { resetPortfolioStore, usePortfolioStore } from "@/store/portfolio-store";
 
 const root = document.documentElement;
 const BLOCKS = 20;
 const FRAME_MS = 16;
+/** The overlay leaves the DOM this long after it starts to leave (loading-screen.tsx). */
+const REMOVE_AFTER_MS = 1000;
 
 /** How many of the progress blocks are marked on. */
 const filledBlocks = (container: HTMLElement) =>
@@ -45,8 +48,9 @@ function hangFonts() {
   });
 }
 
+/** Stands in for a window load that has not happened; the returned spy can let it happen. */
 function stallLoad() {
-  vi.spyOn(document, "readyState", "get").mockReturnValue("loading");
+  return vi.spyOn(document, "readyState", "get").mockReturnValue("loading");
 }
 
 beforeEach(() => {
@@ -129,44 +133,154 @@ describe("LoadingScreen", () => {
     expect(container.querySelector("[data-loader-percent]")).toHaveAttribute("aria-hidden", "true");
   });
 
-  it("shows the cat awake by day and asleep when the sky phase is night", () => {
+  it("shows no window scene", () => {
     setMarker("on");
-    window.history.replaceState(null, "", "/?time=13:00");
-    const day = render(<LoadingScreen />);
-    expect(day.container.querySelector(".cat-art")).toHaveAttribute("data-state", "day");
-    day.unmount();
-
-    setMarker("on");
-    window.history.replaceState(null, "", "/?time=01:30");
-    const night = render(<LoadingScreen />);
-    expect(night.container.querySelector(".cat-art")).toHaveAttribute("data-state", "night");
-  });
-
-  it("stands the cat in the window's cat slot on the sill, in a window and sill without the room", () => {
-    setMarker("on");
-    window.history.replaceState(null, "", "/?time=13:00");
     const { container } = render(<LoadingScreen />);
-    const scene = container.querySelector(".loader .scene");
-    expect(scene).not.toBeNull();
-    expect(scene?.querySelector(".scene-sill")).not.toBeNull();
-    expect(scene?.querySelector("[data-cat-slot] .cat-art")).toHaveAttribute("data-state", "day");
-    expect(container.querySelector("[data-header-zone]")).toBeNull();
-    expect(container.querySelector(".scene-left, .scene-right, .scene-radiator, .scene-wainscot")).toBeNull();
+    expect(container.querySelector(".loader .scene")).toBeNull();
+    // The yarn stage stands directly on the bar instead: before the meter, in the overlay.
+    const stage = container.querySelector(".loader > .yarn-stage");
+    expect(stage).not.toBeNull();
+    expect(stage?.nextElementSibling).toHaveClass("loader-meter");
   });
 
-  it("shows the live pixel sky for the previewed time", () => {
-    setMarker("on");
-    window.history.replaceState(null, "", "/?time=01:30");
-    const night = render(<LoadingScreen />);
-    expect(night.container.querySelector(".scene-sky")).toHaveAttribute("data-phase", "night");
-    expect(night.container.querySelector("[data-star]")).not.toBeNull();
-    night.unmount();
+  it("picks a yarn colour and ending on the client", () => {
+    const host = document.createElement("div");
+    host.innerHTML = renderToString(<LoadingScreen />);
+    const idle = host.querySelector(".loader");
+    expect(idle).not.toHaveAttribute("data-yarn-colour");
+    expect(idle).not.toHaveAttribute("data-yarn-ending");
 
+    vi.spyOn(Math, "random").mockReturnValueOnce(0.5).mockReturnValueOnce(0.99);
     setMarker("on");
-    window.history.replaceState(null, "", "/?time=13:00");
-    const day = render(<LoadingScreen />);
-    expect(day.container.querySelector(".scene-sky")).toHaveAttribute("data-phase", "day");
-    expect(day.container.querySelector("[data-sun]")).not.toBeNull();
+    const { container } = render(<LoadingScreen />);
+    const overlay = container.querySelector(".loader");
+    expect(overlay).toHaveAttribute("data-yarn-colour", "rose");
+    expect(overlay).toHaveAttribute("data-yarn-ending", "sit");
+  });
+
+  it("moves the ball and cat with the lit blocks", () => {
+    setMarker("on");
+    // The load event never comes: the bar stops at half, ten lit blocks.
+    stallLoad();
+    const { container } = render(<LoadingScreen />);
+    act(() => {
+      vi.advanceTimersByTime(600);
+    });
+    expect(filledBlocks(container)).toBe(10);
+    const stage = container.querySelector<HTMLElement>(".yarn-stage");
+    expect(stage?.style.getPropertyValue("--ball")).toBe("10");
+    expect(stage?.style.getPropertyValue("--cat")).toBe("6");
+  });
+
+  it("crouches when progress stalls and runs again when it moves", () => {
+    setMarker("on");
+    // Neither signal: the bar holds at no blocks from the first frame on.
+    hangFonts();
+    const load = stallLoad();
+    const { container } = render(<LoadingScreen />);
+    const overlay = container.querySelector(".loader");
+    expect(overlay).toHaveAttribute("data-yarn-motion", "run");
+    act(() => {
+      vi.advanceTimersByTime(YARN.stallMs - 100);
+    });
+    expect(overlay).toHaveAttribute("data-yarn-motion", "run");
+    act(() => {
+      vi.advanceTimersByTime(200);
+    });
+    expect(filledBlocks(container)).toBe(0);
+    expect(overlay).toHaveAttribute("data-yarn-motion", "stall");
+    // The page loads: half the signals are in, new blocks light, and the chase is back on.
+    load.mockReturnValue("complete");
+    act(() => {
+      vi.advanceTimersByTime(50);
+    });
+    expect(filledBlocks(container)).toBeGreaterThan(0);
+    expect(overlay).toHaveAttribute("data-yarn-motion", "run");
+  });
+
+  it("plays the ending for YARN.endingMs before the wipe", () => {
+    setMarker("on");
+    const { container } = render(<LoadingScreen />);
+    const overlay = container.querySelector(".loader");
+    act(() => {
+      vi.advanceTimersByTime(LOADER.minMs + 20);
+    });
+    expect(filledBlocks(container)).toBe(BLOCKS);
+    expect(overlay).toHaveAttribute("data-yarn-motion", "end");
+    expect(overlay).toHaveAttribute("data-phase", "run");
+    act(() => {
+      vi.advanceTimersByTime(YARN.endingMs - 50);
+    });
+    expect(overlay).toHaveAttribute("data-phase", "run");
+    act(() => {
+      vi.advanceTimersByTime(100);
+    });
+    expect(overlay).toHaveAttribute("data-phase", "exit");
+  });
+
+  it("skips the ending when forced to finish at maxMs", () => {
+    root.style.overflow = "scroll";
+    setMarker("on");
+    hangFonts();
+    stallLoad();
+    const { container } = render(<LoadingScreen />);
+    const overlay = container.querySelector(".loader");
+    expect(overlay).not.toBeNull();
+    const seen = new MutationObserver(() => undefined);
+    seen.observe(overlay as Element, { attributes: true, attributeFilter: ["data-yarn-motion"], attributeOldValue: true });
+    const motions = () => [
+      ...seen.takeRecords().map((record) => record.oldValue),
+      overlay?.getAttribute("data-yarn-motion"),
+    ];
+    const history: (string | null | undefined)[] = [];
+
+    act(() => {
+      vi.advanceTimersByTime(LOADER.maxMs - 1);
+    });
+    expect(overlay).toHaveAttribute("data-phase", "run");
+    history.push(...motions());
+    act(() => {
+      vi.advanceTimersByTime(1);
+    });
+    // Forced: the bar is full and the wipe starts at once, without an ending.
+    history.push(...motions());
+    expect(filledBlocks(container)).toBe(BLOCKS);
+    expect(overlay).toHaveAttribute("data-phase", "exit");
+    act(() => {
+      vi.advanceTimersByTime(REMOVE_AFTER_MS);
+    });
+    history.push(...motions());
+    seen.disconnect();
+    expect(history).not.toContain("end");
+    expect(container.querySelector(".loader")).not.toBeInTheDocument();
+    expect(root.style.overflow).toBe("scroll");
+    expect(root.dataset.loader).toBe("done");
+  });
+
+  it("keeps still under reduced motion", () => {
+    reduceMotion();
+    setMarker("on");
+    const { container } = render(<LoadingScreen />);
+    const overlay = container.querySelector(".loader");
+    const stage = container.querySelector<HTMLElement>(".yarn-stage");
+    expect(overlay).toHaveAttribute("data-yarn-motion", "still");
+    // From one lit block (the ball still at its start) to most of the bar.
+    for (const step of [20, 80, 150, 150]) {
+      act(() => {
+        vi.advanceTimersByTime(step);
+      });
+      expect(overlay).toHaveAttribute("data-yarn-motion", "still");
+      const filled = filledBlocks(container);
+      expect(stage?.style.getPropertyValue("--ball"), `${filled} lit`).toBe(String(Math.max(filled, YARN.ballStart)));
+    }
+    // Full and then leaving: still no ending.
+    act(() => {
+      vi.advanceTimersByTime(LOADER.reducedMinMs);
+    });
+    expect(filledBlocks(container)).toBe(BLOCKS);
+    expect(overlay).toHaveAttribute("data-phase", "exit");
+    expect(overlay).toHaveAttribute("data-yarn-motion", "still");
+    expect(stage?.style.getPropertyValue("--ball")).toBe(String(BLOCKS));
   });
 
   it("draws progress as a row of blocks that follows the displayed progress", () => {
@@ -218,8 +332,8 @@ describe("LoadingScreen", () => {
     act(() => {
       vi.advanceTimersByTime(LOADER.minMs + 500);
     });
-    // Fonts are a third of the signals: the bar waits two thirds of the way.
-    expect(filledBlocks(container)).toBe(Math.floor((2 / 3) * BLOCKS));
+    // Fonts are one of the two signals: the bar waits halfway.
+    expect(filledBlocks(container)).toBe(Math.floor((1 / 2) * BLOCKS));
     // Just past maxMs (still wiping, not yet removed): the bar is full whatever has not loaded.
     act(() => {
       vi.advanceTimersByTime(LOADER.maxMs - (LOADER.minMs + 500) + 10);
@@ -404,6 +518,31 @@ describe("loader.css", () => {
 
   it("does not repeat the night tokens: the overlay wears the shared .dark block", () => {
     expect(code).not.toMatch(/--ground:|--ink:|--ink-soft:|--accent:|--rule:/);
+  });
+
+  it("lights the blocks in the yarn's colour, one fill and shade pair per yarn", () => {
+    expect(code).toMatch(/\.loader-block\[data-on="true"\]\s*\{[^}]*background-color:\s*var\(--cat-yarn\)/);
+    for (const colour of ["amber", "rose", "sky"]) {
+      const rule = new RegExp(`\\[data-yarn-colour="${colour}"\\][^{]*\\{([^}]*)\\}`).exec(code);
+      expect(rule, colour).not.toBeNull();
+      expect(rule?.[1], colour).toMatch(/--cat-yarn:\s*#[0-9a-f]{6};/);
+      expect(rule?.[1], colour).toMatch(/--cat-yarn-shade:\s*#[0-9a-f]{6};/);
+    }
+    // Amber is the cat's own default pair (cat.css).
+    expect(code).toMatch(/\[data-yarn-colour="amber"\][^{]*\{[^}]*--cat-yarn:\s*#e9a420;[^}]*--cat-yarn-shade:\s*#b9770f;/);
+  });
+
+  it("jumps the ball and cat block by block: no transition on their place", () => {
+    // A transition restarts on every new block (they light 20 to 50 ms apart) and would freeze them, then land between cells.
+    for (const [, selectors, body] of code.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+      if (!/\.yarn-(?:ball|cat)\b/.test(selectors ?? "")) continue;
+      expect(body, selectors).not.toMatch(/transition/);
+    }
+  });
+
+  it("has no window scene left in it", () => {
+    expect(code).not.toMatch(/\.scene\b/);
+    expect(code).not.toMatch(/data-cat-slot/);
   });
 });
 

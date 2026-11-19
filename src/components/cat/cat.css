@@ -25,6 +25,9 @@
   --cat-steam: #e9e4d6;
   /* the sleeping z on the page ground (the ruler cat, light theme) */
   --cat-zzz: #b9770f;
+  /* the loader's ball of yarn: amber by default (the loader's own colour pairs override these on its .cat-art) */
+  --cat-yarn: #e9a420;
+  --cat-yarn-shade: #b9770f;
   image-rendering: pixelated;
 }
 
