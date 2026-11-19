@@ -1,21 +1,24 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { CatArt } from "@/components/cat/cat-art";
-import { WindowScene } from "@/components/scene/window-scene";
-import { profile } from "@/data/profile";
+import { YarnStage } from "@/components/loader/yarn-stage";
 import { useI18n } from "@/hooks/use-i18n";
-import { useNow } from "@/hooks/use-now";
-import { catStateForPhase } from "@/lib/cat";
 import { displayedProgress, LOADER, loaderReadout } from "@/lib/loader";
-import { skyAt } from "@/lib/sky";
-import { sunPosition } from "@/lib/sun";
+import { isStalled, pickYarn, YARN, type YarnColour, type YarnEnding, yarnPositions } from "@/lib/yarn";
 
 /** Where the screen is: waiting in the server HTML, running, wiping away, or gone from the DOM. */
 type Phase = "idle" | "run" | "exit" | "gone";
 
-/** How long the full bar is held before the screen leaves (ms), and how long the leaving takes. */
-const HOLD_MS = 260;
+/**
+ * What the yarn cat is doing (`data-yarn-motion` on the overlay, read by loader.css): sitting still (reduced motion),
+ * chasing the ball, crouched because no new block has lit for a while, or playing this visit's ending at 100 %.
+ */
+type YarnMotion = "still" | "run" | "stall" | "end";
+
+/**
+ * How long the full bar is held before the screen leaves under reduced motion (ms; with full motion the ending's
+ * `YARN.endingMs` is the hold), and how long the leaving takes.
+ */
 const HOLD_REDUCED_MS = 120;
 const WIPE_MS = 520;
 const FADE_MS = 220;
@@ -29,50 +32,46 @@ const BLOCK_KEYS: readonly number[] = Array.from({ length: BLOCKS }, (_, i) => i
 const PREFERS_REDUCED = "(prefers-reduced-motion: reduce)";
 
 /**
- * The first-visit loading screen: a small pixel scene, the window of the hero (the live pixel sky over Ulaanbaatar,
- * the skyline, the sill and its plants) with the programmer cat standing on the sill (at his laptop by day, asleep
- * when the sky is in its night phase), and under it a row of chunky blocks that fills left to right with progress,
- * with a pixel percent beside it.
+ * The first-visit loading screen: a plain wall with a row of chunky blocks in a wooden trough that fills left to right
+ * with progress, a pixel percent under it, and on top of the trough the black pixel cat chasing a ball of yarn. The lit
+ * blocks are the unwound yarn: the ball rides the leading edge of the fill and the cat runs a few blocks behind it
+ * (`yarnPositions`); with no new block for a while he crouches, and at 100 % this visit's ending plays (he pounces on
+ * the ball, tumbles over with it, or sits on it proudly) before the wipe. The yarn's colour and the ending are picked
+ * per visit on the client (`pickYarn`), never during render.
  *
  * The overlay is part of the server HTML. `loader.css` hides it unless the gate marked `<html data-loader="on">`
- * (and locks scrolling while it is only marked), so it is up before hydration and never shows without JavaScript.
- * Mounted with that mark it takes over (`data-loader="run"`), locks scrolling, shows the lesser of a clock easing over
- * `LOADER.minMs` and the share that has really loaded (fonts, the window load, the sky having a time), holds briefly
- * at 100 %, wipes away in steps, then marks `data-loader="done"` and removes itself. At `LOADER.maxMs` it finishes
- * whatever has not loaded. Scrolling is always released (leaving, unmounting, a failed setup). On a repeat visit or any
- * other route it removes itself at once. Progress never goes through React state: the blocks and the percent are
- * written to the DOM only when their value changes, and only transform and opacity animate.
+ * (and locks scrolling while it is only marked), so it is up before hydration and never shows without JavaScript; until
+ * React takes over it is a still picture (the cat sitting at the bar's left end, an amber ball just ahead). Mounted with
+ * that mark it takes over (`data-loader="run"`), locks scrolling, shows the lesser of a clock easing over
+ * `LOADER.minMs` and the share that has really loaded (fonts and the window load, half each), plays the ending at
+ * 100 % for `YARN.endingMs`, wipes away in steps, then marks `data-loader="done"` and removes itself. At
+ * `LOADER.maxMs` it finishes whatever has not loaded, without the ending, and starts leaving at once. Scrolling is
+ * always released (leaving, unmounting, a failed setup). On a repeat visit or any other route it removes itself at
+ * once. Progress never goes through React state: the blocks, the percent, the cat's and ball's places and the cat's
+ * motion are written to the DOM only when their value changes, and only transform and opacity animate.
  *
- * Its colours are the dark theme's (`className="dark"`), whatever the visitor's theme, like the sky.
+ * Under reduced motion the cat sits still at the bar's left end, the ball jumps from block to block with the fill, no
+ * ending plays and the exit is a short fade.
+ *
+ * Its colours are the dark theme's (`className="dark"`), whatever the visitor's theme.
  */
 export function LoadingScreen() {
   const [phase, setPhase] = useState<Phase>("idle");
-  // Once it is gone nothing of it stays mounted: not the scene, the cat, or the minute timer of `useNow`.
+  // Once it is gone nothing of it stays mounted.
   if (phase === "gone") return null;
   return <Overlay phase={phase} onPhase={setPhase} />;
 }
 
 function Overlay({ phase, onPhase }: { readonly phase: Phase; readonly onPhase: (phase: Phase) => void }) {
   const { dict } = useI18n();
-  const now = useNow();
 
   const rootRef = useRef<HTMLDivElement>(null);
   const barRef = useRef<HTMLDivElement>(null);
   const percentRef = useRef<HTMLSpanElement>(null);
-  const hasTime = useRef(false);
-  // Survive a simulated unmount (React strict mode) so the screen can pick up where it was.
+  // Survive a simulated unmount (React strict mode) so the screen can pick up where it was, with the same yarn.
   const started = useRef(false);
   const completed = useRef(false);
-
-  const skyPhase =
-    now === null
-      ? undefined
-      : skyAt(sunPosition(now, profile.coordinates.latitude, profile.coordinates.longitude)).phase;
-  const catState = catStateForPhase(skyPhase);
-
-  useEffect(() => {
-    hasTime.current = now !== null;
-  }, [now]);
+  const yarn = useRef<{ colour: YarnColour; ending: YarnEnding } | null>(null);
 
   useEffect(() => {
     const html = document.documentElement;
@@ -102,7 +101,9 @@ function Overlay({ phase, onPhase }: { readonly phase: Phase; readonly onPhase: 
     let finishing = false;
     let lastFilled = -1;
     let lastPercent = -1;
+    let lastBlockAt = 0;
     const blocks = Array.from(bar.children) as HTMLElement[];
+    const stage = root.querySelector<HTMLElement>(".yarn-stage");
     const teardown = () => {
       cancelAnimationFrame(raf);
       for (const timer of timers) clearTimeout(timer);
@@ -118,7 +119,19 @@ function Overlay({ phase, onPhase }: { readonly phase: Phase; readonly onPhase: 
       }
       root.dataset.motion = reduced ? "reduced" : "full";
 
-      // What has loaded: fonts, the window load, and the sky having a time. Each is a third.
+      // This visit's yarn, decided here on the client (never during render) and kept across a strict-mode resume.
+      yarn.current ??= pickYarn(Math.random);
+      root.dataset.yarnColour = yarn.current.colour;
+      root.dataset.yarnEnding = yarn.current.ending;
+      let motion: YarnMotion = reduced ? "still" : "run";
+      root.dataset.yarnMotion = motion;
+      const setMotion = (next: YarnMotion) => {
+        if (next === motion) return;
+        motion = next;
+        root.dataset.yarnMotion = next;
+      };
+
+      // What has loaded: fonts and the window load, half each.
       const fonts = (document as { fonts?: FontFaceSet }).fonts;
       let fontsReady = fonts === undefined;
       if (fonts !== undefined) {
@@ -127,8 +140,7 @@ function Overlay({ phase, onPhase }: { readonly phase: Phase; readonly onPhase: 
         };
         fonts.ready.then(ready, ready);
       }
-      const loaded = () =>
-        ((fontsReady ? 1 : 0) + (document.readyState === "complete" ? 1 : 0) + (hasTime.current ? 1 : 0)) / 3;
+      const loaded = () => ((fontsReady ? 1 : 0) + (document.readyState === "complete" ? 1 : 0)) / 2;
 
       const minMs = reduced ? LOADER.reducedMinMs : LOADER.minMs;
       const paint = (progress: number) => {
@@ -140,9 +152,14 @@ function Overlay({ phase, onPhase }: { readonly phase: Phase; readonly onPhase: 
         }
         if (filled !== lastFilled) {
           lastFilled = filled;
+          lastBlockAt = performance.now();
           blocks.forEach((block, i) => {
             block.dataset.on = i < filled ? "true" : "false";
           });
+          // The ball rides the fill's leading edge and the cat runs behind it, in blocks (loader.css places them).
+          const { ball, cat } = yarnPositions(filled, BLOCKS);
+          stage?.style.setProperty("--ball", String(ball));
+          stage?.style.setProperty("--cat", String(cat));
         }
       };
 
@@ -161,25 +178,33 @@ function Overlay({ phase, onPhase }: { readonly phase: Phase; readonly onPhase: 
           setTimeout(() => onPhase("gone"), REMOVE_AFTER_MS),
         );
       };
-      const finish = (hold: number) => {
+      /** Fills the bar, plays the ending if `ending` (the hold is then its length), and leaves after `hold` ms. */
+      const finish = (hold: number, ending: boolean) => {
         if (finishing) return;
         finishing = true;
         cancelAnimationFrame(raf);
         paint(1);
-        timers.push(setTimeout(leave, hold));
+        if (ending) setMotion("end");
+        if (hold > 0) timers.push(setTimeout(leave, hold));
+        else leave();
       };
 
       const start = performance.now();
       const tick = () => {
         const progress = displayedProgress(performance.now() - start, loaded(), minMs);
         paint(progress);
-        if (progress >= 1) finish(reduced ? HOLD_REDUCED_MS : HOLD_MS);
-        else raf = requestAnimationFrame(tick);
+        if (progress >= 1) {
+          if (reduced) finish(HOLD_REDUCED_MS, false);
+          else finish(YARN.endingMs, true);
+          return;
+        }
+        if (!reduced) setMotion(isStalled(performance.now() - lastBlockAt, lastFilled, BLOCKS) ? "stall" : "run");
+        raf = requestAnimationFrame(tick);
       };
       raf = requestAnimationFrame(tick);
       // A hidden tab pauses animation frames, and a stuck font or load holds the bar back; either way the screen
-      // starts leaving at maxMs, without the hold, and the page is released then.
-      timers.push(setTimeout(() => finish(0), LOADER.maxMs));
+      // starts leaving at maxMs, without the ending or a hold, and the page is released then.
+      timers.push(setTimeout(() => finish(0, false), LOADER.maxMs));
 
       // Everything that can throw has run: only now take the page over. "run" tells the gate's safety release that
       // React has taken over, and hands the scroll lock from CSS (`html[data-loader="on"]`) to this component.
@@ -219,13 +244,10 @@ function Overlay({ phase, onPhase }: { readonly phase: Phase; readonly onPhase: 
         ref={rootRef}
         className="loader dark"
         data-phase={phase}
-        data-ready={now === null ? "false" : "true"}
         data-print="hide"
         aria-hidden={phase === "idle" ? "true" : undefined}
       >
-        <WindowScene now={now} compact>
-          <CatArt variant="hero" state={catState} className="size-full" />
-        </WindowScene>
+        <YarnStage />
         <div className="loader-meter">
           <div ref={barRef} className="loader-bar" data-loader-bar="" aria-hidden="true">
             {BLOCK_KEYS.map((i) => (
