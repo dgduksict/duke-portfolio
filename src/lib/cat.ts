@@ -34,6 +34,13 @@ export function countPoke(recent: readonly number[], now: number): { recent: num
 }
 
 /**
+ * Hold the hero cat to purr (ms): a press held `holdMs` turns into a purr instead of a poke; while it lasts a heart
+ * floats up every `heartEveryMs`, never more than `maxHearts` on screen, each gone after `heartLifeMs` (cat.css floats
+ * it up four cells over the same time).
+ */
+export const PURR = { holdMs: 500, heartEveryMs: 350, maxHearts: 3, heartLifeMs: 1200 } as const;
+
+/**
  * The hero cat's sunrise wake (ms): when night turns to day under an open page, or on a morning arrival, he yawns for
  * the first half and stretches for the second (cat.css steps the two drawn frames over the same time), then settles
  * into his day pose.

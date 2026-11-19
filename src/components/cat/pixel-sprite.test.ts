@@ -6,6 +6,7 @@ import {
   CROUCH_2,
   HERO_BACK,
   HERO_DAY,
+  HEART,
   HERO_FRONT,
   HERO_STRETCH,
   HERO_YAWN,
@@ -103,6 +104,7 @@ describe("sprite maps", () => {
       "tumble",
       "proud",
       "yarnBall",
+      "heart",
     ]) {
       expect(SPRITES, name).toHaveProperty(name);
     }
@@ -197,6 +199,17 @@ describe("sprite maps", () => {
     expect(all).toContain("y");
     expect(all).toContain("h");
     expect(all).toMatch(/^[.yh]+$/);
+  });
+
+  it("draws a 5 x 5 purr heart in its own pink only", () => {
+    expect(HEART).toHaveLength(5);
+    for (const row of HEART) expect(row).toHaveLength(5);
+    expect(HEART.join("")).toMatch(/^[.p]+$/);
+    expect(HEART.join("")).toContain("p");
+    expect(PALETTE.p).toBe("--cat-heart");
+    // A heart, not a blob: two lobes on top, a single point at the bottom.
+    expect(HEART[0]).toMatch(/^p+\.p+$/);
+    expect(HEART[4]).toBe("..p..");
   });
 
   it("maps every legend colour to a --cat-* variable defined in the base .cat-art block", () => {

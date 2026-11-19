@@ -44,6 +44,11 @@ export type CatArtProps = (
        * for cat.css to show one after the other. The spin wins if both are asked for.
        */
       wake?: boolean;
+      /**
+       * The purr: by day his eye closes contentedly, the eye's cells drawn in rim (a shut line, like the night eye).
+       * Only his day pose changes; by night he is asleep already, and the wake and the spin draw their own frames.
+       */
+      content?: boolean;
     }
   | { variant: "mini"; pose: RulerPose }
 ) & {
@@ -101,7 +106,8 @@ export function CatArt(props: CatArtProps) {
     const size = HERO_GRID * HERO_SCALE;
     const spinning = props.uiia === true;
     const waking = !spinning && props.wake === true;
-    let drawing = props.state === "day" ? <HeroDay /> : <HeroNight />;
+    const content = !spinning && !waking && props.state === "day" && props.content === true;
+    let drawing = props.state === "day" ? <HeroDay content={content} /> : <HeroNight />;
     if (spinning) drawing = <HeroSpin state={props.state} />;
     else if (waking) drawing = <HeroWake />;
     return (
@@ -116,6 +122,7 @@ export function CatArt(props: CatArtProps) {
         data-state={props.state}
         data-uiia={spinning ? "" : undefined}
         data-wake={waking ? "" : undefined}
+        data-content={content ? "" : undefined}
       >
         {drawing}
       </svg>
@@ -148,8 +155,15 @@ function Part({ parts, part, scale }: { parts: Record<CatPart, Sprite>; part: Ca
 /** The eye's pixels in ink: the head is drawn with a socket under the eye, so the eye can glance without a hole. */
 const socket = (eye: Sprite): Sprite => eye.map((row) => row.replaceAll("e", "k"));
 
-/** The cat's layers, back to front: tail, body, head (with its ears and eye), paws. */
-function Cat({ parts, scale }: { parts: Record<CatPart, Sprite>; scale: number }) {
+/** The eye shut contentedly: its cells drawn in rim, the same line the sleeping cat's eye is. */
+const shut = (eye: Sprite): Sprite => eye.map((row) => row.replaceAll("e", "r"));
+
+/**
+ * The cat's layers, back to front: tail, body, head (with its ears and eye), paws. `content` shuts the eye (the purr);
+ * the socket under it stays ink either way.
+ */
+function Cat({ parts, scale, content = false }: { parts: Record<CatPart, Sprite>; scale: number; content?: boolean }) {
+  const eyed = content ? { ...parts, eye: shut(parts.eye) } : parts;
   return (
     <>
       <Part parts={parts} part="tail" scale={scale} />
@@ -159,7 +173,7 @@ function Cat({ parts, scale }: { parts: Record<CatPart, Sprite>; scale: number }
         <PixelSprite map={socket(parts.eye)} scale={scale} />
         <Part parts={parts} part="ear-l" scale={scale} />
         <Part parts={parts} part="ear-r" scale={scale} />
-        <Part parts={parts} part="eye" scale={scale} />
+        <Part parts={eyed} part="eye" scale={scale} />
       </g>
       <Part parts={parts} part="paw-l" scale={scale} />
       <Part parts={parts} part="paw-r" scale={scale} />
@@ -167,12 +181,12 @@ function Cat({ parts, scale }: { parts: Record<CatPart, Sprite>; scale: number }
   );
 }
 
-function HeroDay() {
+function HeroDay({ content }: { content: boolean }) {
   return (
     <>
       <PixelSprite map={LAPTOP_CASE} scale={HERO_SCALE} {...LAPTOP_AT} layer="laptop" />
       <PixelSprite map={LAPTOP_SCREEN} scale={HERO_SCALE} {...LAPTOP_AT} className="cat-screen" />
-      <Cat parts={DAY} scale={HERO_SCALE} />
+      <Cat parts={DAY} scale={HERO_SCALE} content={content} />
     </>
   );
 }

@@ -77,6 +77,8 @@ export interface Dictionary {
     readonly sleeping: string;
     /** The easter egg's line while he spins (the "oiia" cat): the same sound in every language. */
     readonly uiia: string;
+    /** What he says when held until he purrs. */
+    readonly purr: string;
   };
   readonly notFound: {
     readonly title: string;
@@ -158,6 +160,7 @@ const en: Dictionary = {
     ],
     sleeping: "shh",
     uiia: "UIIA UIIA",
+    purr: "prrr",
   },
   notFound: {
     title: "Nothing here",
@@ -239,6 +242,7 @@ const mn: Dictionary = {
     ],
     sleeping: "Ш-ш, унтаж байна",
     uiia: "UIIA UIIA",
+    purr: "пүррр",
   },
   notFound: {
     title: "Энд юу ч алга",

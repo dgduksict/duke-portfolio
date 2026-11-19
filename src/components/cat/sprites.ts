@@ -8,6 +8,7 @@
  *      readable on a dark sky      t  steam                      z  sleeping z
  *   e  eye (a half-lidded yellow slit)                           y  yarn
  *                                                                h  yarn shade (the wound thread)
+ *                                                                p  pink (the purr's hearts)
  *
  * Coffee and cream also paint the inside of the sunrise yawn's open mouth and its one fang (HERO_YAWN).
  *
@@ -53,6 +54,7 @@ export const PALETTE: Readonly<Record<string, string>> = {
   z: "--cat-zzz",
   y: "--cat-yarn",
   h: "--cat-yarn-shade",
+  p: "--cat-heart",
 };
 
 /** The legend colours of a screen: picked out of a laptop into its own `cat-screen` layer. */
@@ -707,6 +709,18 @@ export const YARN_BALL: Sprite = [
   ".yy....", // 6
 ];
 
+/**
+ * A purr heart (hero-cat.tsx, while he is held): two lobes and a point, in one warm pink, no rim. 5 x 5.
+ */
+export const HEART: Sprite = [
+// 01234
+  "pp.pp", // 0
+  "ppppp", // 1
+  "ppppp", // 2
+  ".ppp.", // 3
+  "..p..", // 4
+];
+
 /* ---------- part boxes (first match wins; ears before the head that holds them) ---------- */
 
 export const HERO_DAY_PARTS: readonly PartBox[] = [
@@ -794,4 +808,5 @@ export const SPRITES: Readonly<Record<string, Sprite>> = {
   tumble: TUMBLE,
   proud: PROUD,
   yarnBall: YARN_BALL,
+  heart: HEART,
 };

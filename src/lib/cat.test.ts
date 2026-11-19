@@ -4,6 +4,7 @@ import {
   countPoke,
   GROOM_AFTER_MS,
   NAP_FROM,
+  PURR,
   rulerCatPose,
   TYPING_WINDOW_MS,
   UIIA,
@@ -86,6 +87,12 @@ describe("wakesOnArrival (the sunrise yawn)", () => {
   it("never wakes by full day or by night", () => {
     expect(wakesOnArrival({ elevation: 30, azimuth: 150 }, "day")).toBe(false);
     expect(wakesOnArrival({ elevation: -20, azimuth: 60 }, "night")).toBe(false);
+  });
+});
+
+describe("PURR (hold him to purr)", () => {
+  it("holds the agreed numbers: a 500 ms hold, a heart every 350 ms, at most 3, each 1.2 s", () => {
+    expect(PURR).toEqual({ holdMs: 500, heartEveryMs: 350, maxHearts: 3, heartLifeMs: 1200 });
   });
 });
 

@@ -28,6 +28,8 @@
   /* the loader's ball of yarn: amber by default (the loader's own colour pairs override these on its .cat-art) */
   --cat-yarn: #e9a420;
   --cat-yarn-shade: #b9770f;
+  /* the purr's hearts: a warm pink that reads on the day sky and the night glass alike */
+  --cat-heart: #f4789a;
   image-rendering: pixelated;
 }
 
@@ -73,12 +75,19 @@
   90%, 100% { opacity: 1; transform: translate(0, 0); }
 }
 
+/*
+ * Holding him purrs (hero-cat.tsx), so a long press on the button opens no callout and selects nothing (the context
+ * menu is prevented on the button alone, in the component). Scrolling still starts from him: no touch-action here.
+ */
 .hero-cat-button {
   padding: 0;
   border: 0;
   border-radius: 0;
   background: none;
   -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 /*
@@ -105,6 +114,9 @@
 .hero-cat .cat-art[data-state="day"] .cat-tail { animation: cat-flick 6s steps(1, end) 1.6s infinite; }
 .hero-cat .cat-art[data-state="day"] .cat-eye { animation: cat-glance 8s steps(1, end) 2.4s infinite; }
 .hero-cat .cat-art[data-state="day"] .cat-screen { animation: cat-blink 4.4s steps(1, end) 1.2s infinite; }
+
+/* Purring by day his eye is shut contentedly (cat-art.tsx, data-content): no glance while it is. */
+.hero-cat .cat-art[data-content] .cat-eye { animation: none; }
 
 @keyframes cat-type {
   0%, 100% { transform: translateY(0); }
@@ -211,6 +223,48 @@
 }
 
 /*
+ * The purr's hearts (hero-cat.tsx, PURR in lib/cat.ts): 5 x 5 cells each, set off over his head in one of three lanes
+ * (data-lane) so a run of them reads as a little stream: by day above his ears, by night above the loaf's ears, clear
+ * of the speech box on either side. Each floats up four cells in four steps over its 1.2 s life and drops to half
+ * colour on the last step, then goes. The layer never takes the pointer; reduced motion sends no hearts.
+ */
+.hero-cat-hearts {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.hero-cat-heart {
+  --x: 6;
+  --y: -3;
+  --lane: 0;
+
+  position: absolute;
+  left: calc(var(--cu) * (var(--x) + var(--lane)));
+  top: calc(var(--cu) * var(--y));
+  width: calc(var(--cu) * 5);
+  height: calc(var(--cu) * 5);
+  animation: cat-heart-rise 1200ms steps(4, start) both, cat-heart-fade 1200ms steps(1, end) both;
+}
+
+.hero-cat-heart[data-lane="1"] { --lane: 4; }
+.hero-cat-heart[data-lane="2"] { --lane: 2; }
+
+.hero-cat[data-mood="night"] .hero-cat-heart {
+  --x: 18;
+  --y: 8;
+}
+
+@keyframes cat-heart-rise {
+  from { transform: translateY(0); }
+  to { transform: translateY(calc(var(--cu) * -4)); }
+}
+@keyframes cat-heart-fade {
+  0% { opacity: 1; }
+  75%, 100% { opacity: 0.5; }
+}
+
+/*
  * The speech box, left of the cat: a pixel box (.px-box, from pixel.css: the panel fill, a stepped outline, square
  * corners) with a stair-step tail on its right edge pointing at him, in the body face at 20px. It carries its own
  * ground (--panel) and ink (--ink, held to AA on it in both themes), so it reads over the wall and over the glass
@@ -304,10 +358,11 @@
 /*
  * Reduced motion: a still pose, no hop, no loops, no spin (hero-cat.tsx then does not even change his pose for the
  * easter egg; only the box speaks), no sunrise wake (hero-cat.tsx never starts one), and a flip between day and night
- * swaps the drawings at once.
+ * swaps the drawings at once. A purr only speaks: no hearts (hero-cat.tsx sends none) and no shut eye.
  */
 @media (prefers-reduced-motion: reduce) {
   .hero-cat-hop,
+  .hero-cat-heart,
   .hero-cat-layer,
   .hero-cat .cat-art,
   .hero-cat .cat-art * {
