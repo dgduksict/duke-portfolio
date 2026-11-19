@@ -1,7 +1,23 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { isBlank, pickColours, splitParts, spriteRects } from "@/components/cat/pixel-sprite";
-import { HERO_BACK, HERO_DAY, HERO_FRONT, PALETTE, SPIN_BODY, SPRITES } from "@/components/cat/sprites";
+import {
+  CROUCH_1,
+  CROUCH_2,
+  HERO_BACK,
+  HERO_DAY,
+  HERO_FRONT,
+  PALETTE,
+  POUNCE,
+  PROUD,
+  RUN_1,
+  RUN_2,
+  SPIN_BODY,
+  SPRITES,
+  TUMBLE,
+  YARN_BALL,
+  YARN_SIT,
+} from "@/components/cat/sprites";
 
 describe("spriteRects", () => {
   it("merges horizontal runs of one colour, skips empty pixels and keeps rows and columns", () => {
@@ -74,6 +90,15 @@ describe("sprite maps", () => {
       "miniGroom",
       "miniSleep",
       "miniNap",
+      "yarnSit",
+      "run1",
+      "run2",
+      "crouch1",
+      "crouch2",
+      "pounce",
+      "tumble",
+      "proud",
+      "yarnBall",
     ]) {
       expect(SPRITES, name).toHaveProperty(name);
     }
@@ -113,6 +138,34 @@ describe("sprite maps", () => {
     // The side view itself fits the same span: the mirror about it is pixel-exact.
     for (const row of HERO_DAY) expect(row.slice(SPIN_BODY.x1 + 1)).toMatch(/^\.*$/);
     expect(SPIN_BODY.x0).toBe(0);
+  });
+
+  it.each([
+    ["yarnSit", YARN_SIT],
+    ["run1", RUN_1],
+    ["run2", RUN_2],
+    ["crouch1", CROUCH_1],
+    ["crouch2", CROUCH_2],
+    ["pounce", POUNCE],
+    ["tumble", TUMBLE],
+    ["proud", PROUD],
+  ] as const)("draws the yarn cat's %s on the shared 20 x 16 grid, standing on row 15", (_name, map) => {
+    expect(map).toHaveLength(16);
+    for (const row of map) expect(row).toHaveLength(20);
+    // Every frame touches the floor, so swapping frames never makes him hop or sink.
+    expect(map[15]).toMatch(/[^.]/);
+    // The same black cat: ink, a rim and his half-lidded eye, nothing else.
+    expect(map.join("")).toMatch(/^[.kre]+$/);
+    expect(map.join("")).toContain("k");
+  });
+
+  it("draws a 7 x 7 ball of wound yarn in its two tones", () => {
+    expect(YARN_BALL).toHaveLength(7);
+    for (const row of YARN_BALL) expect(row).toHaveLength(7);
+    const all = YARN_BALL.join("");
+    expect(all).toContain("y");
+    expect(all).toContain("h");
+    expect(all).toMatch(/^[.yh]+$/);
   });
 
   it("maps every legend colour to a --cat-* variable defined in the base .cat-art block", () => {
