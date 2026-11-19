@@ -54,7 +54,9 @@ export function PawPrints() {
     const onClick = (event: MouseEvent) => {
       if (event.button !== 0) return;
       if (event.detail === 0 && event.clientX === 0 && event.clientY === 0) return;
-      if (event.target instanceof Element && event.target.closest(IGNORED) !== null) return;
+      // The path the click took, fixed at dispatch: React may already have removed the clicked node (the poke that
+      // starts UIIA redraws the cat), and a detached node's `closest` would no longer find the cat button.
+      if (event.composedPath().some((node) => node instanceof Element && node.matches(IGNORED))) return;
       if (prefersReducedMotion()) return;
       const paw: Paw = { id: next.current, x: Math.round(event.clientX), y: Math.round(event.clientY) };
       next.current += 1;
