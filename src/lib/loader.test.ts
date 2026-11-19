@@ -27,7 +27,7 @@ describe("loaderReadout", () => {
 describe("LOADER", () => {
   it("holds the agreed timings and session key", () => {
     expect(LOADER).toEqual({
-      minMs: 1400,
+      minMs: 1000,
       maxMs: 3500,
       reducedMinMs: 600,
       safetyMs: 3000,
@@ -39,11 +39,11 @@ describe("LOADER", () => {
 describe("displayedProgress", () => {
   it("starts at 0 and finishes at minMs when everything is loaded", () => {
     expect(displayedProgress(0, 1)).toBe(0);
-    expect(displayedProgress(1400, 1)).toBe(1);
+    expect(displayedProgress(1000, 1)).toBe(1);
   });
 
   it("eases out over the minimum time", () => {
-    expect(displayedProgress(700, 1)).toBe(0.875);
+    expect(displayedProgress(500, 1)).toBe(0.875);
   });
 
   it("is full from maxMs whatever has loaded", () => {
@@ -52,13 +52,13 @@ describe("displayedProgress", () => {
   });
 
   it("never runs ahead of what has loaded", () => {
-    expect(displayedProgress(1400, 0.25)).toBe(0.25);
+    expect(displayedProgress(1000, 0.25)).toBe(0.25);
   });
 
   it("clamps negative time and counts NaN as 0", () => {
     expect(displayedProgress(-50, 1)).toBe(0);
     expect(displayedProgress(Number.NaN, Number.NaN)).toBe(0);
-    expect(displayedProgress(1400, Number.NaN)).toBe(0);
+    expect(displayedProgress(1000, Number.NaN)).toBe(0);
     expect(displayedProgress(Number.NaN, 1)).toBe(0);
   });
 

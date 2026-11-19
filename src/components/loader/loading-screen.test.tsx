@@ -180,7 +180,8 @@ describe("LoadingScreen", () => {
 
     let elapsed = 0;
     let previous = 0;
-    for (const target of [200, 450, 800, 1100]) {
+    // Checkpoints at fractions of the minimum time, the last still short of it, so the bar is partly filled.
+    for (const target of [0.15, 0.3, 0.55, 0.8].map((f) => f * LOADER.minMs)) {
       act(() => {
         vi.advanceTimersByTime(target - elapsed);
       });
