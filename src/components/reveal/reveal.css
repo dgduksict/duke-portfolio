@@ -1,0 +1,52 @@
+/*
+ * The pixel reveal-on-scroll (components/reveal/reveal.ts; the gate is components/reveal/reveal-gate.tsx, the rules
+ * lib/reveal.ts). A `[data-reveal]` block below the hero waits, invisible, until it comes into view, then steps in:
+ * four frames over 480 ms, up from three pixel units below its place, opacity in quarters. Only opacity and transform
+ * move, so nothing around it ever shifts, and the last frame is `transform: none`, so a finished block is exactly as
+ * it would be without the effect. Blocks that come into view together start 80 ms apart (`--reveal-delay`, set by the
+ * observer, 240 ms at most).
+ *
+ * Nothing is ever hidden unless the gate marked <html data-reveal="on"> (JavaScript runs, IntersectionObserver exists,
+ * no reduced motion, no deep link) and only on screen: without JavaScript, under reduced motion and in print every
+ * block simply shows. The gate lets go by itself if the client never takes over.
+ */
+@media screen and (prefers-reduced-motion: no-preference) {
+  html[data-reveal="on"] [data-reveal]:not([data-revealed]) {
+    opacity: 0;
+  }
+
+  html[data-reveal="on"] [data-reveal][data-revealed] {
+    animation: reveal-in 480ms steps(4, end) var(--reveal-delay, 0ms) both;
+  }
+}
+
+@keyframes reveal-in {
+  from {
+    opacity: 0;
+    transform: translateY(calc(var(--px) * 3));
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/*
+ * Reduced motion: every block shows where it is, at once. The rules above never apply (and the gate never turns on);
+ * this says so outright, should the setting change while the page is open.
+ */
+@media (prefers-reduced-motion: reduce) {
+  html[data-reveal] [data-reveal] {
+    opacity: 1;
+    animation: none;
+  }
+}
+
+/* Paper gets every block, still. */
+@media print {
+  [data-reveal] {
+    opacity: 1 !important;
+    animation: none !important;
+  }
+}

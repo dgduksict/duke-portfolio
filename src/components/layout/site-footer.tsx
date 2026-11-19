@@ -1,5 +1,6 @@
 "use client";
 
+import { reveal } from "@/components/reveal/reveal";
 import { PixelDivider } from "@/components/ui/pixel-divider";
 import { profile } from "@/data/profile";
 import { useI18n } from "@/hooks/use-i18n";
@@ -10,7 +11,10 @@ export function SiteFooter() {
   return (
     <footer className="relative bg-panel" data-print="hide">
       <PixelDivider />
-      <div className="container-page flex flex-col gap-3 py-10 text-base text-ink-soft sm:flex-row sm:items-center sm:justify-between">
+      <div
+        {...reveal}
+        className="container-page flex flex-col gap-3 py-10 text-base text-ink-soft sm:flex-row sm:items-center sm:justify-between"
+      >
         <p suppressHydrationWarning>
           © {new Date().getFullYear()} {t(profile.name)}
         </p>
