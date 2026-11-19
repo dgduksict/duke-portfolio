@@ -141,8 +141,8 @@ html[data-ruler="on"]::-webkit-scrollbar {
     padding: calc(var(--px) * 2) calc(var(--px) * 3);
     background-color: var(--panel);
     color: var(--ink);
-    font-size: 1rem;
-    line-height: 1rem;
+    font-size: 1.25rem;
+    line-height: 1.25rem;
     letter-spacing: 0;
     white-space: nowrap;
     pointer-events: none;

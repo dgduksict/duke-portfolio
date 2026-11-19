@@ -63,8 +63,12 @@ describe("theme tokens in src/app/globals.css", () => {
         expect(pair("--ink", "--ground")).toBeGreaterThanOrEqual(7);
       });
 
-      it("keeps soft ink at AA on the ground", () => {
-        expect(pair("--ink-soft", "--ground")).toBeGreaterThanOrEqual(4.5);
+      it("keeps soft ink at AAA on the ground", () => {
+        expect(pair("--ink-soft", "--ground")).toBeGreaterThanOrEqual(7);
+      });
+
+      it("keeps soft ink at AAA on raised panels", () => {
+        expect(pair("--ink-soft", "--panel")).toBeGreaterThanOrEqual(7);
       });
 
       it("keeps the accent text colour at AA on the ground", () => {
