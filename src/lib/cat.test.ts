@@ -1,12 +1,18 @@
 import { describe, expect, it } from "vitest";
 import {
+  addPaw,
   catStateForPhase,
   countPoke,
   GROOM_AFTER_MS,
   NAP_FROM,
+  type Paw,
+  PAWS,
+  PURR,
   rulerCatPose,
   TYPING_WINDOW_MS,
   UIIA,
+  WAKE_MS,
+  wakesOnArrival,
 } from "./cat";
 
 /** Feeds pokes at the given times through countPoke; returns whether each one triggered the spin. */
@@ -66,6 +72,33 @@ describe("catStateForPhase", () => {
   });
 });
 
+describe("wakesOnArrival (the sunrise yawn)", () => {
+  it("holds the agreed length: 1.6 s, yawn then stretch", () => {
+    expect(WAKE_MS).toBe(1600);
+  });
+
+  it("wakes on a morning golden sky, the sun in the east", () => {
+    expect(wakesOnArrival({ elevation: 2, azimuth: 110 }, "golden")).toBe(true);
+    expect(wakesOnArrival({ elevation: -6, azimuth: 95 }, "twilight")).toBe(true);
+  });
+
+  it("never wakes in the evening, the sun in the west", () => {
+    expect(wakesOnArrival({ elevation: 2, azimuth: 250 }, "golden")).toBe(false);
+    expect(wakesOnArrival({ elevation: -6, azimuth: 265 }, "twilight")).toBe(false);
+  });
+
+  it("never wakes by full day or by night", () => {
+    expect(wakesOnArrival({ elevation: 30, azimuth: 150 }, "day")).toBe(false);
+    expect(wakesOnArrival({ elevation: -20, azimuth: 60 }, "night")).toBe(false);
+  });
+});
+
+describe("PURR (hold him to purr)", () => {
+  it("holds the agreed numbers: a 500 ms hold, a heart every 350 ms, at most 3, each 1.2 s", () => {
+    expect(PURR).toEqual({ holdMs: 500, heartEveryMs: 350, maxHearts: 3, heartLifeMs: 1200 });
+  });
+});
+
 describe("constants", () => {
   it("holds the agreed thresholds", () => {
     expect(TYPING_WINDOW_MS).toBe(150);
@@ -107,5 +140,38 @@ describe("rulerCatPose", () => {
       rulerCatPose({ state: "night", msSinceScroll: Number.NaN, progress: Number.NaN }),
     );
     expect(day(Number.NaN, Number.NaN)).toBe("type");
+  });
+});
+
+describe("PAWS and addPaw (paw prints on click)", () => {
+  const paw = (id: number): Paw => ({ id, x: id * 10, y: id * 20 });
+
+  it("holds at most four pairs for a second", () => {
+    expect(PAWS).toEqual({ maxPairs: 4, lifeMs: 1000 });
+  });
+
+  it("appends a pair and keeps the order", () => {
+    expect(addPaw([paw(0)], paw(1))).toEqual([paw(0), paw(1)]);
+    expect(addPaw([], paw(0))).toEqual([paw(0)]);
+  });
+
+  it("caps at four, keeping the newest four", () => {
+    let list: Paw[] = [];
+    for (let id = 0; id < 6; id += 1) list = addPaw(list, paw(id));
+    expect(list.map((p) => p.id)).toEqual([2, 3, 4, 5]);
+  });
+
+  it("takes its own cap", () => {
+    const list = [paw(0), paw(1), paw(2)];
+    expect(addPaw(list, paw(3), 2).map((p) => p.id)).toEqual([2, 3]);
+    expect(addPaw(list, paw(3), 0)).toEqual([]);
+  });
+
+  it("leaves the input untouched", () => {
+    const list = Object.freeze([paw(0), paw(1), paw(2), paw(3)]);
+    const next = addPaw(list, paw(4));
+    expect(next).not.toBe(list);
+    expect(list.map((p) => p.id)).toEqual([0, 1, 2, 3]);
+    expect(next.map((p) => p.id)).toEqual([1, 2, 3, 4]);
   });
 });

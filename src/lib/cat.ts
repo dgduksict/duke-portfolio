@@ -1,6 +1,7 @@
 // Pure rules for the programmer cat: whether it is awake (from the sky phase) and which pose the ruler cat takes.
 // No DOM in here, so it is unit-tested.
 import type { SkyPhase } from "@/lib/sky";
+import type { SunPosition } from "@/lib/sun";
 
 /** Whether the cat is awake at its desk (day) or asleep (night). */
 export type CatState = "day" | "night";
@@ -30,6 +31,48 @@ export function countPoke(recent: readonly number[], now: number): { recent: num
   const kept = recent.filter((at) => now - at < UIIA.windowMs);
   kept.push(now);
   return kept.length >= UIIA.clicks ? { recent: [], uiia: true } : { recent: kept, uiia: false };
+}
+
+/**
+ * Hold the hero cat to purr (ms): a press held `holdMs` turns into a purr instead of a poke; while it lasts a heart
+ * floats up every `heartEveryMs`, never more than `maxHearts` on screen, each gone after `heartLifeMs` (cat.css floats
+ * it up four cells over the same time).
+ */
+export const PURR = { holdMs: 500, heartEveryMs: 350, maxHearts: 3, heartLifeMs: 1200 } as const;
+
+/**
+ * Paw prints on click (components/cat/paw-prints.tsx): a click or tap on the homepage drops a pair of tiny prints that
+ * fade out after `lifeMs`; never more than `maxPairs` at once (a fresh one pushes the oldest out).
+ */
+export const PAWS = { maxPairs: 4, lifeMs: 1000 } as const;
+
+/** One pair of prints: `id` keys it, `x` and `y` are where it was dropped (viewport px). */
+export interface Paw {
+  readonly id: number;
+  readonly x: number;
+  readonly y: number;
+}
+
+/** `list` with `paw` appended, the oldest dropped beyond `max`. Pure: it returns a new list and never touches `list`. */
+export function addPaw(list: readonly Paw[], paw: Paw, max: number = PAWS.maxPairs): Paw[] {
+  const all = [...list, paw];
+  return max > 0 ? all.slice(-max) : [];
+}
+
+/**
+ * The hero cat's sunrise wake (ms): when night turns to day under an open page, or on a morning arrival, he yawns for
+ * the first half and stretches for the second (cat.css steps the two drawn frames over the same time), then settles
+ * into his day pose.
+ */
+export const WAKE_MS = 1600;
+
+/**
+ * Whether the hero cat wakes (yawn, stretch) right after his hop-in: only when he first appears in the morning's
+ * twilight or golden light, the sun still in the eastern half of the sky (azimuth under 180 degrees, before solar
+ * noon). Evening light (the sun in the west), full day and night never wake him.
+ */
+export function wakesOnArrival(sun: SunPosition, phase: SkyPhase): boolean {
+  return (phase === "twilight" || phase === "golden") && sun.azimuth < 180;
 }
 
 /**

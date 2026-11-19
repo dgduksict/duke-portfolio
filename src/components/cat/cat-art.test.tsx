@@ -58,6 +58,74 @@ describe("CatArt (hero)", () => {
     }
   });
 
+  it("wakes at his laptop: the yawn, then the stretch, and no spin", () => {
+    const { container } = render(<CatArt variant="hero" state="day" wake />);
+    const svg = container.querySelector("svg");
+    expect(svg).toHaveAttribute("data-state", "day");
+    expect(svg).toHaveAttribute("data-wake");
+    expect(svg).not.toHaveAttribute("data-uiia");
+    const frames = [...container.querySelectorAll("g.cat-wake-frame")];
+    expect(frames.map((frame) => frame.getAttribute("data-frame"))).toEqual(["yawn", "stretch"]);
+    for (const frame of frames) expect(frame.querySelector("rect"), frame.getAttribute("data-frame") ?? "").not.toBeNull();
+    expect(container.querySelector(".cat-spin")).toBeNull();
+    expect(container.querySelector(".cat-spin-frame")).toBeNull();
+    expect(container.querySelector('[data-layer="laptop"]')).not.toBeNull();
+    expect(container.querySelector(".cat-screen")).not.toBeNull();
+    expect(container.querySelector(".cat-zzz")).toBeNull();
+    // Whole drawings, not the day cat's parts, so none of the typing loops run on them.
+    expect(container.querySelector(".cat-paw-l, .cat-paw-r, .cat-head, .cat-tail")).toBeNull();
+  });
+
+  it("lets the spin win over a wake", () => {
+    const { container } = render(<CatArt variant="hero" state="day" wake uiia />);
+    expect(container.querySelectorAll(".cat-spin-frame")).toHaveLength(4);
+    expect(container.querySelector(".cat-wake-frame")).toBeNull();
+    expect(container.querySelector("svg")).not.toHaveAttribute("data-wake");
+  });
+
+  it("carries no data-wake and no wake frames when he is not waking", () => {
+    for (const state of ["day", "night"] as const) {
+      const { container, unmount } = render(<CatArt variant="hero" state={state} />);
+      expect(container.querySelector("svg"), state).not.toHaveAttribute("data-wake");
+      expect(container.querySelector(".cat-wake-frame"), state).toBeNull();
+      unmount();
+    }
+  });
+
+  it("closes his eye contentedly when he purrs by day: the eye layer in rim, a shut line", () => {
+    const open = render(<CatArt variant="hero" state="day" />).container;
+    expect(open.querySelectorAll('.cat-eye rect[fill="var(--cat-eye)"]').length).toBeGreaterThan(0);
+    const { container } = render(<CatArt variant="hero" state="day" content />);
+    const svg = container.querySelector("svg");
+    expect(svg).toHaveAttribute("data-content");
+    const eye = [...container.querySelectorAll(".cat-eye rect")];
+    expect(eye.length).toBeGreaterThan(0);
+    for (const rect of eye) expect(rect).toHaveAttribute("fill", "var(--cat-rim)");
+    expect(container.querySelector('rect[fill="var(--cat-eye)"]')).toBeNull();
+    // The same cells as the open eye: only the colour changes.
+    const cells = (root: Element) =>
+      [...root.querySelectorAll(".cat-eye rect")].map((r) => `${r.getAttribute("x")},${r.getAttribute("y")},${r.getAttribute("width")}`);
+    expect(cells(container)).toEqual(cells(open));
+    // Still the typing cat at his laptop.
+    for (const part of DAY_PARTS) expect(container.querySelector(`.${part}`), part).not.toBeNull();
+    expect(container.querySelector('[data-layer="laptop"]')).not.toBeNull();
+  });
+
+  it("changes nothing for content by night, while waking or while spinning", () => {
+    const pairs = [
+      [<CatArt key="a" variant="hero" state="night" />, <CatArt key="b" variant="hero" state="night" content />],
+      [<CatArt key="a" variant="hero" state="day" wake />, <CatArt key="b" variant="hero" state="day" wake content />],
+      [<CatArt key="a" variant="hero" state="day" uiia />, <CatArt key="b" variant="hero" state="day" uiia content />],
+    ] as const;
+    for (const [plain, content] of pairs) {
+      const a = render(plain);
+      const b = render(content);
+      expect(b.container.innerHTML).toBe(a.container.innerHTML);
+      a.unmount();
+      b.unmount();
+    }
+  });
+
   it("carries no data-uiia and no cat-spin group outside the easter egg", () => {
     const { container } = render(<CatArt variant="hero" state="day" />);
     expect(container.querySelector("svg")).not.toHaveAttribute("data-uiia");
@@ -162,6 +230,8 @@ describe("CatArt markup", () => {
         <CatArt variant="hero" state="night" />
         <CatArt variant="hero" state="day" uiia />
         <CatArt variant="hero" state="night" uiia />
+        <CatArt variant="hero" state="day" wake />
+        <CatArt variant="hero" state="day" content />
         {POSES.map((pose) => (
           <CatArt key={pose} variant="mini" pose={pose} />
         ))}
@@ -177,13 +247,16 @@ describe("CatArt markup", () => {
 
   /**
    * Every resting drawing stays under 15 KB of markup. The spin holds four whole drawings (side, front, side mirrored,
-   * back) and only ever renders on the client after five pokes, never in the page's HTML, so it gets 24 KB.
+   * back) and only ever renders on the client after five pokes, never in the page's HTML, so it gets 24 KB. The wake
+   * holds the laptop and two whole drawings (yawn, stretch) but no part groups, so it fits the resting 15 KB.
    */
   const variants = [
     { name: "hero day", kb: 15, node: <CatArt variant="hero" state="day" /> },
     { name: "hero night", kb: 15, node: <CatArt variant="hero" state="night" /> },
     { name: "hero day, spinning", kb: 24, node: <CatArt variant="hero" state="day" uiia /> },
     { name: "hero night, spinning", kb: 24, node: <CatArt variant="hero" state="night" uiia /> },
+    { name: "hero day, waking", kb: 15, node: <CatArt variant="hero" state="day" wake /> },
+    { name: "hero day, purring", kb: 15, node: <CatArt variant="hero" state="day" content /> },
     ...POSES.map((pose) => ({ name: `mini ${pose}`, kb: 15, node: <CatArt variant="mini" pose={pose} /> })),
   ];
 

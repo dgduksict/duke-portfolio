@@ -7,6 +7,8 @@ import {
   HERO_FRONT,
   HERO_NIGHT,
   HERO_NIGHT_PARTS,
+  HERO_STRETCH,
+  HERO_YAWN,
   LAPTOP,
   MINI_GROOM,
   MINI_LAPTOP,
@@ -37,6 +39,16 @@ export type CatArtProps = (
        * night the mug stays and he sits where the loaf was.
        */
       uiia?: boolean;
+      /**
+       * The sunrise wake: by his laptop, a yawn and then a stretch, two whole drawings each in a `cat-wake-frame` group
+       * for cat.css to show one after the other. The spin wins if both are asked for.
+       */
+      wake?: boolean;
+      /**
+       * The purr: by day his eye closes contentedly, the eye's cells drawn in rim (a shut line, like the night eye).
+       * Only his day pose changes; by night he is asleep already, and the wake and the spin draw their own frames.
+       */
+      content?: boolean;
     }
   | { variant: "mini"; pose: RulerPose }
 ) & {
@@ -92,6 +104,12 @@ const MINI_LAPTOP_SCREEN = pickColours(MINI_LAPTOP, SCREEN_COLOURS);
 export function CatArt(props: CatArtProps) {
   if (props.variant === "hero") {
     const size = HERO_GRID * HERO_SCALE;
+    const spinning = props.uiia === true;
+    const waking = !spinning && props.wake === true;
+    const content = !spinning && !waking && props.state === "day" && props.content === true;
+    let drawing = props.state === "day" ? <HeroDay content={content} /> : <HeroNight />;
+    if (spinning) drawing = <HeroSpin state={props.state} />;
+    else if (waking) drawing = <HeroWake />;
     return (
       <svg
         viewBox={`0 0 ${size} ${size}`}
@@ -102,9 +120,11 @@ export function CatArt(props: CatArtProps) {
         shapeRendering="crispEdges"
         className={cn("cat-art block overflow-visible", props.className)}
         data-state={props.state}
-        data-uiia={props.uiia === true ? "" : undefined}
+        data-uiia={spinning ? "" : undefined}
+        data-wake={waking ? "" : undefined}
+        data-content={content ? "" : undefined}
       >
-        {props.uiia === true ? <HeroSpin state={props.state} /> : props.state === "day" ? <HeroDay /> : <HeroNight />}
+        {drawing}
       </svg>
     );
   }
@@ -135,8 +155,15 @@ function Part({ parts, part, scale }: { parts: Record<CatPart, Sprite>; part: Ca
 /** The eye's pixels in ink: the head is drawn with a socket under the eye, so the eye can glance without a hole. */
 const socket = (eye: Sprite): Sprite => eye.map((row) => row.replaceAll("e", "k"));
 
-/** The cat's layers, back to front: tail, body, head (with its ears and eye), paws. */
-function Cat({ parts, scale }: { parts: Record<CatPart, Sprite>; scale: number }) {
+/** The eye shut contentedly: its cells drawn in rim, the same line the sleeping cat's eye is. */
+const shut = (eye: Sprite): Sprite => eye.map((row) => row.replaceAll("e", "r"));
+
+/**
+ * The cat's layers, back to front: tail, body, head (with its ears and eye), paws. `content` shuts the eye (the purr);
+ * the socket under it stays ink either way.
+ */
+function Cat({ parts, scale, content = false }: { parts: Record<CatPart, Sprite>; scale: number; content?: boolean }) {
+  const eyed = content ? { ...parts, eye: shut(parts.eye) } : parts;
   return (
     <>
       <Part parts={parts} part="tail" scale={scale} />
@@ -146,7 +173,7 @@ function Cat({ parts, scale }: { parts: Record<CatPart, Sprite>; scale: number }
         <PixelSprite map={socket(parts.eye)} scale={scale} />
         <Part parts={parts} part="ear-l" scale={scale} />
         <Part parts={parts} part="ear-r" scale={scale} />
-        <Part parts={parts} part="eye" scale={scale} />
+        <Part parts={eyed} part="eye" scale={scale} />
       </g>
       <Part parts={parts} part="paw-l" scale={scale} />
       <Part parts={parts} part="paw-r" scale={scale} />
@@ -154,12 +181,12 @@ function Cat({ parts, scale }: { parts: Record<CatPart, Sprite>; scale: number }
   );
 }
 
-function HeroDay() {
+function HeroDay({ content }: { content: boolean }) {
   return (
     <>
       <PixelSprite map={LAPTOP_CASE} scale={HERO_SCALE} {...LAPTOP_AT} layer="laptop" />
       <PixelSprite map={LAPTOP_SCREEN} scale={HERO_SCALE} {...LAPTOP_AT} className="cat-screen" />
-      <Cat parts={DAY} scale={HERO_SCALE} />
+      <Cat parts={DAY} scale={HERO_SCALE} content={content} />
     </>
   );
 }
@@ -229,6 +256,26 @@ function HeroSpin({ state }: { state: CatState }) {
       <PixelSprite map={STEAM_1} scale={HERO_SCALE} {...STEAM_AT} className="cat-steam" layer="steam-1" />
       <PixelSprite map={STEAM_2} scale={HERO_SCALE} {...STEAM_AT} className="cat-steam" layer="steam-2" />
       <g transform={`translate(${NIGHT_SPIN_SHIFT * HERO_SCALE} 0)`}>{cat}</g>
+    </>
+  );
+}
+
+/**
+ * The sunrise wake's drawing: his laptop where it always is, and the yawn and the stretch as whole drawings (no parts,
+ * so none of the day loops touch them), each in a `cat-wake-frame` group that cat.css shows in turn. Without the
+ * animation (a still render) only the yawn shows.
+ */
+function HeroWake() {
+  return (
+    <>
+      <PixelSprite map={LAPTOP_CASE} scale={HERO_SCALE} {...LAPTOP_AT} layer="laptop" />
+      <PixelSprite map={LAPTOP_SCREEN} scale={HERO_SCALE} {...LAPTOP_AT} className="cat-screen" />
+      <g className="cat-wake-frame" data-frame="yawn">
+        <PixelSprite map={HERO_YAWN} scale={HERO_SCALE} />
+      </g>
+      <g className="cat-wake-frame" data-frame="stretch">
+        <PixelSprite map={HERO_STRETCH} scale={HERO_SCALE} />
+      </g>
     </>
   );
 }

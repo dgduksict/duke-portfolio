@@ -6,7 +6,10 @@ import {
   CROUCH_2,
   HERO_BACK,
   HERO_DAY,
+  HEART,
   HERO_FRONT,
+  HERO_STRETCH,
+  HERO_YAWN,
   PALETTE,
   POUNCE,
   PROUD,
@@ -79,6 +82,8 @@ describe("sprite maps", () => {
       "heroNight",
       "heroFront",
       "heroBack",
+      "heroYawn",
+      "heroStretch",
       "laptop",
       "mug",
       "steam1",
@@ -99,6 +104,8 @@ describe("sprite maps", () => {
       "tumble",
       "proud",
       "yarnBall",
+      "heart",
+      "paw",
     ]) {
       expect(SPRITES, name).toHaveProperty(name);
     }
@@ -141,6 +148,33 @@ describe("sprite maps", () => {
   });
 
   it.each([
+    ["yawn", HERO_YAWN],
+    ["stretch", HERO_STRETCH],
+  ] as const)("draws the sunrise %s as the same black cat, 28 x 28, feet on row 27, beside his laptop", (name, map) => {
+    expect(map).toHaveLength(28);
+    for (const row of map) expect(row).toHaveLength(28);
+    expect(map[27]).toMatch(/[^.]/);
+    // Ink, rim and his eye; the yawn's open mouth may add coffee (the inside) and cream (a fang). Nothing else.
+    expect(map.join("")).toMatch(/^[.krecw]+$/);
+    expect(map.join("")).toContain("k");
+    // The day cat's own span (SPIN_BODY), so the laptop at column 17 stays in view.
+    for (const row of map) expect(row.slice(SPIN_BODY.x1 + 1), name).toMatch(/^\.*$/);
+    // Nothing under him: a rim pixel over empty space always meets the outside on its left, right or top too.
+    const at = (x: number, y: number) => map[y]?.[x] ?? ".";
+    map.forEach((row, y) =>
+      [...row].forEach((pixel, x) => {
+        if (pixel !== "r" || at(x, y + 1) !== "." || y === 27) return;
+        expect([at(x - 1, y), at(x + 1, y), at(x, y - 1)], `${name} rim under him at ${x},${y}`).toContain(".");
+      }),
+    );
+  });
+
+  it("opens the yawn's mouth and keeps the stretch's eye", () => {
+    expect(HERO_YAWN.join("")).toContain("c");
+    expect(HERO_STRETCH.join("")).toContain("e");
+  });
+
+  it.each([
     ["yarnSit", YARN_SIT],
     ["run1", RUN_1],
     ["run2", RUN_2],
@@ -166,6 +200,17 @@ describe("sprite maps", () => {
     expect(all).toContain("y");
     expect(all).toContain("h");
     expect(all).toMatch(/^[.yh]+$/);
+  });
+
+  it("draws a 5 x 5 purr heart in its own pink only", () => {
+    expect(HEART).toHaveLength(5);
+    for (const row of HEART) expect(row).toHaveLength(5);
+    expect(HEART.join("")).toMatch(/^[.p]+$/);
+    expect(HEART.join("")).toContain("p");
+    expect(PALETTE.p).toBe("--cat-heart");
+    // A heart, not a blob: two lobes on top, a single point at the bottom.
+    expect(HEART[0]).toMatch(/^p+\.p+$/);
+    expect(HEART[4]).toBe("..p..");
   });
 
   it("maps every legend colour to a --cat-* variable defined in the base .cat-art block", () => {

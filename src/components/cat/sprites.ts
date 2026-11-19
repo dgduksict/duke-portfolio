@@ -8,6 +8,9 @@
  *      readable on a dark sky      t  steam                      z  sleeping z
  *   e  eye (a half-lidded yellow slit)                           y  yarn
  *                                                                h  yarn shade (the wound thread)
+ *                                                                p  pink (the purr's hearts)
+ *
+ * Coffee and cream also paint the inside of the sunrise yawn's open mouth and its one fang (HERO_YAWN).
  *
  * The rim sits on the top, left and right edges of the silhouette (never under it: he sits on a table) and draws the
  * few inner lines (a shut eye, a tucked tail). `PALETTE` maps each character to the `--cat-*` colour variable it is
@@ -51,6 +54,7 @@ export const PALETTE: Readonly<Record<string, string>> = {
   z: "--cat-zzz",
   y: "--cat-yarn",
   h: "--cat-yarn-shade",
+  p: "--cat-heart",
 };
 
 /** The legend colours of a screen: picked out of a laptop into its own `cat-screen` layer. */
@@ -205,6 +209,82 @@ export const HERO_NIGHT: Sprite = [
   ".......rkkkkkkkkkrrrrrrrrrrr", // 25
   ".......rkkkkkkkkkkkkkkkkkkkr", // 26
   "........rkkkkkkkkkkkkkkkkkr.", // 27
+];
+
+/**
+ * The sunrise wake, frame 1 (hero-cat.tsx, cat.css): the yawn. Sitting up at his laptop's side, head tipped back,
+ * eye squeezed shut (a rim line), the jaws wide open on the dark inside of his mouth (coffee) with one cream fang,
+ * front legs straight down to the floor, tail curled behind as by day. On the day cat's columns (0-20), so the laptop
+ * beside him stays in view. 28 x 28, feet on row 27.
+ */
+export const HERO_YAWN: Sprite = [
+// 0123456789012345678901234567
+  "............................", // 0
+  "............................", // 1
+  "............................", // 2
+  ".....r..r....rr.............", // 3
+  ".....rr.rr..rkkr............", // 4
+  ".....rkrkkrrkkkr............", // 5
+  ".....rkkrrkrccw.............", // 6
+  ".....rkkkkrcc...............", // 7
+  ".....rkkkkkrcc..............", // 8
+  ".....rkkkkkkrrrr............", // 9
+  "......rkkkkkkkr.............", // 10
+  ".......rkkkkr...............", // 11
+  ".......rkkkkr...............", // 12
+  "......rkkkkkkkr.............", // 13
+  "..rr.rkkkkkkkkr.............", // 14
+  ".r...rkkkkkkkkkr............", // 15
+  ".r..rkkkkkkkkkkr............", // 16
+  "rk..rkkkkkkkkkkr............", // 17
+  "rk..rkkkkkkkkkkkr...........", // 18
+  "rk..rkkkkkkrkkkr............", // 19
+  "rk..rkkkkkkrkkkr............", // 20
+  "rk..rkkkkkkrkkkr............", // 21
+  ".rr.rkkkkkkrkkkr............", // 22
+  ".rk.rkkkkkkrkkkr............", // 23
+  "..rrkkkkkkkrkkkr............", // 24
+  "...rkkkkkkkrkkkr............", // 25
+  "...rkkkkkkkrkkkkr...........", // 26
+  "...rkkkkkkkrkkkkr...........", // 27
+];
+
+/**
+ * The sunrise wake, frame 2: the stretch. The classic cat stretch: rear up high on straight hind legs, tail raised,
+ * back sloping down to his shoulders, chest low, head up with ears forward and the half-lidded eye of the day cat,
+ * front legs reaching forward flat along the floor (their paws just over the laptop's keyboard edge, as his typing paws
+ * are by day). On the day cat's columns (0-20). 28 x 28, feet on row 27.
+ */
+export const HERO_STRETCH: Sprite = [
+// 0123456789012345678901234567
+  "............................", // 0
+  "............................", // 1
+  "............................", // 2
+  "............................", // 3
+  "............................", // 4
+  "..rr........................", // 5
+  ".rk.........................", // 6
+  ".rk.........................", // 7
+  ".rk.........................", // 8
+  ".rk.........................", // 9
+  ".rk.........................", // 10
+  "..rk........................", // 11
+  "..rkrrr.....................", // 12
+  ".rkkkkkrr...................", // 13
+  ".rkkkkkkkr..................", // 14
+  ".rkkkkkkkkr..r..r...........", // 15
+  ".rkkkkkkkkkr.rr.rr..........", // 16
+  ".rkkkkkkkkkkrkkrkkr.........", // 17
+  ".rkkkkkkkkkkkkkkkeer........", // 18
+  ".rkkkr...rkkkkkkkkkr........", // 19
+  ".rkkr.....rkkkkkkkr.........", // 20
+  ".rkkr.....rkkkkkr...........", // 21
+  ".rkr......rkkkkr............", // 22
+  ".rkr......rkkkkr............", // 23
+  ".rkr......rkkkkkr...........", // 24
+  ".rkr......rkkkkkkrrr........", // 25
+  ".rkkr.....rkkkkkkkkkr.......", // 26
+  ".rkkr.....rkkkkkkkkkr.......", // 27
 ];
 
 /**
@@ -629,6 +709,30 @@ export const YARN_BALL: Sprite = [
   ".yy....", // 6
 ];
 
+/**
+ * A purr heart (hero-cat.tsx, while he is held): two lobes and a point, in one warm pink, no rim. 5 x 5.
+ */
+export const HEART: Sprite = [
+// 01234
+  "pp.pp", // 0
+  "ppppp", // 1
+  "ppppp", // 2
+  ".ppp.", // 3
+  "..p..", // 4
+];
+
+/**
+ * One paw print (paw-prints.tsx): two toes over a pad. Drawn in ink like the rest, but cat.css repaints it with the
+ * page's --ink-soft, so the prints sit on the page rather than on the cat. 4 x 4.
+ */
+export const PAW: Sprite = [
+// 0123
+  "k..k", // 0
+  ".kk.", // 1
+  "kkkk", // 2
+  ".kk.", // 3
+];
+
 /* ---------- part boxes (first match wins; ears before the head that holds them) ---------- */
 
 export const HERO_DAY_PARTS: readonly PartBox[] = [
@@ -693,6 +797,8 @@ export const SPRITES: Readonly<Record<string, Sprite>> = {
   heroNight: HERO_NIGHT,
   heroFront: HERO_FRONT,
   heroBack: HERO_BACK,
+  heroYawn: HERO_YAWN,
+  heroStretch: HERO_STRETCH,
   laptop: LAPTOP,
   mug: MUG,
   steam1: STEAM_1,
@@ -714,4 +820,6 @@ export const SPRITES: Readonly<Record<string, Sprite>> = {
   tumble: TUMBLE,
   proud: PROUD,
   yarnBall: YARN_BALL,
+  heart: HEART,
+  paw: PAW,
 };
