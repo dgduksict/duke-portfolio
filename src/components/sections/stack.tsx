@@ -38,12 +38,14 @@ export function Stack() {
               {used.length > 0 ? (
                 <dl className="px-rows mt-4">
                   {used.map(({ skill, places }) => (
+                    // On a 320px phone the 8.5rem name column left the places 96px, and one long word ("ErchimLabs",
+                    // "Нийтлэлийн") poked past the box. 7rem still fits the longest single-word name ("SQLAlchemy").
                     <div
                       key={skill.id}
-                      className="grid grid-cols-[minmax(0,8.5rem)_minmax(0,1fr)] gap-x-4 py-3"
+                      className="grid grid-cols-[minmax(0,7rem)_minmax(0,1fr)] gap-x-4 py-3 sm:grid-cols-[minmax(0,8.5rem)_minmax(0,1fr)]"
                     >
                       <dt>{skill.name}</dt>
-                      <dd className="text-base text-ink-soft">
+                      <dd className="text-base text-ink-soft [overflow-wrap:break-word]">
                         {places.map((place, index) => (
                           <Fragment key={place.href}>
                             <a href={place.href} className="link-quiet">
