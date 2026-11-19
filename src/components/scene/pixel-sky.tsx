@@ -1,3 +1,4 @@
+import { ShootingStar } from "@/components/scene/shooting-star";
 import { Ridge, Skyline } from "@/components/scene/skyline";
 import { bandRows, type Cell, pixelStars, quantizeBands, snap } from "@/lib/pixel-sky";
 import { fireflies, type Season, snowflakes } from "@/lib/season";
@@ -228,6 +229,7 @@ export function PixelSky({ sky, moon, season = null }: PixelSkyProps) {
           <>
             <Halo sky={sky} at={sunAt} />
             <Stars strength={sky.stars} />
+            <ShootingStar active={sky.phase === "night"} />
             {moonAt !== null ? <Moon at={moonAt} strength={sky.stars} /> : null}
             <Sun sky={sky} at={sunAt} />
           </>

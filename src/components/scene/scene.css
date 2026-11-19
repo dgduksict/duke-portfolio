@@ -345,6 +345,11 @@
       animation: scene-firefly 3.6s steps(1, end) infinite;
     }
 
+    /* The streak runs 12 cells along and 6 down in six whole-cell steps, then is gone (see keyframes). */
+    .scene-shooting-star {
+      animation: scene-shooting-star 600ms steps(6, end) forwards;
+    }
+
     .scene-steam-1 {
       animation: scene-steam-a 1.2s steps(1, end) infinite;
     }
@@ -369,7 +374,8 @@
     .scene-snow-0,
     .scene-snow-1,
     .scene-snow-drift,
-    .scene-firefly {
+    .scene-firefly,
+    .scene-shooting-star {
       animation: none;
     }
   }
@@ -426,6 +432,18 @@
   75% {
     opacity: 0;
     transform: translate(2px, -1px);
+  }
+}
+
+/* --streak-dx is 1 or -1 (set on the group); the SVG's user units are cells, so 12px is twelve cells. */
+@keyframes scene-shooting-star {
+  from {
+    opacity: 1;
+    transform: translate(0, 0);
+  }
+  to {
+    opacity: 0;
+    transform: translate(calc(var(--streak-dx) * 12px), 6px);
   }
 }
 
