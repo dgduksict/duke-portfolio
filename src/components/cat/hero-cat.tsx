@@ -16,7 +16,8 @@ const FADE_MS = 600;
  * The programmer cat on the window sill: awake and typing at his pixel laptop under a day sky, asleep beside his mug
  * under a night one. It renders nothing until the client knows the time and the loading screen is gone, then hops in
  * once (in frames) and settles into the loop (the motion is in cat.css, scoped to `.hero-cat`, `steps()` only; reduced
- * motion keeps him still). Hidden below 760 px, where the scene keeps only its window.
+ * motion keeps him still). He shows at every width: below 760 px the scene keeps only its window and sill, and the slot
+ * shrinks with it (scene.css picks `--cat-size`, always a whole multiple of his 28-cell grid).
  *
  * Nothing is measured: mount it as the `WindowScene`'s child and it fills the scene's cat slot, a `--cat-size` square
  * whose bottom edge is the sill's top, so his feet (row 27 of both drawings) stand on it. The layer itself ignores the
@@ -74,7 +75,7 @@ export function HeroCat({ now }: { readonly now: Date | null }) {
 
   return (
     <div
-      className="hero-cat pointer-events-none absolute inset-0 hidden min-[760px]:block"
+      className="hero-cat pointer-events-none absolute inset-0"
       data-mood={state}
       data-print="hide"
     >

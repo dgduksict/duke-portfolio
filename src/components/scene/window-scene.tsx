@@ -27,7 +27,8 @@ export interface WindowSceneProps {
  *
  * Everything is laid out on the pixel unit in scene.css with fixed cell coordinates, so the cat slot is a known box:
  * `--cat-size` square (168px, the hero cat's 28 x 28 sprite at 6px; 112px on phones), its bottom edge on the sill's
- * top, its right edge four units inside the frame's right edge. Below 760px only the window and its sill remain.
+ * top, its right edge four units inside the frame's right edge. Below 760px only the window, its sill and the cat
+ * remain.
  *
  * Decorative layers are `aria-hidden` and hidden in print; the slot is not, so the cat's button stays reachable. The
  * empty strip above the window (`data-header-zone`) is what the fixed header watches to know it sits on the wall.

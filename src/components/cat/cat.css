@@ -164,13 +164,24 @@
  * corners) with a stair-step tail on its right edge pointing at him, in the body face at 20px. It carries its own
  * ground (--panel) and ink (--ink, held to AA on it in both themes), so it reads over the wall and over the glass
  * alike. By day it sits level with his head, by night above the loaf, left of his ears. Empty, it takes no room.
+ *
+ * It never reaches past the page's left gutter: its width is capped by the room between the gutter (1rem, plus the
+ * outline unit) and its right edge, which is --reach cells into the slot. The slot's left edge comes from the scene's
+ * own geometry (scene.css, .scene-cat-slot), and cqw is the scene's width (it is the size container). On wide screens
+ * the cap is far above 14rem; on a phone it narrows the box, and the day box then grows upwards from his head
+ * (anchored at its bottom, the tail low on its edge, like the night one) so a longer line stays inside the scene.
  */
 .hero-cat-bubble {
+  --reach: 2;
+
   position: absolute;
   top: calc(var(--cu) * 3);
-  right: calc(100% - var(--cu) * 2);
+  right: calc(100% - var(--cu) * var(--reach));
   width: max-content;
-  max-width: 14rem;
+  max-width: min(
+    14rem,
+    calc(50cqw + var(--glass-w, 0px) / 2 + var(--u, 0px) - var(--cat-size, 168px) + var(--cu) * var(--reach) - 1rem - var(--px))
+  );
   padding: calc(var(--px) * 2) calc(var(--px) * 3);
   font-size: 20px;
   line-height: 24px;
@@ -179,9 +190,21 @@
 }
 
 .hero-cat[data-mood="night"] .hero-cat-bubble {
+  --reach: 15;
+
   top: auto;
-  right: calc(100% - var(--cu) * 15);
   bottom: calc(100% - var(--cu) * 13);
+}
+
+@media (width < 30rem) {
+  .hero-cat[data-mood="day"] .hero-cat-bubble {
+    top: auto;
+    bottom: calc(100% - var(--cu) * 11);
+  }
+
+  .hero-cat[data-mood="day"] .hero-cat-bubble::after {
+    top: calc(100% - var(--px) * 8);
+  }
 }
 
 .hero-cat-bubble:empty {

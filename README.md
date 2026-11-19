@@ -77,8 +77,8 @@ The programmer cat ([`src/components/cat/`](src/components/cat)) is drawn from p
 ([`sprites.ts`](src/components/cat/sprites.ts), [`cat-art.tsx`](src/components/cat/cat-art.tsx)).
 
 - **Hero cat**: sits on the window sill. Its day or night state comes from the sky phase for the current
-  (or previewed) time: working at a laptop by day, asleep with a mug and drifting z's at night. It is
-  hidden on narrow screens.
+  (or previewed) time: working at a laptop by day, asleep with a mug and drifting z's at night. It shows
+  at every width (smaller on phones); a tap makes him say a line in a speech box that stays on screen.
 - **Mini cat**: rides the needle of the ruler scrollbar and changes pose with the scroll and idle time
   (logic in [`src/lib/cat.ts`](src/lib/cat.ts)). It also appears on the 404 page, asleep in the window.
 

@@ -79,8 +79,16 @@ describe("HeroCat", () => {
 
   it("only lets the button take the pointer; the wrapper never blocks the page", () => {
     const { container } = render(<HeroCat now={DAY} />);
-    expect(container.firstElementChild).toHaveClass("pointer-events-none", "hidden", "min-[760px]:block");
+    expect(container.firstElementChild).toHaveClass("pointer-events-none");
     expect(screen.getByRole("button")).toHaveClass("pointer-events-auto");
+  });
+
+  it("shows at every width: no breakpoint hides him (phones get the window, the sill and the cat)", () => {
+    const { container } = render(<HeroCat now={DAY} />);
+    const wrapper = container.firstElementChild;
+    expect(wrapper).not.toHaveClass("hidden");
+    expect(wrapper?.className).not.toMatch(/(^|\s)(hidden|[\w[\]-]*:(block|hidden))(\s|$)/);
+    expect(heroSource).not.toMatch(/min-\[760px\]/);
   });
 
   it("stands in the scene's cat slot when mounted as the window scene's child", () => {
@@ -221,6 +229,17 @@ describe("cat.css", () => {
       }
     }
     expect(css).not.toMatch(/rotate\(|scale\(/);
+  });
+
+  it("keeps the speech box inside the page's left gutter on a narrow screen", () => {
+    const bubble = /\.hero-cat-bubble\s*\{([^}]*)\}/.exec(css)?.[1] ?? "";
+    // The cap is the room left of the box's right edge: the slot's left edge (the scene's geometry, in cqw) plus
+    // --reach cells, less the 1rem gutter and the outline unit.
+    expect(bubble).toMatch(/max-width:\s*min\(\s*14rem,\s*calc\(50cqw \+ var\(--glass-w[^;]*- var\(--cat-size[^;]*- 1rem - var\(--px\)\)\s*\)/);
+    expect(bubble).toMatch(/right:\s*calc\(100% - var\(--cu\) \* var\(--reach\)\)/);
+    // On a phone the day box grows upwards from his head, so a longer line never runs off the bottom of the scene.
+    const narrow = css.slice(css.indexOf("@media (width < 30rem)"));
+    expect(narrow).toMatch(/\.hero-cat\[data-mood="day"\] \.hero-cat-bubble\s*\{[^}]*top:\s*auto;[^}]*bottom:/);
   });
 
   it("switches every hero animation off under reduced motion", () => {
