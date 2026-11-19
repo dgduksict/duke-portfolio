@@ -12,6 +12,27 @@ const DAY_PARTS = ["cat-head", "cat-eye", "cat-ear-l", "cat-ear-r", "cat-tail", 
 const FOREIGN_PAINT = ["#ef4445", "#eb4397", "#8253a2", "#3f5fac", "#3ea3db", "--c-pink", "--grad"];
 
 describe("CatArt (hero)", () => {
+  it.each(["day", "night"] as const)("spins awake by %s: the sitting cat whole in one cat-spin group", (state) => {
+    const { container } = render(<CatArt variant="hero" state={state} uiia />);
+    const svg = container.querySelector("svg");
+    expect(svg).toHaveAttribute("data-state", state);
+    expect(svg).toHaveAttribute("data-uiia");
+    const spin = container.querySelectorAll(".cat-spin");
+    expect(spin).toHaveLength(1);
+    for (const part of DAY_PARTS) {
+      expect(spin[0]?.querySelector(`.${part}`), part).not.toBeNull();
+    }
+    expect(container.querySelector(".cat-zzz")).toBeNull();
+    // His props stay where they were: the laptop by day, the mug by night.
+    expect(container.querySelector(state === "day" ? '[data-layer="laptop"]' : '[data-layer="mug"]')).not.toBeNull();
+  });
+
+  it("carries no data-uiia and no cat-spin group outside the easter egg", () => {
+    const { container } = render(<CatArt variant="hero" state="day" />);
+    expect(container.querySelector("svg")).not.toHaveAttribute("data-uiia");
+    expect(container.querySelector(".cat-spin")).toBeNull();
+  });
+
   it("types by day, with no zzz", () => {
     const { container } = render(<CatArt variant="hero" state="day" />);
     const svg = container.querySelector("svg");
@@ -108,6 +129,8 @@ describe("CatArt markup", () => {
       <>
         <CatArt variant="hero" state="day" />
         <CatArt variant="hero" state="night" />
+        <CatArt variant="hero" state="day" uiia />
+        <CatArt variant="hero" state="night" uiia />
         {POSES.map((pose) => (
           <CatArt key={pose} variant="mini" pose={pose} />
         ))}
@@ -124,6 +147,8 @@ describe("CatArt markup", () => {
   const variants = [
     { name: "hero day", node: <CatArt variant="hero" state="day" /> },
     { name: "hero night", node: <CatArt variant="hero" state="night" /> },
+    { name: "hero day, spinning", node: <CatArt variant="hero" state="day" uiia /> },
+    { name: "hero night, spinning", node: <CatArt variant="hero" state="night" uiia /> },
     ...POSES.map((pose) => ({ name: `mini ${pose}`, node: <CatArt variant="mini" pose={pose} /> })),
   ];
 

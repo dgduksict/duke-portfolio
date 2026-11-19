@@ -16,6 +16,23 @@ export const GROOM_AFTER_MS = 1200;
 export const NAP_FROM = 0.98;
 
 /**
+ * The hero cat's easter egg: poke him `clicks` times within a sliding `windowMs` and he spins (the "UIIA" cat) for
+ * `durationMs`, eight turns of 400 ms (cat.css steps each turn in four 90-degree frames), so he lands upright.
+ */
+export const UIIA = { clicks: 5, windowMs: 1500, durationMs: 3200 } as const;
+
+/**
+ * Counts one poke at `now` (ms) against the `recent` pokes: keeps those under `UIIA.windowMs` old, adds this one, and
+ * reports `uiia` once `UIIA.clicks` of them fall in the window. A trigger empties the list, so the next spin needs
+ * five fresh pokes. Pure: it returns a new list and never touches `recent`.
+ */
+export function countPoke(recent: readonly number[], now: number): { recent: number[]; uiia: boolean } {
+  const kept = recent.filter((at) => now - at < UIIA.windowMs);
+  kept.push(now);
+  return kept.length >= UIIA.clicks ? { recent: [], uiia: true } : { recent: kept, uiia: false };
+}
+
+/**
  * The cat's state for a sky phase: asleep only when the sky is "night", awake for every other phase. An unknown
  * (`undefined`) phase counts as day, so a missing sky never leaves the cat asleep.
  */

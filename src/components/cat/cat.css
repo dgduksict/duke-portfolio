@@ -160,6 +160,27 @@
 }
 
 /*
+ * The easter egg (five quick pokes, hero-cat.tsx): the spinning "UIIA" cat. CatArt draws him awake and sitting up in a
+ * `cat-spin` group, which turns about its own centre in four 90-degree frames, 400 ms a turn, for as long as he is in
+ * the mood; his parts hold still meanwhile. Upright and upside down he stands on the sill; side-on he is lifted half a
+ * body clear of it, so every quarter turn reads as a little hop. A 90-degree turn keeps every pixel square and on a
+ * whole screen pixel (half a sprite pixel is 3px in the 168px slot, 2px in the 112px one), so he stays crisp.
+ */
+.hero-cat .cat-art[data-uiia] .cat-spin {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: cat-uiia 400ms steps(4, end) infinite;
+}
+
+.hero-cat .cat-art[data-uiia] .cat-spin * {
+  animation: none;
+}
+
+@keyframes cat-uiia {
+  to { transform: rotate(360deg); }
+}
+
+/*
  * The speech box, left of the cat: a pixel box (.px-box, from pixel.css: the panel fill, a stepped outline, square
  * corners) with a stair-step tail on its right edge pointing at him, in the body face at 20px. It carries its own
  * ground (--panel) and ink (--ink, held to AA on it in both themes), so it reads over the wall and over the glass
@@ -250,7 +271,10 @@
   display: none;
 }
 
-/* Reduced motion: a still pose, no hop, no loops, and a flip between day and night swaps the drawings at once. */
+/*
+ * Reduced motion: a still pose, no hop, no loops, no spin (hero-cat.tsx then does not even change his pose for the
+ * easter egg; only the box speaks), and a flip between day and night swaps the drawings at once.
+ */
 @media (prefers-reduced-motion: reduce) {
   .hero-cat-hop,
   .hero-cat-layer,
