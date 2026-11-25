@@ -31,7 +31,7 @@ export interface Flake {
   readonly depth: 0 | 1;
 }
 
-/** `count` snowflakes scattered over a `cols` x `rows` glass, each on its own whole cell and in one of two depths. */
+/** `count` snowflakes scattered over a `cols` x `rows` glass, each on a whole cell and in one of two depths. */
 export function snowflakes(seed: number, count: number, cols: number, rows: number): Flake[] {
   const random = seeded(seed);
   return Array.from({ length: Math.max(0, Math.floor(count)) }, () => ({

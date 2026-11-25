@@ -332,6 +332,14 @@
   }
 }
 
+/*
+ * Spinning by day, the front frame shows his left eye where the tail would land, so the box steps back to clear it:
+ * --reach 0 puts its right edge at the slot's left edge, which also keeps it inside the scene at 320 px.
+ */
+.hero-cat[data-uiia="spin"] .hero-cat-bubble {
+  --reach: 0;
+}
+
 .hero-cat-bubble:empty {
   padding: 0;
   background: none;

@@ -319,8 +319,8 @@ describe("scene.css", () => {
     expect(code).toMatch(/@keyframes scene-firefly\s*\{[^}]*opacity:/);
     expect(code).toMatch(/\.scene-firefly\s*\{[^}]*animation:[^;]*steps\(/);
     const reduced = code.slice(code.indexOf("prefers-reduced-motion: reduce"));
-    expect(reduced).toMatch(/\.scene-snow-0[^{]*\{[^}]*animation:\s*none/);
-    expect(reduced).toMatch(/\.scene-firefly[^{]*\{[^}]*animation:\s*none/);
+    // One rule stills every animation in the scene (snow, fireflies and all): no per-class list to keep in step.
+    expect(reduced).toMatch(/\.scene \*,[^{]*\{[^}]*animation:\s*none\s*!important/);
   });
 
   it("blinks the bulbs and flickers the flame on opacity in steps, and stills both under reduced motion", () => {
@@ -335,8 +335,7 @@ describe("scene.css", () => {
     // The two sets alternate: one is half a loop behind the other.
     expect(code).toMatch(/\.scene-bulb-b\s*\{[^}]*animation-delay:/);
     const reduced = code.slice(code.indexOf("prefers-reduced-motion: reduce"));
-    expect(reduced).toMatch(/\.scene-bulb[^{]*\{[^}]*animation:\s*none/);
-    expect(reduced).toMatch(/\.scene-flame-1[^{]*\{[^}]*animation:\s*none/);
+    expect(reduced).toMatch(/\.scene \*,[^{]*\{[^}]*animation:\s*none\s*!important/);
     // Reduced motion: every bulb lit (no dim frame left on) and one flame frame.
     expect(reduced).toMatch(/\.scene-flame-2\s*\{[^}]*opacity:\s*0/);
   });
