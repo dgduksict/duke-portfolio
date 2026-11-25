@@ -249,6 +249,8 @@ export function HeroCat({ now }: { readonly now: Date | null }) {
   };
 
   const onClick = () => {
+    // A click while he still purrs (Enter during a mouse hold) is no poke, and leaves the release's click to be eaten.
+    if (purring.current) return;
     if (purred.current) {
       purred.current = false;
       return;

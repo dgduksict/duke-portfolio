@@ -599,6 +599,22 @@ describe("HeroCat", () => {
       expect(container.querySelector(".cat-spin")).toBeNull();
     });
 
+    it("a click that lands mid-purr (Enter while the mouse holds) leaves the release click swallowed", () => {
+      render(<HeroCat now={DAY} />);
+      const button = screen.getByRole("button");
+      fireEvent.pointerDown(button);
+      advance(PURR.holdMs);
+      expect(screen.getByRole("status")).toHaveTextContent(en.cat.purr);
+      // Enter on the focused button while still purring: the native button sends a click.
+      fireEvent.keyDown(button, { key: "Enter" });
+      fireEvent.click(button);
+      expect(screen.getByRole("status")).toHaveTextContent(en.cat.purr);
+      // Letting go sends the purr's own click: still no poke.
+      fireEvent.pointerUp(button);
+      fireEvent.click(button);
+      expect(screen.getByRole("status")).toHaveTextContent(en.cat.purr);
+    });
+
     it("a short press is a poke", () => {
       const { container } = render(<HeroCat now={DAY} />);
       const button = screen.getByRole("button");
