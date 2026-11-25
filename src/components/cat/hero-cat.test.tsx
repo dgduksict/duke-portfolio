@@ -991,11 +991,16 @@ describe("HeroCat", () => {
       expect(shown?.id).toBeTruthy();
       expect(button).toHaveAttribute("aria-describedby", shown?.id);
       expect(button).toHaveAccessibleDescription(en.cat.petHint.click);
+      // The visible hint is hidden from the tree; the button's description is what carries it.
+      expect(shown).toHaveAttribute("aria-hidden", "true");
       fireEvent.click(button);
       expect(hint(container)).toBeNull();
       expect(button).not.toHaveAttribute("aria-describedby");
       advance(4000);
-      expect(button).toHaveAccessibleDescription(en.cat.holdHint);
+      // "Hold to purr" is a pointer gesture with no keyboard twin, so it is shown but not described.
+      expect(hint(container)).toHaveTextContent(en.cat.holdHint);
+      expect(button).not.toHaveAttribute("aria-describedby");
+      expect(button).toHaveAccessibleDescription("");
     });
 
     it("never takes the pointer and is hidden in print", () => {
@@ -1286,6 +1291,14 @@ describe("cat.css", () => {
     // On a phone the day box grows upwards from his head, so a longer line never runs off the bottom of the scene.
     const narrow = css.slice(css.indexOf("@media (width < 30rem)"));
     expect(narrow).toMatch(/\.hero-cat\[data-mood="day"\] \.hero-cat-bubble\s*\{[^}]*top:\s*auto;[^}]*bottom:/);
+  });
+
+  it("pulls the speech box back from his face while he spins", () => {
+    expect(css).toMatch(/\.hero-cat\[data-uiia="spin"\] \.hero-cat-bubble\s*\{\s*--reach:\s*0;\s*\}/);
+    // It comes after the night rule (the spin is shown in the day place), so nothing later puts the reach back.
+    expect(css.indexOf('[data-uiia="spin"] .hero-cat-bubble')).toBeGreaterThan(
+      css.indexOf('.hero-cat[data-mood="night"] .hero-cat-bubble {'),
+    );
   });
 
   it("plays the wake in two drawn frames: the yawn for the first half of 1.6 s, the stretch for the second", () => {

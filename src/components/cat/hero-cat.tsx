@@ -370,7 +370,8 @@ export function HeroCat({ now, holiday }: { readonly now: Date | null; readonly 
           type="button"
           className="hero-cat-button pointer-events-auto relative block size-full cursor-pointer"
           aria-label={dict.cat.label}
-          aria-describedby={hint === null ? undefined : hintId}
+          // Only the pet step is described: "hold to purr" is a pointer gesture the keyboard has no equivalent for.
+          aria-describedby={hint !== null && stage === "pet" ? hintId : undefined}
           onClick={onClick}
           onPointerDown={onPointerDown}
           onPointerUp={onPointerEnd}
@@ -405,7 +406,7 @@ export function HeroCat({ now, holiday }: { readonly now: Date | null; readonly 
         {line}
       </div>
       {hint === null ? null : (
-        <div id={hintId} className="hero-cat-hint px-box">
+        <div id={hintId} className="hero-cat-hint px-box" aria-hidden="true">
           {hint}
         </div>
       )}
