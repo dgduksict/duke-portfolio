@@ -44,7 +44,7 @@ export function Stack() {
                       key={skill.id}
                       className="grid grid-cols-[minmax(0,7rem)_minmax(0,1fr)] gap-x-4 py-3 sm:grid-cols-[minmax(0,8.5rem)_minmax(0,1fr)]"
                     >
-                      <dt>{skill.name}</dt>
+                      <dt className="[overflow-wrap:anywhere]">{skill.name}</dt>
                       <dd className="text-base text-ink-soft [overflow-wrap:break-word]">
                         {places.map((place, index) => (
                           <Fragment key={place.href}>
