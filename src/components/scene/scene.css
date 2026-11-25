@@ -393,7 +393,10 @@
     }
   }
 
-  /* Reduced motion: a still picture, one steam frame, nothing looping. */
+  /*
+   * Reduced motion: a still picture, nothing looping. With the animations off, every bulb sits at its resting (lit)
+   * opacity and the flame shows its first frame; the second steam and flame frames are hidden.
+   */
   @media (prefers-reduced-motion: reduce) {
     .scene *,
     .scene *::before,
@@ -404,18 +407,6 @@
     .scene-steam-2,
     .scene-flame-2 {
       opacity: 0;
-    }
-
-    /* Every bulb lit, the flame on its first frame. */
-    .scene-snow-0,
-    .scene-snow-1,
-    .scene-snow-drift,
-    .scene-firefly,
-    .scene-shooting-star,
-    .scene-bulb,
-    .scene-flame-1,
-    .scene-flame-2 {
-      animation: none;
     }
   }
 }
