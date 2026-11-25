@@ -121,6 +121,16 @@ export const HAT_AT = {
   "mini-groom": { x: 5, y: 0, size: "mini" },
   "mini-sleep": { x: 8, y: 5, size: "mini" },
   "mini-nap": { x: 10, y: 7, size: "mini" },
+  // The loader's yarn cat (20 x 16, facing right, one unit a cell): the brim on the head's first full row, its left end
+  // on the head's left rim, so the cone covers the ears. The proud pose's hat pokes two rows above the grid (loader.css lets the drawing overflow).
+  "loader-sit": { x: 7, y: 0, size: "mini" },
+  "loader-run-1": { x: 12, y: 1, size: "mini" },
+  "loader-run-2": { x: 12, y: 1, size: "mini" },
+  "loader-crouch-1": { x: 11, y: 6, size: "mini" },
+  "loader-crouch-2": { x: 11, y: 6, size: "mini" },
+  "loader-pounce": { x: 10, y: 0, size: "mini" },
+  "loader-tumble": { x: 12, y: 1, size: "mini" },
+  "loader-proud": { x: 7, y: -2, size: "mini" },
 } as const satisfies Record<string, HatAnchor>;
 
 /** Each hat's drawings: on the hero, on the hero's sleeping loaf (only the Santa hat droops), and on a mini. */
@@ -214,7 +224,7 @@ function Part({ parts, part, scale }: { parts: Record<CatPart, Sprite>; part: Ca
 }
 
 /** The hat at a drawing's anchor, in its own `cat-hat` group (placed by its rects, never a transform); none without one. */
-function HatLayer({ hat, at, scale }: { hat: Hat | undefined; at: HatAnchor; scale: number }) {
+export function HatLayer({ hat, at, scale }: { hat: Hat | undefined; at: HatAnchor; scale: number }) {
   if (hat === undefined) return null;
   const drawings = HATS[hat];
   let map = drawings.hero;
