@@ -79,6 +79,12 @@ export interface Dictionary {
     readonly uiia: string;
     /** What he says when held until he purrs. */
     readonly purr: string;
+    /** The quiet hint before his first poke; Mongolian has one phrase for both pointer types. */
+    readonly petHint: { readonly click: string; readonly tap: string };
+    /** The quiet hint after his first poke, until he has purred. */
+    readonly holdHint: string;
+    /** The festive first line when he is poked on a holiday. */
+    readonly festive: { readonly christmas: string; readonly birthday: string };
   };
   readonly notFound: {
     readonly title: string;
@@ -161,6 +167,12 @@ const en: Dictionary = {
     sleeping: "shh",
     uiia: "UIIA UIIA",
     purr: "prrr",
+    petHint: { click: "click to pet", tap: "tap to pet" },
+    holdHint: "hold to purr",
+    festive: {
+      christmas: "Merry Christmas! Zero merge conflicts this year.",
+      birthday: "It's my human's birthday today!",
+    },
   },
   notFound: {
     title: "Nothing here",
@@ -243,6 +255,12 @@ const mn: Dictionary = {
     sleeping: "Ш-ш, унтаж байна",
     uiia: "UIIA UIIA",
     purr: "пүррр",
+    petHint: { click: "намайг илээрэй", tap: "намайг илээрэй" },
+    holdHint: "удаан дараарай",
+    festive: {
+      christmas: "Зул сарын баярын мэнд! Энэ жил merge conflict алга.",
+      birthday: "Өнөөдөр эзний минь төрсөн өдөр!",
+    },
   },
   notFound: {
     title: "Энд юу ч алга",
