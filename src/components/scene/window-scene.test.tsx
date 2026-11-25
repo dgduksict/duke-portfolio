@@ -171,10 +171,14 @@ describe("WindowScene", () => {
     expect(container.querySelector('[data-layer="snow"]')).toBeNull();
   });
 
-  it("wears no foreign brand colours", () => {
+  // Twelve full scenes: each is unmounted as soon as it is read, and the test gets room for a busy full-suite run
+  // (it took over 5 s there once, against under 1 s alone).
+  it("wears no foreign brand colours", { timeout: 20_000 }, () => {
     for (const now of [null, NOON, DUSK, MIDNIGHT]) {
       for (const holiday of [null, "christmas", "birthday"] as const) {
-        const html = render(<WindowScene now={now} holiday={holiday} />).container.innerHTML.toLowerCase();
+        const { container, unmount } = render(<WindowScene now={now} holiday={holiday} />);
+        const html = container.innerHTML.toLowerCase();
+        unmount();
         for (const paint of FOREIGN_PAINT) expect(html).not.toContain(paint);
       }
     }
