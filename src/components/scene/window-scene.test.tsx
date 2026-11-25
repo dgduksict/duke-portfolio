@@ -171,11 +171,123 @@ describe("WindowScene", () => {
     expect(container.querySelector('[data-layer="snow"]')).toBeNull();
   });
 
-  it("wears no foreign brand colours", () => {
+  // Twelve full scenes: each is unmounted as soon as it is read, and the test gets room for a busy full-suite run
+  // (it took over 5 s there once, against under 1 s alone).
+  it("wears no foreign brand colours", { timeout: 20_000 }, () => {
     for (const now of [null, NOON, DUSK, MIDNIGHT]) {
-      const html = render(<WindowScene now={now} />).container.innerHTML.toLowerCase();
-      for (const paint of FOREIGN_PAINT) expect(html).not.toContain(paint);
+      for (const holiday of [null, "christmas", "birthday"] as const) {
+        const { container, unmount } = render(<WindowScene now={now} holiday={holiday} />);
+        const html = container.innerHTML.toLowerCase();
+        unmount();
+        for (const paint of FOREIGN_PAINT) expect(html).not.toContain(paint);
+      }
     }
+  });
+
+  describe("holiday decorations", () => {
+    const layer = (container: HTMLElement, name: string) => container.querySelector(`[data-layer="${name}"]`);
+    const DECORATIONS = ["fairy-lights", "xmas-tree", "bunting", "cake"] as const;
+    /** Every drawn cell of a layer as "x,y" (rects are in cells; the room art's x/y are the room's own). */
+    const cells = (el: Element | null) =>
+      new Set(
+        [...(el?.querySelectorAll("rect") ?? [])].flatMap((rect) => {
+          const [x, y, w, h] = ["x", "y", "width", "height"].map((a) => Number(rect.getAttribute(a)));
+          return Array.from({ length: (w ?? 0) * (h ?? 0) }, (_, i) => `${x! + (i % w!)},${y! + Math.floor(i / w!)}`);
+        }),
+      );
+
+    it("strings fairy lights and stands a tree for Christmas, without the birthday's things", () => {
+      const { container } = render(<WindowScene now={NOON} holiday="christmas" />);
+      expect(layer(container, "fairy-lights")).not.toBeNull();
+      expect(layer(container, "xmas-tree")).not.toBeNull();
+      expect(layer(container, "bunting")).toBeNull();
+      expect(layer(container, "cake")).toBeNull();
+    });
+
+    it("hangs bunting and puts a cake on the sill for the birthday, without Christmas's things", () => {
+      const { container } = render(<WindowScene now={NOON} holiday="birthday" />);
+      expect(layer(container, "bunting")).not.toBeNull();
+      expect(layer(container, "cake")).not.toBeNull();
+      expect(layer(container, "fairy-lights")).toBeNull();
+      expect(layer(container, "xmas-tree")).toBeNull();
+    });
+
+    it("decorates nothing on an ordinary day, or before the holiday is known", () => {
+      for (const holiday of [null, undefined]) {
+        const { container } = render(<WindowScene now={NOON} holiday={holiday} />);
+        for (const name of DECORATIONS) expect(layer(container, name), name).toBeNull();
+      }
+    });
+
+    it("stands the tree in the full room only: the compact scene keeps the lights but has no room for it", () => {
+      const compact = render(<WindowScene now={NOON} compact holiday="christmas" />).container;
+      expect(layer(compact, "fairy-lights")).not.toBeNull();
+      expect(layer(compact, "xmas-tree")).toBeNull();
+      const tree = render(<WindowScene now={NOON} holiday="christmas" />).container.querySelector(
+        '[data-layer="xmas-tree"]',
+      );
+      expect(tree?.closest('[data-layer="room-left"]')).not.toBeNull();
+      // The not-found page's compact scene, which passes no holiday, shows none of it.
+      const plain = render(<WindowScene now={MIDNIGHT} compact />).container;
+      for (const name of DECORATIONS) expect(layer(plain, name), name).toBeNull();
+    });
+
+    it("keeps the tree clear of the desk and the floor plant, standing on the floor", () => {
+      const { container } = render(<WindowScene now={NOON} holiday="christmas" />);
+      const tree = cells(layer(container, "xmas-tree"));
+      expect(tree.size).toBeGreaterThan(60);
+      for (const other of ["desk", "floor-plant"]) {
+        const taken = cells(layer(container, other));
+        expect(taken.size, other).toBeGreaterThan(0);
+        for (const cell of tree) expect(taken.has(cell), `${other} at ${cell}`).toBe(false);
+      }
+      const rows = [...tree].map((cell) => Number(cell.split(",")[1]));
+      expect(Math.max(...rows)).toBe(94);
+      // About 20 cells tall, with a star on top.
+      expect(Math.max(...rows) - Math.min(...rows) + 1).toBeGreaterThanOrEqual(18);
+      expect(layer(container, "xmas-tree")?.querySelector('rect[fill="var(--scene-star)"]')).not.toBeNull();
+    });
+
+    it("hangs the lights and the bunting along the top of the glass, in front of the bars", () => {
+      for (const [holiday, name] of [
+        ["christmas", "fairy-lights"],
+        ["birthday", "bunting"],
+      ] as const) {
+        const { container } = render(<WindowScene now={NOON} holiday={holiday} />);
+        const decoration = layer(container, name);
+        expect(decoration?.closest(".scene-frame")).not.toBeNull();
+        const layers = [...container.querySelectorAll(".scene-frame [data-layer]")].map((el) =>
+          el.getAttribute("data-layer"),
+        );
+        expect(layers.indexOf(name)).toBeGreaterThan(layers.indexOf("bars"));
+        const rows = [...cells(decoration)].map((cell) => Number(cell.split(",")[1]));
+        expect(Math.min(...rows)).toBe(0);
+        expect(Math.max(...rows)).toBeLessThan(10);
+      }
+    });
+
+    it("blinks the bulbs in two alternating sets of warm colours", () => {
+      const { container } = render(<WindowScene now={NOON} holiday="christmas" />);
+      const lights = layer(container, "fairy-lights");
+      const a = lights?.querySelectorAll(".scene-bulb-a") ?? [];
+      const b = lights?.querySelectorAll(".scene-bulb-b") ?? [];
+      expect(a.length).toBeGreaterThanOrEqual(6);
+      expect(b.length).toBe(a.length);
+      // Each set holds every colour, so whichever set is dimmed the string still shows all four.
+      for (const set of [a, b]) {
+        const colours = new Set([...set].flatMap((bulb) => [...bulb.querySelectorAll("rect")].map((r) => r.getAttribute("fill"))));
+        for (const colour of ["red", "amber", "green", "blue"]) expect(colours).toContain(`var(--scene-bulb-${colour})`);
+      }
+    });
+
+    it("puts the cake on the sill with one candle whose flame has two frames", () => {
+      const { container } = render(<WindowScene now={NOON} holiday="birthday" />);
+      const cake = layer(container, "cake");
+      expect(cake?.closest(".scene-window")).not.toBeNull();
+      expect(cake).toHaveClass("scene-cake");
+      expect(cake?.querySelectorAll(".scene-flame-1")).toHaveLength(1);
+      expect(cake?.querySelectorAll(".scene-flame-2")).toHaveLength(1);
+    });
   });
 });
 
@@ -209,6 +321,29 @@ describe("scene.css", () => {
     const reduced = code.slice(code.indexOf("prefers-reduced-motion: reduce"));
     expect(reduced).toMatch(/\.scene-snow-0[^{]*\{[^}]*animation:\s*none/);
     expect(reduced).toMatch(/\.scene-firefly[^{]*\{[^}]*animation:\s*none/);
+  });
+
+  it("blinks the bulbs and flickers the flame on opacity in steps, and stills both under reduced motion", () => {
+    for (const selector of ["scene-bulb-a", "scene-bulb-b", "scene-flame-1", "scene-flame-2"]) {
+      const rule = code.match(new RegExp(`\\.${selector}\\s*\\{[^}]*animation:([^;]*);`));
+      expect(rule, selector).not.toBeNull();
+      expect(rule?.[1], selector).toMatch(/steps\(/);
+      const name = rule?.[1]?.trim().split(/\s+/)[0] ?? "";
+      expect(code, `${selector} keyframes`).toMatch(new RegExp(`@keyframes ${name}\\s*\\{[^@]*opacity:`));
+      expect(code).not.toMatch(new RegExp(`@keyframes ${name}\\s*\\{[^@]*transform:`));
+    }
+    // The two sets alternate: one is half a loop behind the other.
+    expect(code).toMatch(/\.scene-bulb-b\s*\{[^}]*animation-delay:/);
+    const reduced = code.slice(code.indexOf("prefers-reduced-motion: reduce"));
+    expect(reduced).toMatch(/\.scene-bulb[^{]*\{[^}]*animation:\s*none/);
+    expect(reduced).toMatch(/\.scene-flame-1[^{]*\{[^}]*animation:\s*none/);
+    // Reduced motion: every bulb lit (no dim frame left on) and one flame frame.
+    expect(reduced).toMatch(/\.scene-flame-2\s*\{[^}]*opacity:\s*0/);
+  });
+
+  it("sets the cake on the sill by class, like the plants and the mug", () => {
+    expect(code).toMatch(/\.scene-window > \.scene-cake/);
+    expect(code).toMatch(/\.scene-cake\s*\{[^}]*top:/);
   });
 
   it("has day and night room colours, and the header ink reads on the wall in both", () => {

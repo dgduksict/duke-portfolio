@@ -1,11 +1,14 @@
 import { readFileSync } from "node:fs";
 import { act, fireEvent, render, renderHook, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { HAT_AT } from "@/components/cat/cat-art";
 import { HeroCat } from "@/components/cat/hero-cat";
+import { HEART, PARTY_HAT, SANTA_HAT } from "@/components/cat/sprites";
 import { useCatState } from "@/components/cat/use-cat-state";
 import { WindowScene } from "@/components/scene/window-scene";
 import { useNow } from "@/hooks/use-now";
 import { PURR, UIIA, WAKE_MS } from "@/lib/cat";
+import { HINT } from "@/lib/cat-hint";
 import { dictionaries } from "@/lib/i18n";
 import { LANGUAGES } from "@/types";
 import { resetPortfolioStore, usePortfolioStore } from "@/store/portfolio-store";
@@ -599,6 +602,22 @@ describe("HeroCat", () => {
       expect(container.querySelector(".cat-spin")).toBeNull();
     });
 
+    it("a click that lands mid-purr (Enter while the mouse holds) leaves the release click swallowed", () => {
+      render(<HeroCat now={DAY} />);
+      const button = screen.getByRole("button");
+      fireEvent.pointerDown(button);
+      advance(PURR.holdMs);
+      expect(screen.getByRole("status")).toHaveTextContent(en.cat.purr);
+      // Enter on the focused button while still purring: the native button sends a click.
+      fireEvent.keyDown(button, { key: "Enter" });
+      fireEvent.click(button);
+      expect(screen.getByRole("status")).toHaveTextContent(en.cat.purr);
+      // Letting go sends the purr's own click: still no poke.
+      fireEvent.pointerUp(button);
+      fireEvent.click(button);
+      expect(screen.getByRole("status")).toHaveTextContent(en.cat.purr);
+    });
+
     it("a short press is a poke", () => {
       const { container } = render(<HeroCat now={DAY} />);
       const button = screen.getByRole("button");
@@ -793,6 +812,418 @@ describe("HeroCat", () => {
       expect(vi.getTimerCount()).toBe(0);
     });
   });
+
+  describe("the pet hint", () => {
+    const advance = (ms: number) =>
+      act(() => {
+        vi.advanceTimersByTime(ms);
+      });
+    const hint = (container: HTMLElement) => container.querySelector<HTMLElement>(".hero-cat-hint");
+    const stored = () => window.localStorage.getItem(HINT.storageKey);
+    /** A matchMedia that answers yes only to queries containing `word`. */
+    const media = (word: string) =>
+      vi.spyOn(window, "matchMedia").mockImplementation(
+        (query: string) => ({ matches: query.includes(word), media: query }) as MediaQueryList,
+      );
+    /** Holds him until he purrs, then lets go (the release's click included). */
+    function purr() {
+      const button = screen.getByRole("button");
+      fireEvent.pointerDown(button);
+      advance(PURR.holdMs + 100);
+      fireEvent.pointerUp(button);
+      fireEvent.click(button);
+    }
+
+    it("shows 'click to pet' 1.5 s after he arrives", async () => {
+      setLoader("run");
+      const { container } = render(<HeroCat now={DAY} />);
+      advance(5000);
+      expect(container).toBeEmptyDOMElement();
+      await act(async () => {
+        setLoader("done");
+      });
+      advance(HINT.delayMs - 1);
+      expect(hint(container)).toBeNull();
+      advance(1);
+      expect(hint(container)).toHaveTextContent(en.cat.petHint.click);
+      // It is a quiet label, not a second status region: the box still has the only one.
+      expect(screen.getAllByRole("status")).toHaveLength(1);
+    });
+
+    it("says tap on touch screens", () => {
+      media("(pointer: coarse)");
+      const { container } = render(<HeroCat now={DAY} />);
+      advance(HINT.delayMs);
+      expect(hint(container)).toHaveTextContent(en.cat.petHint.tap);
+    });
+
+    it("speaks Mongolian when the site does", () => {
+      usePortfolioStore.getState().setLanguage("mn");
+      const { container } = render(<HeroCat now={DAY} />);
+      advance(HINT.delayMs);
+      expect(hint(container)).toHaveTextContent("намайг илээрэй");
+      expect(dictionaries.mn.cat.petHint.click).toBe("намайг илээрэй");
+    });
+
+    it("still shows 'click to pet' at night, where pokes say shh", () => {
+      const { container } = render(<HeroCat now={NIGHT} />);
+      advance(HINT.delayMs);
+      expect(hint(container)).toHaveTextContent(en.cat.petHint.click);
+      fireEvent.click(screen.getByRole("button"));
+      expect(screen.getByRole("status")).toHaveTextContent(en.cat.sleeping);
+      expect(stored()).toBe("poked");
+    });
+
+    it("turns into 'hold to purr' after the first poke and remembers it", () => {
+      const first = render(<HeroCat now={DAY} />);
+      advance(HINT.delayMs);
+      expect(hint(first.container)).toHaveTextContent(en.cat.petHint.click);
+      fireEvent.click(screen.getByRole("button"));
+      expect(stored()).toBe("poked");
+      advance(4000); // the line clears
+      expect(hint(first.container)).toHaveTextContent(en.cat.holdHint);
+      first.unmount();
+
+      const again = render(<HeroCat now={DAY} />);
+      advance(HINT.delayMs);
+      expect(hint(again.container)).toHaveTextContent(en.cat.holdHint);
+    });
+
+    it("counts a poke made before the hint is due", () => {
+      const { container } = render(<HeroCat now={DAY} />);
+      advance(200);
+      fireEvent.click(screen.getByRole("button"));
+      expect(stored()).toBe("poked");
+      advance(4000);
+      expect(hint(container)).toHaveTextContent(en.cat.holdHint);
+    });
+
+    it("goes away for good after the first purr", () => {
+      const first = render(<HeroCat now={DAY} />);
+      advance(HINT.delayMs);
+      purr();
+      expect(stored()).toBe("purred");
+      advance(10_000);
+      expect(hint(first.container)).toBeNull();
+      // A poke after the purr never walks it back.
+      fireEvent.click(screen.getByRole("button"));
+      expect(stored()).toBe("purred");
+      advance(10_000);
+      expect(hint(first.container)).toBeNull();
+      first.unmount();
+
+      const again = render(<HeroCat now={DAY} />);
+      advance(10_000);
+      expect(hint(again.container)).toBeNull();
+      // Nor does a poke on a later visit, made before the hint would be due.
+      fireEvent.click(screen.getByRole("button"));
+      expect(stored()).toBe("purred");
+    });
+
+    it("hides while he speaks, spins, wakes or purrs", () => {
+      const { container, rerender } = render(<HeroCat now={NIGHT} />);
+      const button = screen.getByRole("button");
+      advance(HINT.delayMs);
+      expect(hint(container)).not.toBeNull();
+
+      // Speaks: gone while the line is up, back when it clears.
+      fireEvent.click(button);
+      expect(hint(container)).toBeNull();
+      advance(4000);
+      expect(hint(container)).toHaveTextContent(en.cat.holdHint);
+
+      // Spins: gone for the whole UIIA, back after.
+      for (let i = 0; i < UIIA.clicks; i += 1) {
+        if (i > 0) advance(100);
+        fireEvent.click(button);
+      }
+      expect(container.firstElementChild).toHaveAttribute("data-uiia", "spin");
+      expect(hint(container)).toBeNull();
+      advance(UIIA.durationMs);
+      expect(container.firstElementChild).not.toHaveAttribute("data-uiia");
+      expect(hint(container)).toHaveTextContent(en.cat.holdHint);
+
+      // Wakes: gone for the yawn and the stretch, back after.
+      rerender(<HeroCat now={DAY} />);
+      expect(container.querySelector("[data-wake]")).not.toBeNull();
+      expect(hint(container)).toBeNull();
+      advance(WAKE_MS);
+      expect(container.querySelector("[data-wake]")).toBeNull();
+      expect(hint(container)).toHaveTextContent(en.cat.holdHint);
+
+      // Purrs: gone, and after the first purr for good.
+      fireEvent.pointerDown(button);
+      advance(PURR.holdMs);
+      expect(container.firstElementChild).toHaveAttribute("data-purr", "");
+      expect(hint(container)).toBeNull();
+      fireEvent.pointerUp(button);
+      fireEvent.click(button);
+      advance(10_000);
+      expect(hint(container)).toBeNull();
+    });
+
+    it("waits out a morning wake on arrival", () => {
+      vi.setSystemTime(new Date("2026-10-05T04:00:00Z"));
+      window.history.replaceState(null, "", "/?time=07:20");
+      function Clocked() {
+        return <HeroCat now={useNow()} />;
+      }
+      try {
+        const { container } = render(<Clocked />);
+        advance(1000); // the hop, then the wake starts
+        advance(HINT.delayMs - 1000);
+        expect(container.querySelector("[data-wake]")).not.toBeNull();
+        expect(hint(container)).toBeNull();
+        advance(1000 + WAKE_MS - HINT.delayMs);
+        expect(container.querySelector("[data-wake]")).toBeNull();
+        expect(hint(container)).toHaveTextContent(en.cat.petHint.click);
+      } finally {
+        window.history.replaceState(null, "", "/");
+      }
+    });
+
+    it("is described to screen readers", () => {
+      const { container } = render(<HeroCat now={DAY} />);
+      const button = screen.getByRole("button");
+      expect(button).not.toHaveAttribute("aria-describedby");
+      advance(HINT.delayMs);
+      const shown = hint(container);
+      expect(shown?.id).toBeTruthy();
+      expect(button).toHaveAttribute("aria-describedby", shown?.id);
+      expect(button).toHaveAccessibleDescription(en.cat.petHint.click);
+      fireEvent.click(button);
+      expect(hint(container)).toBeNull();
+      expect(button).not.toHaveAttribute("aria-describedby");
+      advance(4000);
+      expect(button).toHaveAccessibleDescription(en.cat.holdHint);
+    });
+
+    it("never takes the pointer and is hidden in print", () => {
+      const { container } = render(<HeroCat now={DAY} />);
+      advance(HINT.delayMs);
+      const shown = hint(container);
+      expect(shown).toHaveClass("px-box");
+      expect(shown?.closest('[data-print="hide"]')).not.toBeNull();
+      expect(shown?.closest(".pointer-events-none")).not.toBeNull();
+      expect(screen.getByRole("button")).not.toContainElement(shown);
+    });
+
+    describe("works when storage throws", () => {
+      let own: PropertyDescriptor | undefined;
+      beforeEach(() => {
+        own = Object.getOwnPropertyDescriptor(window, "localStorage");
+      });
+      afterEach(() => {
+        if (own) Object.defineProperty(window, "localStorage", own);
+      });
+
+      const broken = {
+        getter: () =>
+          Object.defineProperty(window, "localStorage", {
+            configurable: true,
+            get() {
+              throw new DOMException("blocked", "SecurityError");
+            },
+          }),
+        setItem: () =>
+          Object.defineProperty(window, "localStorage", {
+            configurable: true,
+            get: () =>
+              ({
+                getItem: () => null,
+                setItem: () => {
+                  throw new DOMException("full", "QuotaExceededError");
+                },
+              }) as unknown as Storage,
+          }),
+      };
+
+      it.each(Object.keys(broken) as (keyof typeof broken)[])(
+        "the hint still shows and advances for this view when the %s throws",
+        (mode) => {
+          const errors = vi.spyOn(console, "error");
+          broken[mode]();
+          const { container } = render(<HeroCat now={DAY} />);
+          advance(HINT.delayMs);
+          expect(hint(container)).toHaveTextContent(en.cat.petHint.click);
+          fireEvent.click(screen.getByRole("button"));
+          expect(screen.getByRole("status")).toHaveTextContent(en.cat.quotes[0]);
+          advance(4000);
+          expect(hint(container)).toHaveTextContent(en.cat.holdHint);
+          purr();
+          advance(10_000);
+          expect(hint(container)).toBeNull();
+          expect(errors).not.toHaveBeenCalled();
+        },
+      );
+    });
+
+    it("leaves no timer running when he unmounts before the hint is due", () => {
+      const { unmount } = render(<HeroCat now={DAY} />);
+      advance(HINT.delayMs - 100);
+      expect(vi.getTimerCount()).toBeGreaterThan(0);
+      unmount();
+      expect(vi.getTimerCount()).toBe(0);
+    });
+  });
+
+  describe("holiday hats", () => {
+    /** Noon in Ulaanbaatar on a December day (Christmas) and on 5 January (the birthday). */
+    const DECEMBER = new Date("2026-12-10T04:50:00Z");
+    const BIRTHDAY = new Date("2027-01-05T04:50:00Z");
+    const hats = (container: HTMLElement) => [...container.querySelectorAll(".cat-hat")];
+
+    /** HeroCat driven by the page's own clock, as the hero mounts him (so `?time=` previews drive him too). */
+    function Clocked() {
+      return <HeroCat now={useNow()} />;
+    }
+
+    afterEach(() => {
+      window.history.replaceState(null, "", "/");
+    });
+
+    it("wears no hat on an ordinary day", () => {
+      const { container } = render(<HeroCat now={DAY} />);
+      expect(hats(container)).toHaveLength(0);
+    });
+
+    it("wears a Santa hat in December and a party hat on the birthday, by the calendar", () => {
+      const december = render(<HeroCat now={DECEMBER} />);
+      expect(hats(december.container)).toHaveLength(1);
+      expect(hats(december.container)[0]).toHaveAttribute("data-hat", "santa");
+      december.unmount();
+      const birthday = render(<HeroCat now={BIRTHDAY} />);
+      expect(hats(birthday.container)).toHaveLength(1);
+      expect(hats(birthday.container)[0]).toHaveAttribute("data-hat", "party");
+    });
+
+    it("keeps the hat on through the spin: one in every frame", () => {
+      const { container } = render(<HeroCat now={DECEMBER} />);
+      for (let i = 0; i < UIIA.clicks; i += 1) fireEvent.click(screen.getByRole("button"));
+      expect(container.querySelectorAll(".cat-spin-frame")).toHaveLength(4);
+      expect(container.querySelectorAll('.cat-spin-frame .cat-hat[data-hat="santa"]')).toHaveLength(4);
+    });
+
+    it("dresses up for ?holiday=christmas on any day", () => {
+      window.history.replaceState(null, "", "/?holiday=christmas");
+      const { container } = render(<HeroCat now={DAY} />);
+      expect(container.querySelector('[data-hat="santa"]')).not.toBeNull();
+    });
+
+    it("takes the hat off for ?holiday=none, even in December", () => {
+      vi.setSystemTime(DECEMBER);
+      window.history.replaceState(null, "", "/?time=12:00");
+      const dressed = render(<Clocked />);
+      expect(dressed.container.querySelector('[data-hat="santa"]')).not.toBeNull();
+      dressed.unmount();
+      window.history.replaceState(null, "", "/?holiday=none&time=12:00");
+      const { container } = render(<Clocked />);
+      expect(container.querySelector("svg.cat-art")).not.toBeNull();
+      expect(container.querySelector("[data-hat]")).toBeNull();
+    });
+
+    describe("the festive first line", () => {
+      const advance = (ms: number) =>
+        act(() => {
+          vi.advanceTimersByTime(ms);
+        });
+
+      it("says the Christmas line on the first poke by day, then the usual lines from the first", () => {
+        window.history.replaceState(null, "", "/?holiday=christmas");
+        render(<HeroCat now={DAY} />);
+        const button = screen.getByRole("button");
+        const status = screen.getByRole("status");
+        fireEvent.click(button);
+        expect(status).toHaveTextContent(en.cat.festive.christmas);
+        advance(UIIA.windowMs);
+        fireEvent.click(button);
+        expect(status).toHaveTextContent(en.cat.quotes[0]);
+        advance(UIIA.windowMs);
+        fireEvent.click(button);
+        expect(status).toHaveTextContent(en.cat.quotes[1]);
+      });
+
+      it("says the birthday line on the birthday, by the calendar or the prop, in Mongolian too", () => {
+        const byDate = render(<HeroCat now={BIRTHDAY} />);
+        fireEvent.click(screen.getByRole("button"));
+        expect(screen.getByRole("status")).toHaveTextContent(en.cat.festive.birthday);
+        byDate.unmount();
+        usePortfolioStore.getState().setLanguage("mn");
+        render(<HeroCat now={DAY} holiday="birthday" />);
+        fireEvent.click(screen.getByRole("button"));
+        expect(screen.getByRole("status")).toHaveTextContent(dictionaries.mn.cat.festive.birthday);
+      });
+
+      it("has no festive line on an ordinary day", () => {
+        render(<HeroCat now={DECEMBER} holiday={null} />);
+        fireEvent.click(screen.getByRole("button"));
+        expect(screen.getByRole("status")).toHaveTextContent(en.cat.quotes[0]);
+      });
+
+      it("still says shh at night", () => {
+        const night = new Date("2026-12-10T16:00:00Z");
+        render(<HeroCat now={night} />);
+        fireEvent.click(screen.getByRole("button"));
+        expect(screen.getByRole("status")).toHaveTextContent(en.cat.sleeping);
+      });
+
+      it("does not break UIIA: five quick pokes on a holiday still spin him", () => {
+        const { container } = render(<HeroCat now={DAY} holiday="christmas" />);
+        const button = screen.getByRole("button");
+        for (let i = 0; i < UIIA.clicks; i += 1) {
+          if (i > 0) advance(100);
+          fireEvent.click(button);
+          if (i === 0) expect(screen.getByRole("status")).toHaveTextContent(en.cat.festive.christmas);
+        }
+        expect(screen.getByRole("status")).toHaveTextContent(en.cat.uiia);
+        expect(container.firstElementChild).toHaveAttribute("data-uiia", "spin");
+      });
+
+      it("does not break the purr: a purr then its click says no line, and the next poke is the festive one", () => {
+        const { container } = render(<HeroCat now={DAY} holiday="christmas" />);
+        const button = screen.getByRole("button");
+        const status = screen.getByRole("status");
+        fireEvent.pointerDown(button);
+        advance(PURR.holdMs + 100);
+        fireEvent.pointerUp(button);
+        fireEvent.click(button);
+        expect(status).toHaveTextContent(en.cat.purr);
+        expect(status).not.toHaveTextContent(en.cat.festive.christmas);
+        // Four quick pokes after: the purr's click was not counted, so no UIIA; the first of them is the festive line.
+        fireEvent.click(button);
+        expect(status).toHaveTextContent(en.cat.festive.christmas);
+        for (let i = 1; i < UIIA.clicks - 1; i += 1) {
+          advance(100);
+          fireEvent.click(button);
+        }
+        expect(status).toHaveTextContent(en.cat.quotes[2]);
+        expect(container.firstElementChild).not.toHaveAttribute("data-uiia");
+      });
+    });
+
+    it("advances the pet hint on the festive poke like any other", () => {
+      const { container } = render(<HeroCat now={DAY} holiday="christmas" />);
+      act(() => {
+        vi.advanceTimersByTime(HINT.delayMs);
+      });
+      fireEvent.click(screen.getByRole("button"));
+      expect(screen.getByRole("status")).toHaveTextContent(en.cat.festive.christmas);
+      expect(window.localStorage.getItem(HINT.storageKey)).toBe("poked");
+      act(() => {
+        vi.advanceTimersByTime(4000);
+      });
+      expect(container.querySelector(".hero-cat-hint")).toHaveTextContent(en.cat.holdHint);
+    });
+
+    it("wears what the holiday prop says when the hero passes one, over the calendar and the query", () => {
+      window.history.replaceState(null, "", "/?holiday=christmas");
+      const party = render(<HeroCat now={DECEMBER} holiday="birthday" />);
+      expect(hats(party.container).map((hat) => hat.getAttribute("data-hat"))).toEqual(["party"]);
+      party.unmount();
+      const bare = render(<HeroCat now={DECEMBER} holiday={null} />);
+      expect(hats(bare.container)).toHaveLength(0);
+    });
+  });
 });
 
 describe("cat.css", () => {
@@ -895,6 +1326,64 @@ describe("cat.css", () => {
     expect(css).toMatch(/@keyframes cat-heart-fade\s*\{\s*0%\s*\{\s*opacity:\s*1;\s*\}\s*75%,\s*100%\s*\{\s*opacity:\s*0\.5;\s*\}\s*\}/);
     // The hearts never take the pointer.
     expect(/\.hero-cat-hearts\s*\{([^}]*)\}/.exec(css)?.[1]).toMatch(/pointer-events:\s*none;/);
+  });
+
+  it("lifts the day hearts a cell when he wears a hat, so none lands on its tip", () => {
+    // The day hearts' place and lanes, read from the rules; a heart shows from the rise's first step (one cell up).
+    const num = (rule: string | undefined, name: string) => Number(new RegExp(`${name}:\\s*(-?\\d+);`).exec(rule ?? "")?.[1]);
+    const heart = /\.hero-cat-heart\s*\{([^}]*)\}/.exec(css)?.[1];
+    const x = num(heart, "--x");
+    const lanes = [num(heart, "--lane"), ...[1, 2].map((l) => num(new RegExp(`\\.hero-cat-heart\\[data-lane="${l}"\\]\\s*\\{([^}]*)\\}`).exec(css)?.[1], "--lane"))];
+    const hatted = /\.hero-cat\[data-mood="day"\]:has\(\.cat-hat\) \.hero-cat-heart\s*\{([^}]*)\}/.exec(css)?.[1];
+    expect(hatted, "a day rule for the hearts over a hat").toBeDefined();
+    const y = num(hatted, "--y") - 1;
+    const cells = (map: readonly string[], left: number, top: number) =>
+      map.flatMap((row, r) => [...row].flatMap((c, col) => (c === "." ? [] : [`${left + col},${top + r}`])));
+    for (const hat of [SANTA_HAT, PARTY_HAT]) {
+      const hatCells = new Set(cells(hat, HAT_AT.day.x, HAT_AT.day.y));
+      for (const lane of lanes) {
+        for (const cell of cells(HEART, x + lane, y)) expect(hatCells.has(cell), `lane ${lane} at ${cell}`).toBe(false);
+      }
+    }
+  });
+
+  it("hides the night z's while a heart is up, so the two never pile on each other", () => {
+    expect(css).toMatch(/\.hero-cat\[data-mood="night"\]:has\(\.hero-cat-heart\) \.cat-zzz\s*\{\s*visibility:\s*hidden;\s*\}/);
+  });
+
+  it("puts the pet hint in the speech box's place and shape: the same rules, never the pointer", () => {
+    const rules = [...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)].map(([, head, body]) => ({
+      selectors: (head ?? "").split(",").map((part) => part.trim()),
+      body: body ?? "",
+    }));
+    // Every geometry rule of the box (its anchor and cap, the night place, the phone place, the tail) also names the hint.
+    for (const bubble of [
+      ".hero-cat-bubble",
+      '.hero-cat[data-mood="night"] .hero-cat-bubble',
+      '.hero-cat[data-mood="day"] .hero-cat-bubble',
+      ".hero-cat-bubble::after",
+      '.hero-cat[data-mood="night"] .hero-cat-bubble::after',
+      '.hero-cat[data-mood="day"] .hero-cat-bubble::after',
+    ]) {
+      const its = rules.filter(({ selectors }) => selectors.includes(bubble));
+      expect(its.length, bubble).toBeGreaterThan(0);
+      for (const { selectors } of its) expect(selectors, bubble).toContain(bubble.replace("hero-cat-bubble", "hero-cat-hint"));
+    }
+    const hint = rules.filter(({ selectors }) => selectors.includes(".hero-cat-hint")).map(({ body }) => body);
+    expect(hint.join("")).toMatch(/pointer-events:\s*none;/);
+    const rule = /\.hero-cat-hint\s*\{([^}]*)\}/.exec(css)?.[1] ?? "";
+    // Quieter than the box: the whole label at reduced opacity, bobbing one unit every 2 s in steps.
+    expect(rule).toMatch(/opacity:\s*0\.\d+;/);
+    expect(rule).toMatch(/animation:\s*cat-hint-bob 2s steps\(1, end\) infinite;/);
+    expect(css).toMatch(
+      /@keyframes cat-hint-bob\s*\{\s*0%,\s*100%\s*\{\s*transform:\s*translateY\(0\);\s*\}\s*50%\s*\{\s*transform:\s*translateY\(calc\(var\(--px\) \* -1\)\);\s*\}\s*\}/,
+    );
+  });
+
+  it("keeps the pet hint still under reduced motion", () => {
+    const block = css.slice(css.indexOf("@media (prefers-reduced-motion: reduce)"));
+    const off = /([^{}]*)\{\s*animation:\s*none !important;/.exec(block)?.[1] ?? "";
+    expect(off.split(",").map((part) => part.trim())).toContain(".hero-cat-hint");
   });
 
   it("holds his eye still while he purrs: no glance over the shut eye", () => {

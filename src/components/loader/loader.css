@@ -144,6 +144,27 @@ html[data-loader="run"] .loader,
   opacity: 1;
 }
 
+/*
+ * The hats ride inside every frame (so the pounce's lift and the tumble's turns carry them) and show only when the
+ * overlay's holiday asks: the Santa hat at Christmas, the party hat on the birthday. The seated and proud poses are
+ * tallest, and the hat stands above the cat's grid, so the drawing may overflow it.
+ */
+.yarn-cat .cat-art {
+  overflow: visible;
+}
+
+.yarn-cat .cat-hat {
+  display: none;
+}
+
+.loader[data-holiday="christmas"] .yarn-cat .cat-hat[data-hat="santa"] {
+  display: inline;
+}
+
+.loader[data-holiday="birthday"] .yarn-cat .cat-hat[data-hat="party"] {
+  display: inline;
+}
+
 @media (prefers-reduced-motion: no-preference) {
   /* While moving, about to, or ending: no plain sitting (the tumble brings it back, dazed). */
   .loader[data-yarn-motion="run"] .yarn-cat [data-cat-frame="sit"],

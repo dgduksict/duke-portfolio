@@ -12,6 +12,7 @@ import { MUG, STEAM_1, STEAM_2, type Sprite } from "@/components/cat/sprites";
  *   l leaf    i leaf, lit        L leaf, shaded  p pot                P pot, shaded
  *   a lamp    A lamp, lit        D lamp, shaded  m metal (radiator)   M metal, shaded
  *   c paper / cream              b book (navy)
+ *   s star (holiday)             r o g u baubles: red, amber, green, blue (the fairy lights' colours)
  */
 const ROOM_PALETTE: Readonly<Record<string, string>> = {
   W: "--scene-wood-deep",
@@ -30,6 +31,11 @@ const ROOM_PALETTE: Readonly<Record<string, string>> = {
   M: "--scene-metal-shade",
   c: "--scene-paper",
   b: "--scene-book",
+  s: "--scene-star",
+  r: "--scene-bulb-red",
+  o: "--scene-bulb-amber",
+  g: "--scene-bulb-green",
+  u: "--scene-bulb-blue",
 };
 
 /** The cat sprite file's mug, in the scene's own mug colours (it must not lean on the cat's variables). */
@@ -210,6 +216,58 @@ const FLOOR_PLANT: Sprite = [
   "....PPPPPPP...",
 ];
 
+/**
+ * Christmas: a small fir with a star and four baubles, three stepped tiers on a trunk in a pot. 11 x 20. It stands
+ * in the corner between the desk and the window, so its top stays narrow: clear of the sill that juts out over it.
+ */
+const XMAS_TREE: Sprite = [
+  ".....s.....",
+  "....sss....",
+  ".....s.....",
+  ".....i.....",
+  "....ilL....",
+  "...ilrlL...",
+  "....ilL....",
+  "...illlL...",
+  "..ilulllL..",
+  ".illllloLL.",
+  "...illlL...",
+  "..illrllL..",
+  ".iolllllLL.",
+  "illllllulLL",
+  "....wdd....",
+  "....wdd....",
+  "...PPPPP...",
+  "...ppppP...",
+  "...ppppP...",
+  "....ppP....",
+];
+
+/**
+ * The birthday cake on the sill: sponge with a layer of jam, cream on top running down in two drips, on a plate, and one
+ * striped candle. The flame is drawn separately in two frames (`CAKE_FLAME`). 9 x 12.
+ */
+const CAKE: Sprite = [
+  ".........",
+  ".........",
+  "....W....",
+  "....c....",
+  "....b....",
+  "....c....",
+  ".ccccccc.",
+  ".hchhhch.",
+  ".ppppppp.",
+  ".hhhhhhh.",
+  ".hhhhhhh.",
+  "MMMMMMMMM",
+];
+
+/** The candle flame's two frames: the tip leans one cell, then stands. */
+const CAKE_FLAME: readonly [Sprite, Sprite] = [
+  ["....o....", "....s...."],
+  [".....o...", "....s...."],
+];
+
 /* -------------------------------------------------------------- the lamp glow */
 
 /** A stepped octagon of radius `r` around a cell, one rect per row. */
@@ -247,6 +305,8 @@ export const ROOM_ROWS = 95;
 /** The floor line and the desk top, in room rows. */
 const FLOOR = ROOM_ROWS;
 const DESK_TOP = 78;
+/** The Christmas tree's left column: just right of the desk's leg; it ends three cells short of the frame. */
+const TREE_X = 66;
 
 const DESK: readonly Box[] = [
   // top board: lit edge, face, shade
@@ -284,8 +344,11 @@ const PICTURE: readonly Box[] = [
   [23, 27, 22, 1, "--scene-wood-hi"],
 ];
 
-/** The day side of the room: a floor plant, a desk with books and the lamp, a picture on the wall. */
-export function RoomLeft() {
+/**
+ * The day side of the room: a floor plant, a desk with books and the lamp, a picture on the wall; for Christmas
+ * (`tree`), a small tree in the corner by the window, on the floor between the desk and the wall under the sill.
+ */
+export function RoomLeft({ tree = false }: { readonly tree?: boolean }) {
   const lampX = 50;
   const lampY = DESK_TOP - LAMP.length;
   return (
@@ -293,9 +356,12 @@ export function RoomLeft() {
       <LampGlow cx={lampX + 6} cy={lampY + 9} />
       <Boxes boxes={PICTURE} />
       <Bitmap map={FLOOR_PLANT} x={-4} y={FLOOR - FLOOR_PLANT.length} layer="floor-plant" />
-      <Boxes boxes={DESK} />
+      <g data-layer="desk">
+        <Boxes boxes={DESK} />
+      </g>
       <Boxes boxes={BOOKS_ON_DESK} />
       <Bitmap map={LAMP} x={lampX} y={lampY} className="scene-lamp" layer="lamp" />
+      {tree ? <Bitmap map={XMAS_TREE} x={TREE_X} y={FLOOR - XMAS_TREE.length} layer="xmas-tree" /> : null}
     </Art>
   );
 }
@@ -422,6 +488,20 @@ export function Mug() {
       <Bitmap map={STEAM_1} x={2} y={0} palette={MUG_PALETTE} className="scene-steam scene-steam-1" />
       <Bitmap map={STEAM_2} x={2} y={0} palette={MUG_PALETTE} className="scene-steam scene-steam-2" />
       <Bitmap map={MUG} y={8} palette={MUG_PALETTE} />
+    </Art>
+  );
+}
+
+/**
+ * The birthday cake on the sill, clear of the plants and of the cat's slot (scene.css places it). The candle's flame
+ * flickers in two frames, in steps; under reduced motion it holds the first.
+ */
+export function Cake() {
+  return (
+    <Art cols={9} rows={12} className="scene-cake" layer="cake">
+      <Bitmap map={CAKE} />
+      <Bitmap map={CAKE_FLAME[0]} className="scene-flame-1" />
+      <Bitmap map={CAKE_FLAME[1]} className="scene-flame-2" />
     </Art>
   );
 }

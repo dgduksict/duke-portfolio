@@ -51,4 +51,18 @@ describe("YarnStage", () => {
     const catFills = [...container.querySelectorAll("[data-yarn-cat] rect")].map((rect) => rect.getAttribute("fill"));
     expect(catFills).not.toContain("var(--cat-yarn)");
   });
+
+  it("draws both hats in every frame, inside the frame so they ride its lift and its turns", () => {
+    const { container } = render(<YarnStage />);
+    for (const name of FRAMES) {
+      const frame = container.querySelector(`g[data-cat-frame="${name}"]`);
+      for (const hat of ["santa", "party"]) {
+        const hats = frame?.querySelectorAll(`g.cat-hat[data-hat="${hat}"]`);
+        expect(hats, `${name} ${hat}`).toHaveLength(1);
+        expect(hats?.[0]?.querySelectorAll("rect").length, `${name} ${hat}`).toBeGreaterThan(0);
+      }
+    }
+    expect(container.querySelectorAll(".cat-hat")).toHaveLength(FRAMES.length * 2);
+  });
 });
+

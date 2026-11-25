@@ -158,6 +158,55 @@ describe("LoadingScreen", () => {
     expect(overlay).toHaveAttribute("data-yarn-ending", "sit");
   });
 
+  it("puts the holiday on the overlay from the effect", () => {
+    const host = document.createElement("div");
+    host.innerHTML = renderToString(<LoadingScreen />);
+    expect(host.querySelector(".loader")).not.toHaveAttribute("data-holiday");
+
+    // 10 December 2026, midday in Ulaanbaatar.
+    vi.setSystemTime(new Date("2026-12-10T04:00:00Z"));
+    setMarker("on");
+    const { container } = render(<LoadingScreen />);
+    expect(container.querySelector(".loader")).toHaveAttribute("data-holiday", "christmas");
+  });
+
+  it("puts the birthday on the overlay on 5 January, and nothing on an ordinary day", () => {
+    vi.setSystemTime(new Date("2027-01-05T04:00:00Z"));
+    setMarker("on");
+    const first = render(<LoadingScreen />);
+    expect(first.container.querySelector(".loader")).toHaveAttribute("data-holiday", "birthday");
+    first.unmount();
+
+    vi.setSystemTime(new Date("2026-10-05T04:00:00Z"));
+    setMarker("on");
+    window.sessionStorage.clear();
+    const second = render(<LoadingScreen />);
+    expect(second.container.querySelector(".loader")).not.toHaveAttribute("data-holiday");
+  });
+
+  it("lets ?holiday= override the date: birthday in December, none in December", () => {
+    vi.setSystemTime(new Date("2026-12-10T04:00:00Z"));
+    window.history.replaceState(null, "", "/?holiday=birthday");
+    setMarker("on");
+    const first = render(<LoadingScreen />);
+    expect(first.container.querySelector(".loader")).toHaveAttribute("data-holiday", "birthday");
+    first.unmount();
+
+    window.history.replaceState(null, "", "/?holiday=none");
+    setMarker("on");
+    window.sessionStorage.clear();
+    const second = render(<LoadingScreen />);
+    expect(second.container.querySelector(".loader")).not.toHaveAttribute("data-holiday");
+  });
+
+  it("ignores an unknown ?holiday= and follows the date", () => {
+    vi.setSystemTime(new Date("2026-12-10T04:00:00Z"));
+    window.history.replaceState(null, "", "/?holiday=easter");
+    setMarker("on");
+    const { container } = render(<LoadingScreen />);
+    expect(container.querySelector(".loader")).toHaveAttribute("data-holiday", "christmas");
+  });
+
   it("moves the ball and cat with the lit blocks", () => {
     setMarker("on");
     // The load event never comes: the bar stops at half, ten lit blocks.
@@ -538,6 +587,20 @@ describe("loader.css", () => {
       if (!/\.yarn-(?:ball|cat)\b/.test(selectors ?? "")) continue;
       expect(body, selectors).not.toMatch(/transition/);
     }
+  });
+
+  it("hides the hats unless the overlay's holiday matches: santa at christmas, party on the birthday", () => {
+    // Hidden by default, whatever the frame shows.
+    expect(code).toMatch(/\.yarn-cat\s+\.cat-hat\s*\{[^}]*display:\s*none/);
+    expect(code).toMatch(
+      /\.loader\[data-holiday="christmas"\]\s+\.yarn-cat\s+\.cat-hat\[data-hat="santa"\]\s*\{[^}]*display:\s*(?:inline|block)/,
+    );
+    expect(code).toMatch(
+      /\.loader\[data-holiday="birthday"\]\s+\.yarn-cat\s+\.cat-hat\[data-hat="party"\]\s*\{[^}]*display:\s*(?:inline|block)/,
+    );
+    // Nothing shows a hat for the wrong holiday.
+    expect(code).not.toMatch(/data-holiday="christmas"\][^{]*data-hat="party"/);
+    expect(code).not.toMatch(/data-holiday="birthday"\][^{]*data-hat="santa"/);
   });
 
   it("has no window scene left in it", () => {

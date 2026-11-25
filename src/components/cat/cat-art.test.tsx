@@ -1,7 +1,8 @@
 import { readFileSync } from "node:fs";
 import { render } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { CatArt } from "@/components/cat/cat-art";
+import { Fragment, type ReactElement } from "react";
+import { CatArt, hatFor } from "@/components/cat/cat-art";
 import { PALETTE, SPIN_BODY } from "@/components/cat/sprites";
 import type { RulerPose } from "@/lib/cat";
 
@@ -209,6 +210,228 @@ describe("CatArt (mini)", () => {
   });
 });
 
+/** A rect's box in its own coordinates (the x, y, width and height it carries). */
+function localBox(rect: Element): Box {
+  const x0 = Number(rect.getAttribute("x"));
+  const y0 = Number(rect.getAttribute("y"));
+  return { x0, y0, x1: x0 + Number(rect.getAttribute("width")), y1: y0 + Number(rect.getAttribute("height")) };
+}
+
+/** A rect's box in the svg's own units: every `translate` and `scale` on the groups above it, applied in turn. */
+function svgBox(rect: Element): Box {
+  let { x0, y0, x1, y1 } = localBox(rect);
+  for (let el = rect.parentElement; el !== null && el.tagName.toLowerCase() !== "svg"; el = el.parentElement) {
+    const ops = [...(el.getAttribute("transform") ?? "").matchAll(/(translate|scale)\(([^)]*)\)/g)].reverse();
+    for (const [, op, args = ""] of ops) {
+      const [a = 0, b] = args.trim().split(/[\s,]+/).map(Number);
+      if (op === "translate") {
+        x0 += a;
+        x1 += a;
+        y0 += b ?? 0;
+        y1 += b ?? 0;
+      } else {
+        const sy = b ?? a;
+        [x0, x1] = [Math.min(x0 * a, x1 * a), Math.max(x0 * a, x1 * a)];
+        [y0, y1] = [Math.min(y0 * sy, y1 * sy), Math.max(y0 * sy, y1 * sy)];
+      }
+    }
+  }
+  return { x0, y0, x1, y1 };
+}
+
+interface Box {
+  x0: number;
+  y0: number;
+  x1: number;
+  y1: number;
+}
+
+const union = (boxes: readonly Box[]): Box => ({
+  x0: Math.min(...boxes.map((b) => b.x0)),
+  y0: Math.min(...boxes.map((b) => b.y0)),
+  x1: Math.max(...boxes.map((b) => b.x1)),
+  y1: Math.max(...boxes.map((b) => b.y1)),
+});
+
+const overlaps = (a: Box, b: Box) => a.x0 < b.x1 && b.x0 < a.x1 && a.y0 < b.y1 && b.y0 < a.y1;
+
+/** The cat's own rects under `root` (ink and rim), never the hat's. */
+const catInk = (root: Element) =>
+  [...root.querySelectorAll('rect[fill="var(--cat-ink)"], rect[fill="var(--cat-rim)"]')].filter((r) => r.closest(".cat-hat") === null);
+
+/**
+ * Where the head is in the drawings that are whole pictures with no `cat-head` group (the spin's front and back, the
+ * wake's yawn and stretch), in cells of their 28-cell grid: the box round the ears and the skull.
+ */
+const WHOLE_HEADS: Readonly<Record<string, Box>> = {
+  front: { x0: 3, y0: 3, x1: 18, y1: 13 },
+  back: { x0: 3, y0: 3, x1: 18, y1: 13 },
+  yawn: { x0: 5, y0: 3, x1: 16, y1: 11 },
+  stretch: { x0: 12, y0: 15, x1: 20, y1: 20 },
+};
+
+/**
+ * The top rows of the head (its first four cells), in the coordinates the head's own rects carry: the `cat-head` group
+ * where the drawing has one, else the cat's ink inside the drawing's WHOLE_HEADS box.
+ */
+function headTop(root: Element, cell: number, whole?: string): Box {
+  let head: Box;
+  if (whole === undefined) {
+    const group = root.querySelector(".cat-head");
+    expect(group).not.toBeNull();
+    head = union([...(group?.querySelectorAll("rect") ?? [])].filter((r) => r.closest(".cat-hat") === null).map(localBox));
+  } else {
+    const cells = WHOLE_HEADS[whole] as Box;
+    const area = { x0: cells.x0 * cell, y0: cells.y0 * cell, x1: cells.x1 * cell, y1: cells.y1 * cell };
+    const inside = catInk(root).map(localBox).filter((b) => overlaps(b, area));
+    const ink = union(inside);
+    head = { x0: Math.max(ink.x0, area.x0), y0: Math.max(ink.y0, area.y0), x1: Math.min(ink.x1, area.x1), y1: Math.min(ink.y1, area.y1) };
+  }
+  return { ...head, y1: Math.min(head.y1, head.y0 + 4 * cell) };
+}
+
+describe("CatArt hats", () => {
+  const HATS = ["santa", "party"] as const;
+
+  it("wears no hat on an ordinary day", () => {
+    const { container } = render(
+      <>
+        <CatArt variant="hero" state="day" />
+        <CatArt variant="hero" state="night" />
+        <CatArt variant="hero" state="day" uiia />
+        <CatArt variant="hero" state="night" uiia />
+        <CatArt variant="hero" state="day" wake />
+        <CatArt variant="hero" state="day" content />
+        {POSES.map((pose) => (
+          <CatArt key={pose} variant="mini" pose={pose} />
+        ))}
+      </>,
+    );
+    expect(container.querySelector(".cat-hat, [data-hat]")).toBeNull();
+    expect(container.querySelector('rect[fill^="var(--cat-santa"]')).toBeNull();
+  });
+
+  it("maps the holiday to his hat: a Santa hat for Christmas, a party hat for the birthday, none otherwise", () => {
+    expect(hatFor("christmas")).toBe("santa");
+    expect(hatFor("birthday")).toBe("party");
+    expect(hatFor(null)).toBeUndefined();
+    expect(hatFor(undefined)).toBeUndefined();
+  });
+
+  it("wears a santa hat in every hero drawing", () => {
+    for (const state of ["day", "night"] as const) {
+      const { container, unmount } = render(<CatArt variant="hero" state={state} hat="santa" />);
+      const hats = container.querySelectorAll(".cat-hat");
+      expect(hats, state).toHaveLength(1);
+      expect(hats[0]).toHaveAttribute("data-hat", "santa");
+      // In the head group, so it breathes and glances with his head.
+      expect(hats[0]?.parentElement).toHaveClass("cat-head");
+      expect(hats[0]?.querySelector('rect[fill="var(--cat-santa)"]')).not.toBeNull();
+      expect(hats[0]?.querySelector('rect[fill="var(--cat-white)"]'), "the brim").not.toBeNull();
+      unmount();
+    }
+    for (const state of ["day", "night"] as const) {
+      const { container, unmount } = render(<CatArt variant="hero" state={state} uiia hat="santa" />);
+      const frames = [...container.querySelectorAll(".cat-spin-frame")];
+      expect(frames).toHaveLength(4);
+      for (const frame of frames) {
+        const hats = frame.querySelectorAll('.cat-hat[data-hat="santa"]');
+        expect(hats, `${state} ${frame.getAttribute("data-frame")}`).toHaveLength(1);
+      }
+      // The side frames wear it in their head group; the mirror's is mirrored with him.
+      expect(container.querySelector('.cat-spin-frame[data-frame="mirror"] > g[transform] .cat-head > .cat-hat')).not.toBeNull();
+      unmount();
+    }
+    const { container } = render(<CatArt variant="hero" state="day" wake hat="santa" />);
+    const frames = [...container.querySelectorAll(".cat-wake-frame")];
+    expect(frames).toHaveLength(2);
+    for (const frame of frames) expect(frame.querySelectorAll('.cat-hat[data-hat="santa"]')).toHaveLength(1);
+  });
+
+  it("droops the santa hat over his ear at night, and keeps the party hat upright", () => {
+    /** The hat's cells relative to its own top left, so two hats in different places compare by shape. */
+    const shape = (node: ReactElement) => {
+      const { container, unmount } = render(node);
+      const boxes = [...container.querySelectorAll(".cat-hat rect")].map(localBox);
+      unmount();
+      const at = union(boxes);
+      return boxes.map((b) => `${b.x0 - at.x0},${b.y0 - at.y0},${b.x1 - b.x0},${b.y1 - b.y0}`).sort();
+    };
+    const santaDay = shape(<CatArt variant="hero" state="day" hat="santa" />);
+    expect(santaDay.length).toBeGreaterThan(0);
+    expect(shape(<CatArt variant="hero" state="night" hat="santa" />)).not.toEqual(santaDay);
+    expect(shape(<CatArt variant="hero" state="night" hat="party" />)).toEqual(shape(<CatArt variant="hero" state="day" hat="party" />));
+  });
+
+  it("wears a party hat on the birthday", () => {
+    const { container } = render(
+      <>
+        <CatArt variant="hero" state="day" hat="party" />
+        <CatArt variant="hero" state="night" hat="party" />
+        <CatArt variant="hero" state="day" uiia hat="party" />
+        <CatArt variant="hero" state="day" wake hat="party" />
+        {POSES.map((pose) => (
+          <CatArt key={pose} variant="mini" pose={pose} hat="party" />
+        ))}
+      </>,
+    );
+    const hats = [...container.querySelectorAll(".cat-hat")];
+    expect(hats).toHaveLength(2 + 4 + 2 + POSES.length);
+    for (const hat of hats) {
+      expect(hat).toHaveAttribute("data-hat", "party");
+      // Amber stripes with the pink, no Santa red.
+      expect(hat.querySelector('rect[fill="var(--cat-amber)"]')).not.toBeNull();
+      expect(hat.querySelector('rect[fill^="var(--cat-santa"]')).toBeNull();
+    }
+  });
+
+  /** Every drawing a hat sits in: where to look for it and its head, and the drawing's cell and box size. */
+  const drawings: { name: string; node: (hat: "santa" | "party") => ReactElement; frame?: string; whole?: string; cell: number; size: number }[] = [
+    { name: "hero day", node: (hat) => <CatArt variant="hero" state="day" hat={hat} />, cell: 6, size: 168 },
+    { name: "hero night", node: (hat) => <CatArt variant="hero" state="night" hat={hat} />, cell: 6, size: 168 },
+    ...(["day", "night"] as const).flatMap((state) =>
+      (["side", "front", "mirror", "back"] as const).map((frame) => ({
+        name: `hero ${state} spin, ${frame}`,
+        node: (hat: "santa" | "party") => <CatArt variant="hero" state={state} uiia hat={hat} />,
+        frame: `.cat-spin-frame[data-frame="${frame}"]`,
+        whole: frame === "front" || frame === "back" ? frame : undefined,
+        cell: 6,
+        size: 168,
+      })),
+    ),
+    ...(["yawn", "stretch"] as const).map((frame) => ({
+      name: `hero wake, ${frame}`,
+      node: (hat: "santa" | "party") => <CatArt variant="hero" state="day" wake hat={hat} />,
+      frame: `.cat-wake-frame[data-frame="${frame}"]`,
+      whole: frame,
+      cell: 6,
+      size: 168,
+    })),
+    ...POSES.map((pose) => ({ name: `mini ${pose}`, node: (hat: "santa" | "party") => <CatArt variant="mini" pose={pose} hat={hat} />, cell: 3, size: 48 })),
+  ];
+
+  it.each(drawings.flatMap((d) => HATS.map((hat) => ({ ...d, hat }))))("puts the $hat hat on his head: $name", ({ node, hat, frame, whole, cell, size }) => {
+    const { container } = render(node(hat));
+    const root = frame === undefined ? container.querySelector("svg") : container.querySelector(frame);
+    expect(root).not.toBeNull();
+    const hats = root?.querySelectorAll(".cat-hat") ?? [];
+    expect(hats).toHaveLength(1);
+    const rects = [...(hats[0]?.querySelectorAll("rect") ?? [])];
+    expect(rects.length).toBeGreaterThan(0);
+    // On his head: the hat covers some of the head's top four rows (in the coordinates they share).
+    const top = headTop(root as Element, cell, whole);
+    expect(overlaps(union(rects.map(localBox)), top), `hat ${JSON.stringify(union(rects.map(localBox)))} head ${JSON.stringify(top)}`).toBe(true);
+    // And every cell of it inside the drawing's box, once the mirror, the lift and the night shift are applied.
+    for (const rect of rects) {
+      const b = svgBox(rect);
+      expect(b.x0, "left").toBeGreaterThanOrEqual(0);
+      expect(b.y0, "top").toBeGreaterThanOrEqual(0);
+      expect(b.x1, "right").toBeLessThanOrEqual(size);
+      expect(b.y1, "bottom").toBeLessThanOrEqual(size);
+    }
+  });
+});
+
 describe("CatArt markup", () => {
   it("gives every instance its own ids", () => {
     const { container } = render(
@@ -235,8 +458,21 @@ describe("CatArt markup", () => {
         {POSES.map((pose) => (
           <CatArt key={pose} variant="mini" pose={pose} />
         ))}
+        {(["santa", "party"] as const).map((hat) => (
+          <Fragment key={hat}>
+            <CatArt variant="hero" state="day" hat={hat} />
+            <CatArt variant="hero" state="night" hat={hat} />
+            <CatArt variant="hero" state="day" uiia hat={hat} />
+            <CatArt variant="hero" state="night" uiia hat={hat} />
+            <CatArt variant="hero" state="day" wake hat={hat} />
+            {POSES.map((pose) => (
+              <CatArt key={pose} variant="mini" pose={pose} hat={hat} />
+            ))}
+          </Fragment>
+        ))}
       </>,
     );
+    expect(container.querySelectorAll(".cat-hat")).toHaveLength(2 * (2 + 4 + 4 + 2 + POSES.length));
     const parts = container.querySelectorAll("[class^='cat-'], [class*=' cat-']");
     expect(parts.length).toBeGreaterThan(0);
     for (const part of parts) {
@@ -258,6 +494,17 @@ describe("CatArt markup", () => {
     { name: "hero day, waking", kb: 15, node: <CatArt variant="hero" state="day" wake /> },
     { name: "hero day, purring", kb: 15, node: <CatArt variant="hero" state="day" content /> },
     ...POSES.map((pose) => ({ name: `mini ${pose}`, kb: 15, node: <CatArt variant="mini" pose={pose} /> })),
+    // Dressed up for the holidays: a hat in every drawing (and every frame). A resting or waking drawing keeps its
+    // 15 KB with a hat on (about 1 KB a hat, 2 KB for the wake); the spin wears four, one per frame (about 4.5 KB), so
+    // dressed it gets 26 KB. It is still client-only, drawn after five pokes, never in the page HTML.
+    ...(["santa", "party"] as const).flatMap((hat) => [
+      { name: `hero day, ${hat} hat`, kb: 15, node: <CatArt variant="hero" state="day" hat={hat} /> },
+      { name: `hero night, ${hat} hat`, kb: 15, node: <CatArt variant="hero" state="night" hat={hat} /> },
+      { name: `hero day, spinning, ${hat} hat`, kb: 26, node: <CatArt variant="hero" state="day" uiia hat={hat} /> },
+      { name: `hero night, spinning, ${hat} hat`, kb: 26, node: <CatArt variant="hero" state="night" uiia hat={hat} /> },
+      { name: `hero day, waking, ${hat} hat`, kb: 15, node: <CatArt variant="hero" state="day" wake hat={hat} /> },
+      ...POSES.map((pose) => ({ name: `mini ${pose}, ${hat} hat`, kb: 15, node: <CatArt variant="mini" pose={pose} hat={hat} /> })),
+    ]),
   ];
 
   it.each(variants)("paints $name in the portfolio palette only, under $kb KB", ({ node, kb }) => {

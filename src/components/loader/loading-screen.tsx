@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { YarnStage } from "@/components/loader/yarn-stage";
 import { useI18n } from "@/hooks/use-i18n";
+import { holidayAt, parseHolidayParam } from "@/lib/holiday";
 import { displayedProgress, LOADER, loaderReadout } from "@/lib/loader";
 import { isStalled, pickYarn, YARN, type YarnColour, type YarnEnding, yarnPositions } from "@/lib/yarn";
 
@@ -123,6 +124,11 @@ function Overlay({ phase, onPhase }: { readonly phase: Phase; readonly onPhase: 
       yarn.current ??= pickYarn(Math.random);
       root.dataset.yarnColour = yarn.current.colour;
       root.dataset.yarnEnding = yarn.current.ending;
+      // The holiday that dresses him up, also client-only: the date in Ulaanbaatar, or a `?holiday=` preview.
+      const preview = parseHolidayParam(new URLSearchParams(window.location.search).get("holiday"));
+      const holiday = preview === "none" ? null : (preview ?? holidayAt(new Date()));
+      if (holiday === null) delete root.dataset.holiday;
+      else root.dataset.holiday = holiday;
       let motion: YarnMotion = reduced ? "still" : "run";
       root.dataset.yarnMotion = motion;
       const setMotion = (next: YarnMotion) => {
