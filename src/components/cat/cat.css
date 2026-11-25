@@ -253,6 +253,11 @@
 .hero-cat-heart[data-lane="1"] { --lane: 4; }
 .hero-cat-heart[data-lane="2"] { --lane: 2; }
 
+/* Under a holiday hat by day they set off a cell higher, so the first step never lands on the hat's tip or pompom. */
+.hero-cat[data-mood="day"]:has(.cat-hat) .hero-cat-heart {
+  --y: -4;
+}
+
 .hero-cat[data-mood="night"] .hero-cat-heart {
   --x: 18;
   --y: 8;

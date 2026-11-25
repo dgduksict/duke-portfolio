@@ -1,7 +1,9 @@
 import { readFileSync } from "node:fs";
 import { act, fireEvent, render, renderHook, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { HAT_AT } from "@/components/cat/cat-art";
 import { HeroCat } from "@/components/cat/hero-cat";
+import { HEART, PARTY_HAT, SANTA_HAT } from "@/components/cat/sprites";
 import { useCatState } from "@/components/cat/use-cat-state";
 import { WindowScene } from "@/components/scene/window-scene";
 import { useNow } from "@/hooks/use-now";
@@ -1324,6 +1326,25 @@ describe("cat.css", () => {
     expect(css).toMatch(/@keyframes cat-heart-fade\s*\{\s*0%\s*\{\s*opacity:\s*1;\s*\}\s*75%,\s*100%\s*\{\s*opacity:\s*0\.5;\s*\}\s*\}/);
     // The hearts never take the pointer.
     expect(/\.hero-cat-hearts\s*\{([^}]*)\}/.exec(css)?.[1]).toMatch(/pointer-events:\s*none;/);
+  });
+
+  it("lifts the day hearts a cell when he wears a hat, so none lands on its tip", () => {
+    // The day hearts' place and lanes, read from the rules; a heart shows from the rise's first step (one cell up).
+    const num = (rule: string | undefined, name: string) => Number(new RegExp(`${name}:\\s*(-?\\d+);`).exec(rule ?? "")?.[1]);
+    const heart = /\.hero-cat-heart\s*\{([^}]*)\}/.exec(css)?.[1];
+    const x = num(heart, "--x");
+    const lanes = [num(heart, "--lane"), ...[1, 2].map((l) => num(new RegExp(`\\.hero-cat-heart\\[data-lane="${l}"\\]\\s*\\{([^}]*)\\}`).exec(css)?.[1], "--lane"))];
+    const hatted = /\.hero-cat\[data-mood="day"\]:has\(\.cat-hat\) \.hero-cat-heart\s*\{([^}]*)\}/.exec(css)?.[1];
+    expect(hatted, "a day rule for the hearts over a hat").toBeDefined();
+    const y = num(hatted, "--y") - 1;
+    const cells = (map: readonly string[], left: number, top: number) =>
+      map.flatMap((row, r) => [...row].flatMap((c, col) => (c === "." ? [] : [`${left + col},${top + r}`])));
+    for (const hat of [SANTA_HAT, PARTY_HAT]) {
+      const hatCells = new Set(cells(hat, HAT_AT.day.x, HAT_AT.day.y));
+      for (const lane of lanes) {
+        for (const cell of cells(HEART, x + lane, y)) expect(hatCells.has(cell), `lane ${lane} at ${cell}`).toBe(false);
+      }
+    }
   });
 
   it("hides the night z's while a heart is up, so the two never pile on each other", () => {
