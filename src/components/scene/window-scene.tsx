@@ -1,7 +1,8 @@
 import type { ReactNode } from "react";
 import { PixelSky } from "@/components/scene/pixel-sky";
-import { Mug, Radiator, RoomLeft, RoomRight, SillPlants } from "@/components/scene/room";
+import { Cake, Mug, Radiator, RoomLeft, RoomRight, SillPlants } from "@/components/scene/room";
 import { profile } from "@/data/profile";
+import type { Holiday } from "@/lib/holiday";
 import { moonSpot } from "@/lib/pixel-sky";
 import type { Season } from "@/lib/season";
 import { skyAt } from "@/lib/sky";
@@ -19,6 +20,11 @@ export interface WindowSceneProps {
   readonly compact?: boolean;
   /** Winter snows on the glass, summer lights fireflies on its nights; omitted or `null` shows neither. */
   readonly season?: Season | null;
+  /**
+   * Christmas strings fairy lights along the top of the glass and, where the room shows, stands a tree in it; the
+   * birthday hangs bunting there and puts a cake on the sill. Omitted or `null` decorates nothing.
+   */
+  readonly holiday?: Holiday | null;
 }
 
 /**
@@ -36,7 +42,7 @@ export interface WindowSceneProps {
  * Decorative layers are `aria-hidden` and hidden in print; the slot is not, so the cat's button stays reachable. The
  * empty strip above the window (`data-header-zone`) is what the fixed header watches to know it sits on the wall.
  */
-export function WindowScene({ now, children, compact = false, season = null }: WindowSceneProps) {
+export function WindowScene({ now, children, compact = false, season = null, holiday = null }: WindowSceneProps) {
   const sun =
     now === null ? null : sunPosition(now, profile.coordinates.latitude, profile.coordinates.longitude);
   const sky = sun === null ? null : skyAt(sun);
@@ -51,16 +57,17 @@ export function WindowScene({ now, children, compact = false, season = null }: W
             <>
               <div className="scene-wainscot" />
               <div className="scene-skirting" />
-              <RoomLeft />
+              <RoomLeft tree={holiday === "christmas"} />
               <RoomRight />
               <Radiator />
             </>
           )}
           <div className="scene-frame">
-            <PixelSky sky={sky} moon={moon} season={season} />
+            <PixelSky sky={sky} moon={moon} season={season} holiday={holiday} />
           </div>
           <div className="scene-sill" />
           <SillPlants />
+          {holiday === "birthday" ? <Cake /> : null}
           {compact ? null : <Mug />}
         </div>
       </div>

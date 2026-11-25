@@ -1,5 +1,6 @@
 import { ShootingStar } from "@/components/scene/shooting-star";
 import { Ridge, Skyline } from "@/components/scene/skyline";
+import type { Holiday } from "@/lib/holiday";
 import { bandRows, type Cell, pixelStars, quantizeBands, snap } from "@/lib/pixel-sky";
 import { fireflies, type Season, snowflakes } from "@/lib/season";
 import type { SkyState } from "@/lib/sky";
@@ -176,6 +177,99 @@ function Bars() {
   );
 }
 
+/*
+ * The holiday string across the top of the glass: a wire hung from the frame in eight shallow scallops (16 cells
+ * each, dipping two cells in the middle), drawn after the bars because it hangs on the room side of the window. The
+ * picture is pinned to the bottom centre of the glass, so its top rows are the glass's top rows and a narrow window
+ * crops the string's ends like the rest of the picture.
+ */
+const SCALLOP = 16;
+
+/** How far the string hangs below the glass's top edge at column `x`: 0 at the hooks, 1, then 2 in the middle. */
+function sag(x: number): number {
+  const t = x % SCALLOP;
+  const d = Math.min(t, SCALLOP - 1 - t);
+  return d < 2 ? 0 : d < 5 ? 1 : 2;
+}
+
+/** The string itself, as one rect per run of cells on the same row. */
+function wire(): { x: number; y: number; w: number }[] {
+  const runs: { x: number; y: number; w: number }[] = [];
+  for (let x = 0; x < GLASS_COLS; x += 1) {
+    const last = runs.at(-1);
+    if (last !== undefined && last.y === sag(x) && last.x + last.w === x) last.w += 1;
+    else runs.push({ x, y: sag(x), w: 1 });
+  }
+  return runs;
+}
+
+const WIRE = wire();
+const BULB_COLOURS = ["red", "amber", "green", "blue"] as const;
+/**
+ * Two bulbs per scallop, a quarter in from each hook. The left one is set A, the right one set B (they blink in turn),
+ * and the colours rotate so that each set holds all four and no two neighbours match.
+ */
+const BULBS = Array.from({ length: (GLASS_COLS / SCALLOP) * 2 }, (_, i) => {
+  const scallop = Math.floor(i / 2);
+  const right = i % 2;
+  const x = scallop * SCALLOP + (right === 0 ? 4 : 11);
+  return {
+    x,
+    y: sag(x) + 1,
+    colour: BULB_COLOURS[(scallop + 2 * right) % BULB_COLOURS.length],
+    set: right === 0 ? "a" : "b",
+  };
+});
+
+/**
+ * Christmas: fairy lights. Each bulb hangs from the wire on a one-cell socket, a 2 x 2 glass with a lit corner; the
+ * two sets dim and light in turn, in steps (scene.css). Under reduced motion every bulb stays lit.
+ */
+function FairyLights() {
+  return (
+    <g data-layer="fairy-lights">
+      {WIRE.map((run) => (
+        <rect key={run.x} x={run.x} y={run.y} width={run.w} height={1} fill="var(--scene-wood-deep)" />
+      ))}
+      {BULBS.map((bulb) => (
+        <g key={bulb.x}>
+          <rect x={bulb.x} y={bulb.y} width={1} height={1} fill="var(--scene-wood-deep)" />
+          <g className={`scene-bulb scene-bulb-${bulb.set}`}>
+            <rect x={bulb.x} y={bulb.y + 1} width={2} height={2} fill={`var(--scene-bulb-${bulb.colour})`} />
+            <rect x={bulb.x} y={bulb.y + 1} width={1} height={1} fill="var(--scene-bulb-shine)" />
+          </g>
+        </g>
+      ))}
+    </g>
+  );
+}
+
+/** The birthday's pennants: room colours and the accent, in turn along the string. */
+const FLAG_COLOURS = ["--accent", "--scene-pot", "--scene-leaf", "--scene-book", "--scene-paper"] as const;
+/** Two pennants per scallop, 5 cells wide and 3 deep, each hung from the wire at its centre. */
+const FLAGS = Array.from({ length: (GLASS_COLS / SCALLOP) * 2 }, (_, i) => {
+  const x = Math.floor(i / 2) * SCALLOP + (i % 2 === 0 ? 2 : 9);
+  return { x, y: sag(x + 2) + 1, colour: FLAG_COLOURS[i % FLAG_COLOURS.length] };
+});
+
+/** The birthday: a string of triangular bunting along the top of the glass. Still: flags do not need to move. */
+function Bunting() {
+  return (
+    <g data-layer="bunting">
+      {WIRE.map((run) => (
+        <rect key={run.x} x={run.x} y={run.y} width={run.w} height={1} fill="var(--scene-wood-deep)" />
+      ))}
+      {FLAGS.map((flag) => (
+        <g key={flag.x} fill={`var(${flag.colour})`}>
+          <rect x={flag.x} y={flag.y} width={5} height={1} />
+          <rect x={flag.x + 1} y={flag.y + 1} width={3} height={1} />
+          <rect x={flag.x + 2} y={flag.y + 2} width={1} height={1} />
+        </g>
+      ))}
+    </g>
+  );
+}
+
 /** Two short diagonal glints on the glass, the pixel-art shorthand for "this is a window". */
 function Glints() {
   const streak = (x: number, y: number, length: number) =>
@@ -196,15 +290,17 @@ export interface PixelSkyProps {
   readonly moon: Cell | null;
   /** Winter drops snow on the glass, summer lights fireflies on its nights; `null` (the default) shows neither. */
   readonly season?: Season | null;
+  /** Christmas strings fairy lights across the top of the glass, the birthday bunting; `null` (the default) neither. */
+  readonly holiday?: Holiday | null;
 }
 
 /**
  * The window glass: the live sky over Ulaanbaatar quantised into flat bands, a stepped glow and a pixel sun on the
  * sun's computed spot (or a moon opposite it), grid stars, the Bogd Khan ridge and the city skyline in front, then
- * the season's snow or fireflies and the window's own bars and glints. One cell is one pixel unit; the picture is pinned to the bottom centre of the
- * glass, so a narrow window crops its sides. Carries `data-ready`/`data-phase` like the old smooth sky did.
+ * the season's snow or fireflies, the window's own bars and glints and, on a holiday, its lights or bunting. One cell
+ * is one pixel unit; the picture is pinned to the bottom centre of the glass, so a narrow window crops its sides. Carries `data-ready`/`data-phase` like the old smooth sky did.
  */
-export function PixelSky({ sky, moon, season = null }: PixelSkyProps) {
+export function PixelSky({ sky, moon, season = null, holiday = null }: PixelSkyProps) {
   const bands = sky === null ? [] : quantizeBands(sky, BANDS);
   const rows = bandRows(GLASS_ROWS, BANDS);
   const sunAt =
@@ -240,6 +336,8 @@ export function PixelSky({ sky, moon, season = null }: PixelSkyProps) {
         {sky !== null && season === "summer" && sky.phase === "night" ? <Fireflies /> : null}
         <Glints />
         <Bars />
+        {holiday === "christmas" ? <FairyLights /> : null}
+        {holiday === "birthday" ? <Bunting /> : null}
       </svg>
     </div>
   );

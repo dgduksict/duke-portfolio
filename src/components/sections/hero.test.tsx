@@ -1,11 +1,15 @@
 import { render, screen } from "@testing-library/react";
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { Hero } from "@/components/sections/hero";
 import { profile } from "@/data/profile";
 import { resetPortfolioStore, usePortfolioStore } from "@/store/portfolio-store";
 
 beforeEach(() => {
   resetPortfolioStore();
+});
+
+afterEach(() => {
+  window.history.replaceState(null, "", "/");
 });
 
 describe("Hero", () => {
@@ -59,5 +63,16 @@ describe("Hero", () => {
     usePortfolioStore.getState().setLanguage("mn");
     render(<Hero />);
     expect(screen.getByRole("heading", { level: 1, name: profile.name.mn })).toBeInTheDocument();
+  });
+
+  it("dresses the scene and the cat for the same holiday", async () => {
+    window.history.replaceState(null, "", "/?holiday=birthday");
+    const { container } = render(<Hero />);
+    await screen.findByRole("button", { name: /cat/i });
+    const scene = container.querySelector("#top [data-scene]");
+    expect(scene?.querySelector('[data-layer="bunting"]')).not.toBeNull();
+    expect(scene?.querySelector('[data-layer="cake"]')).not.toBeNull();
+    expect(scene?.querySelector('[data-layer="fairy-lights"]')).toBeNull();
+    expect(scene?.querySelector('[data-cat-slot] [data-hat="party"]')).not.toBeNull();
   });
 });

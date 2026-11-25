@@ -34,6 +34,13 @@
   --scene-mug-dark: #b9770f;
   --scene-coffee: #5a3a22;
   --scene-steam: #e9e4d6;
+  /* The holidays: fairy-light bulbs and the tree's baubles (lit, so the same in both rooms), and the tree's star. */
+  --scene-bulb-red: #e0513b;
+  --scene-bulb-amber: #f5b22e;
+  --scene-bulb-green: #6cbf4a;
+  --scene-bulb-blue: #4e8fe0;
+  --scene-bulb-shine: #fff6e0;
+  --scene-star: #ffd45c;
 }
 
 .dark {
@@ -132,7 +139,8 @@
   .scene-window > .scene-right,
   .scene-window > .scene-radiator,
   .scene-window > .scene-sill-plant,
-  .scene-window > .scene-mug {
+  .scene-window > .scene-mug,
+  .scene-window > .scene-cake {
     position: absolute;
   }
 
@@ -249,6 +257,12 @@
     display: block;
   }
 
+  /* The birthday cake: on the sill just right of the plants, well left of the cat's slot at every width. */
+  .scene-cake {
+    top: calc(var(--u) * 62);
+    left: calc(var(--u) * 27);
+  }
+
   /* The sleeping cat brings his own mug (cat-art.tsx), so the scene's steps aside for him. */
   .scene:has([data-cat-slot] [data-state="night"]) .scene-mug {
     display: none;
@@ -259,7 +273,8 @@
     display: none;
   }
 
-  .scene-steam-2 {
+  .scene-steam-2,
+  .scene-flame-2 {
     opacity: 0;
   }
 
@@ -357,6 +372,25 @@
     .scene-steam-2 {
       animation: scene-steam-b 1.2s steps(1, end) infinite;
     }
+
+    /* The fairy lights: two sets, each dimming for 1.2 s while the other is lit. */
+    .scene-bulb-a {
+      animation: scene-bulb 2.4s steps(1, end) infinite;
+    }
+
+    .scene-bulb-b {
+      animation: scene-bulb 2.4s steps(1, end) infinite;
+      animation-delay: -1.2s;
+    }
+
+    /* The candle flame: the same two-frame swap as the steam, a little quicker. */
+    .scene-flame-1 {
+      animation: scene-steam-a 0.8s steps(1, end) infinite;
+    }
+
+    .scene-flame-2 {
+      animation: scene-steam-b 0.8s steps(1, end) infinite;
+    }
   }
 
   /* Reduced motion: a still picture, one steam frame, nothing looping. */
@@ -367,15 +401,20 @@
       animation: none !important;
     }
 
-    .scene-steam-2 {
+    .scene-steam-2,
+    .scene-flame-2 {
       opacity: 0;
     }
 
+    /* Every bulb lit, the flame on its first frame. */
     .scene-snow-0,
     .scene-snow-1,
     .scene-snow-drift,
     .scene-firefly,
-    .scene-shooting-star {
+    .scene-shooting-star,
+    .scene-bulb,
+    .scene-flame-1,
+    .scene-flame-2 {
       animation: none;
     }
   }
@@ -444,6 +483,17 @@
   to {
     opacity: 0;
     transform: translate(calc(var(--streak-dx) * 12px), 6px);
+  }
+}
+
+/* A bulb's set: lit for the first half of the loop, dimmed (never dark) for the second. */
+@keyframes scene-bulb {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
   }
 }
 

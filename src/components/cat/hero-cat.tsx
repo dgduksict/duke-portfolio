@@ -83,14 +83,17 @@ function morningAt(now: Date | null): boolean {
  * Holidays: he wears a Santa hat from 20 November to 31 December and a party hat on 5 January (lib/holiday.ts, by the
  * Ulaanbaatar calendar), in every drawing and frame. `holiday` is the one the page already worked out (the hero
  * passes it, so the scene and the cat agree); left out, he works it out himself from `now` and `?holiday=`
- * (useHoliday, read after mount, so the server HTML has no hat). `null` is an ordinary day.
+ * (useHoliday, read after mount, so the server HTML has no hat). `null` is an ordinary day. On a holiday his first
+ * line awake is a festive one (the dictionary's `cat.festive`), then the usual quotes from the first; at night he
+ * still says "shh". It is only the words: the poke still counts towards UIIA, and a purr's click still says nothing.
  */
 export function HeroCat({ now, holiday }: { readonly now: Date | null; readonly holiday?: Holiday | null }) {
   const { dict } = useI18n();
   const state = useCatState(now);
   // The hook always runs (hooks never run conditionally); a holiday passed in wins over it.
   const ownHoliday = useHoliday(now);
-  const hat = hatFor(holiday === undefined ? ownHoliday : holiday);
+  const today = holiday === undefined ? ownHoliday : holiday;
+  const hat = hatFor(today);
   const loaderDone = useLoaderDone();
 
   // The easter egg: recent poke times, and while it runs, whether he spins ("spin") or only speaks ("still", reduced
@@ -139,6 +142,8 @@ export function HeroCat({ now, holiday }: { readonly now: Date | null; readonly 
   // What he says when poked: one timer for the line's life, replaced by a new click and gone on unmount.
   const [line, setLine] = useState("");
   const nextQuote = useRef(0);
+  // On a holiday the first line he speaks awake is the festive one; the quotes then start from the first.
+  const festiveSaid = useRef(false);
   const lineTimer = useRef<Timer | undefined>(undefined);
 
   // The purr: whether he purrs ("move", or "still" under reduced motion) and the hearts in flight. `held` is the
@@ -170,7 +175,10 @@ export function HeroCat({ now, holiday }: { readonly now: Date | null; readonly 
 
   const speak = () => {
     let text = dict.cat.sleeping;
-    if (state !== "night") {
+    if (state !== "night" && today !== null && !festiveSaid.current) {
+      festiveSaid.current = true;
+      text = dict.cat.festive[today];
+    } else if (state !== "night") {
       const quotes = dict.cat.quotes;
       text = quotes[nextQuote.current % quotes.length] ?? dict.cat.sleeping;
       nextQuote.current += 1;

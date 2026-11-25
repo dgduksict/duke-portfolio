@@ -865,6 +865,85 @@ describe("HeroCat", () => {
       expect(container.querySelector("[data-hat]")).toBeNull();
     });
 
+    describe("the festive first line", () => {
+      const advance = (ms: number) =>
+        act(() => {
+          vi.advanceTimersByTime(ms);
+        });
+
+      it("says the Christmas line on the first poke by day, then the usual lines from the first", () => {
+        window.history.replaceState(null, "", "/?holiday=christmas");
+        render(<HeroCat now={DAY} />);
+        const button = screen.getByRole("button");
+        const status = screen.getByRole("status");
+        fireEvent.click(button);
+        expect(status).toHaveTextContent(en.cat.festive.christmas);
+        advance(UIIA.windowMs);
+        fireEvent.click(button);
+        expect(status).toHaveTextContent(en.cat.quotes[0]);
+        advance(UIIA.windowMs);
+        fireEvent.click(button);
+        expect(status).toHaveTextContent(en.cat.quotes[1]);
+      });
+
+      it("says the birthday line on the birthday, by the calendar or the prop, in Mongolian too", () => {
+        const byDate = render(<HeroCat now={BIRTHDAY} />);
+        fireEvent.click(screen.getByRole("button"));
+        expect(screen.getByRole("status")).toHaveTextContent(en.cat.festive.birthday);
+        byDate.unmount();
+        usePortfolioStore.getState().setLanguage("mn");
+        render(<HeroCat now={DAY} holiday="birthday" />);
+        fireEvent.click(screen.getByRole("button"));
+        expect(screen.getByRole("status")).toHaveTextContent(dictionaries.mn.cat.festive.birthday);
+      });
+
+      it("has no festive line on an ordinary day", () => {
+        render(<HeroCat now={DECEMBER} holiday={null} />);
+        fireEvent.click(screen.getByRole("button"));
+        expect(screen.getByRole("status")).toHaveTextContent(en.cat.quotes[0]);
+      });
+
+      it("still says shh at night", () => {
+        const night = new Date("2026-12-10T16:00:00Z");
+        render(<HeroCat now={night} />);
+        fireEvent.click(screen.getByRole("button"));
+        expect(screen.getByRole("status")).toHaveTextContent(en.cat.sleeping);
+      });
+
+      it("does not break UIIA: five quick pokes on a holiday still spin him", () => {
+        const { container } = render(<HeroCat now={DAY} holiday="christmas" />);
+        const button = screen.getByRole("button");
+        for (let i = 0; i < UIIA.clicks; i += 1) {
+          if (i > 0) advance(100);
+          fireEvent.click(button);
+          if (i === 0) expect(screen.getByRole("status")).toHaveTextContent(en.cat.festive.christmas);
+        }
+        expect(screen.getByRole("status")).toHaveTextContent(en.cat.uiia);
+        expect(container.firstElementChild).toHaveAttribute("data-uiia", "spin");
+      });
+
+      it("does not break the purr: a purr then its click says no line, and the next poke is the festive one", () => {
+        const { container } = render(<HeroCat now={DAY} holiday="christmas" />);
+        const button = screen.getByRole("button");
+        const status = screen.getByRole("status");
+        fireEvent.pointerDown(button);
+        advance(PURR.holdMs + 100);
+        fireEvent.pointerUp(button);
+        fireEvent.click(button);
+        expect(status).toHaveTextContent(en.cat.purr);
+        expect(status).not.toHaveTextContent(en.cat.festive.christmas);
+        // Four quick pokes after: the purr's click was not counted, so no UIIA; the first of them is the festive line.
+        fireEvent.click(button);
+        expect(status).toHaveTextContent(en.cat.festive.christmas);
+        for (let i = 1; i < UIIA.clicks - 1; i += 1) {
+          advance(100);
+          fireEvent.click(button);
+        }
+        expect(status).toHaveTextContent(en.cat.quotes[2]);
+        expect(container.firstElementChild).not.toHaveAttribute("data-uiia");
+      });
+    });
+
     it("wears what the holiday prop says when the hero passes one, over the calendar and the query", () => {
       window.history.replaceState(null, "", "/?holiday=christmas");
       const party = render(<HeroCat now={DECEMBER} holiday="birthday" />);

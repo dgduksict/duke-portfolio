@@ -6,6 +6,7 @@ import { GithubIcon, LinkedinIcon } from "@/components/ui/brand-icons";
 import { CopyButton } from "@/components/ui/copy-button";
 import { PixelIcon } from "@/components/ui/pixel-icons";
 import { profile } from "@/data/profile";
+import { useHoliday } from "@/hooks/use-holiday";
 import { useI18n } from "@/hooks/use-i18n";
 import { useNow } from "@/hooks/use-now";
 import { useSeason } from "@/hooks/use-season";
@@ -18,6 +19,8 @@ export function Hero() {
   const { dict, language, t } = useI18n();
   const now = useNow();
   const season = useSeason(now);
+  // Worked out once here, so the scene's decorations and the cat's hat and line always agree.
+  const holiday = useHoliday(now);
 
   const clock =
     now === null
@@ -29,8 +32,8 @@ export function Hero() {
 
   return (
     <section id="top" aria-labelledby="hero-name">
-      <WindowScene now={now} season={season}>
-        <HeroCat now={now} />
+      <WindowScene now={now} season={season} holiday={holiday}>
+        <HeroCat now={now} holiday={holiday} />
       </WindowScene>
 
       <div className="container-page pb-16 sm:pb-24">
