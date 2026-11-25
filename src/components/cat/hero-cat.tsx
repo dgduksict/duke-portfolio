@@ -1,6 +1,6 @@
 "use client";
 
-import { type PointerEvent, useEffect, useMemo, useRef, useState } from "react";
+import { type PointerEvent, useEffect, useId, useMemo, useRef, useState } from "react";
 import { CatArt, hatFor } from "@/components/cat/cat-art";
 import { PixelSprite } from "@/components/cat/pixel-sprite";
 import { HEART } from "@/components/cat/sprites";
@@ -10,6 +10,7 @@ import { profile } from "@/data/profile";
 import { useHoliday } from "@/hooks/use-holiday";
 import { useI18n } from "@/hooks/use-i18n";
 import { type CatState, countPoke, PURR, UIIA, WAKE_MS, wakesOnArrival } from "@/lib/cat";
+import { furthestHint, HINT, type HintProgress, hintStage, loadHint, saveHint } from "@/lib/cat-hint";
 import type { Holiday } from "@/lib/holiday";
 import { skyAt } from "@/lib/sky";
 import { sunPosition } from "@/lib/sun";
@@ -23,6 +24,7 @@ const BUBBLE_MS = 4000;
 const FADE_MS = 600;
 const HOP_MS = 1000;
 const REDUCED = "(prefers-reduced-motion: reduce)";
+const COARSE = "(pointer: coarse)";
 
 type Timer = ReturnType<typeof setTimeout>;
 
@@ -36,6 +38,15 @@ interface Heart {
 function prefersReducedMotion(): boolean {
   try {
     return window.matchMedia(REDUCED).matches;
+  } catch {
+    return false;
+  }
+}
+
+/** Whether the visitor points with a finger (a coarse pointer); a browser without matchMedia counts as a mouse. */
+function pointsByTouch(): boolean {
+  try {
+    return window.matchMedia(COARSE).matches;
   } catch {
     return false;
   }
@@ -86,6 +97,15 @@ function morningAt(now: Date | null): boolean {
  * (useHoliday, read after mount, so the server HTML has no hat). `null` is an ordinary day. On a holiday his first
  * line awake is a festive one (the dictionary's `cat.festive`), then the usual quotes from the first; at night he
  * still says "shh". It is only the words: the poke still counts towards UIIA, and a purr's click still says nothing.
+ *
+ * The pet hint (lib/cat-hint.ts): HINT.delayMs after he first shows, a quiet label in the speech box's place teaches
+ * the visitor to poke him ("click to pet", "tap to pet" with a coarse pointer), then after the first real poke (the
+ * festive one and the one that starts UIIA included) to hold him ("hold to purr"); after the first purr it never shows
+ * again. Progress lives in localStorage (`duke:cat-hint`) and only moves forward; storage, like the pointer type, is
+ * read on the client after mount, and when it is blocked the page view keeps the progress in memory. The hint hides
+ * while a line is up, during UIIA, a wake and a purr. At night it still says "click to pet" (pokes say "shh", purrs
+ * work). The button points at it with `aria-describedby` while it shows; it never takes the pointer, and the layer
+ * is hidden in print.
  */
 export function HeroCat({ now, holiday }: { readonly now: Date | null; readonly holiday?: Holiday | null }) {
   const { dict } = useI18n();
@@ -161,6 +181,34 @@ export function HeroCat({ now, holiday }: { readonly now: Date | null; readonly 
   const heartTimer = useRef<ReturnType<typeof setInterval> | undefined>(undefined);
   const heartLeaves = useRef(new Set<Timer>());
 
+  // The pet hint: how far this visitor has got (storage is read when the hint falls due and on every step, and the
+  // furthest seen is kept here, so a blocked storage still works for the view), mirrored in state for the render,
+  // whether its delay after his arrival is over, and the pointer type (read then too, never on the server).
+  const hintId = useId();
+  const hintProgress = useRef<HintProgress | null>(null);
+  const [progress, setProgress] = useState<HintProgress | null>(null);
+  const [hintDue, setHintDue] = useState(false);
+  const [coarse, setCoarse] = useState(false);
+  useEffect(() => {
+    if (!visible || hintDue) return;
+    const timer = setTimeout(() => {
+      hintProgress.current = furthestHint(loadHint(), hintProgress.current);
+      setCoarse(pointsByTouch());
+      setProgress(hintProgress.current);
+      setHintDue(true);
+    }, HINT.delayMs);
+    return () => clearTimeout(timer);
+  }, [visible, hintDue]);
+
+  /** The visitor got as far as `step`: remembered (never backwards, so a poke after a purr changes nothing). */
+  const reach = (step: HintProgress) => {
+    const next = furthestHint(furthestHint(loadHint(), hintProgress.current), step);
+    if (next === null) return;
+    hintProgress.current = next;
+    setProgress(next);
+    saveHint(next);
+  };
+
   useEffect(() => {
     const leaves = heartLeaves.current;
     return () => {
@@ -206,6 +254,7 @@ export function HeroCat({ now, holiday }: { readonly now: Date | null; readonly 
 
   const poke = () => {
     if (uiiaOn.current || purring.current) return;
+    reach("poked");
     const counted = countPoke(pokes.current, Date.now());
     pokes.current = counted.recent;
     if (counted.uiia) startUiia();
@@ -230,6 +279,7 @@ export function HeroCat({ now, holiday }: { readonly now: Date | null; readonly 
   const startPurr = () => {
     purring.current = true;
     purred.current = true;
+    reach("purred");
     clearTimeout(lineTimer.current);
     setLine(dict.cat.purr);
     if (prefersReducedMotion()) {
@@ -281,6 +331,13 @@ export function HeroCat({ now, holiday }: { readonly now: Date | null; readonly 
   const fading = leaving !== null;
   const spinning = uiia === "spin";
   const waking = wake && !spinning;
+  const stage = hintDue ? hintStage(progress) : null;
+  const hint =
+    stage === null || line !== "" || uiia !== null || waking || purr !== null
+      ? null
+      : stage === "hold"
+        ? dict.cat.holdHint
+        : dict.cat.petHint[coarse ? "tap" : "click"];
   const layer = (kind: CatState, role: "in" | "out") => (
     <div
       key={`${kind}-${role}`}
@@ -313,6 +370,7 @@ export function HeroCat({ now, holiday }: { readonly now: Date | null; readonly 
           type="button"
           className="hero-cat-button pointer-events-auto relative block size-full cursor-pointer"
           aria-label={dict.cat.label}
+          aria-describedby={hint === null ? undefined : hintId}
           onClick={onClick}
           onPointerDown={onPointerDown}
           onPointerUp={onPointerEnd}
@@ -346,6 +404,11 @@ export function HeroCat({ now, holiday }: { readonly now: Date | null; readonly 
       <div role="status" aria-live="polite" className="hero-cat-bubble px-box">
         {line}
       </div>
+      {hint === null ? null : (
+        <div id={hintId} className="hero-cat-hint px-box">
+          {hint}
+        </div>
+      )}
     </div>
   );
 }

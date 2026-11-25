@@ -283,7 +283,11 @@
  * own geometry (scene.css, .scene-cat-slot), and cqw is the scene's width (it is the size container). On wide screens
  * the cap is far above 14rem; on a phone it narrows the box, and the day box then grows upwards from his head
  * (anchored at its bottom, the tail low on its edge, like the night one) so a longer line stays inside the scene.
+ *
+ * The pet hint (.hero-cat-hint, hero-cat.tsx) takes the same place, cap and tail through every rule below, so it
+ * stays inside the scene at 320 px too; it only shows while the box is empty, so the two never overlap.
  */
+.hero-cat-hint,
 .hero-cat-bubble {
   --reach: 2;
 
@@ -302,6 +306,7 @@
   pointer-events: none;
 }
 
+.hero-cat[data-mood="night"] .hero-cat-hint,
 .hero-cat[data-mood="night"] .hero-cat-bubble {
   --reach: 15;
 
@@ -310,11 +315,13 @@
 }
 
 @media (width < 30rem) {
+  .hero-cat[data-mood="day"] .hero-cat-hint,
   .hero-cat[data-mood="day"] .hero-cat-bubble {
     top: auto;
     bottom: calc(100% - var(--cu) * 11);
   }
 
+  .hero-cat[data-mood="day"] .hero-cat-hint::after,
   .hero-cat[data-mood="day"] .hero-cat-bubble::after {
     top: calc(100% - var(--px) * 8);
   }
@@ -331,6 +338,7 @@
  * One square (its top unit) and its shadows draw it: the fill in the panel colour (cutting a gap in the outline), the
  * stepped edge in --edge.
  */
+.hero-cat-hint::after,
 .hero-cat-bubble::after {
   content: "";
   position: absolute;
@@ -355,6 +363,7 @@
     calc(var(--px) * 3) calc(var(--px) * 2) 0 0 var(--edge);
 }
 
+.hero-cat[data-mood="night"] .hero-cat-hint::after,
 .hero-cat[data-mood="night"] .hero-cat-bubble::after {
   top: calc(100% - var(--px) * 8);
 }
@@ -364,13 +373,31 @@
 }
 
 /*
+ * The pet hint (hero-cat.tsx, lib/cat-hint.ts): the speech box's quieter twin, in its place and shape (the shared rules
+ * above), the whole label at reduced opacity so it reads as a suggestion rather than a line he says. It bobs one unit
+ * up and back every 2 s, in a single step each way; it never takes the pointer, and the hero layer is hidden in print.
+ * Reduced motion keeps it still.
+ */
+.hero-cat-hint {
+  opacity: 0.85;
+  animation: cat-hint-bob 2s steps(1, end) infinite;
+}
+
+@keyframes cat-hint-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(calc(var(--px) * -1)); }
+}
+
+/*
  * Reduced motion: a still pose, no hop, no loops, no spin (hero-cat.tsx then does not even change his pose for the
  * easter egg; only the box speaks), no sunrise wake (hero-cat.tsx never starts one), and a flip between day and night
- * swaps the drawings at once. A purr only speaks: no hearts (hero-cat.tsx sends none) and no shut eye.
+ * swaps the drawings at once. A purr only speaks: no hearts (hero-cat.tsx sends none) and no shut eye. The pet hint
+ * stands still.
  */
 @media (prefers-reduced-motion: reduce) {
   .hero-cat-hop,
   .hero-cat-heart,
+  .hero-cat-hint,
   .hero-cat-layer,
   .hero-cat .cat-art,
   .hero-cat .cat-art * {
