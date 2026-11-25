@@ -255,6 +255,11 @@
   --y: 8;
 }
 
+/* By night the hearts rise where his z's drift; while a heart is up he purrs instead of snoring. */
+.hero-cat[data-mood="night"]:has(.hero-cat-heart) .cat-zzz {
+  visibility: hidden;
+}
+
 @keyframes cat-heart-rise {
   from { transform: translateY(0); }
   to { transform: translateY(calc(var(--cu) * -4)); }

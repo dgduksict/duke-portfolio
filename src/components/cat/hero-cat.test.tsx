@@ -897,6 +897,10 @@ describe("cat.css", () => {
     expect(/\.hero-cat-hearts\s*\{([^}]*)\}/.exec(css)?.[1]).toMatch(/pointer-events:\s*none;/);
   });
 
+  it("hides the night z's while a heart is up, so the two never pile on each other", () => {
+    expect(css).toMatch(/\.hero-cat\[data-mood="night"\]:has\(\.hero-cat-heart\) \.cat-zzz\s*\{\s*visibility:\s*hidden;\s*\}/);
+  });
+
   it("holds his eye still while he purrs: no glance over the shut eye", () => {
     expect(css).toMatch(/\.hero-cat \.cat-art\[data-content\] \.cat-eye\s*\{\s*animation:\s*none;\s*\}/);
     expect(css.indexOf(".cat-art[data-content] .cat-eye")).toBeGreaterThan(css.indexOf('[data-state="day"] .cat-eye'));
