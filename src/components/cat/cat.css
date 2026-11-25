@@ -30,6 +30,9 @@
   --cat-yarn-shade: #b9770f;
   /* the purr's hearts: a warm pink that reads on the day sky and the night glass alike */
   --cat-heart: #f4789a;
+  /* the Santa hat (20 Nov - 31 Dec): a warm berry red and its shade, under the cream brim and pompom (--cat-white) */
+  --cat-santa: #d23b3b;
+  --cat-santa-deep: #8e2230;
   image-rendering: pixelated;
 }
 

@@ -809,6 +809,71 @@ describe("HeroCat", () => {
       expect(vi.getTimerCount()).toBe(0);
     });
   });
+
+  describe("holiday hats", () => {
+    /** Noon in Ulaanbaatar on a December day (Christmas) and on 5 January (the birthday). */
+    const DECEMBER = new Date("2026-12-10T04:50:00Z");
+    const BIRTHDAY = new Date("2027-01-05T04:50:00Z");
+    const hats = (container: HTMLElement) => [...container.querySelectorAll(".cat-hat")];
+
+    /** HeroCat driven by the page's own clock, as the hero mounts him (so `?time=` previews drive him too). */
+    function Clocked() {
+      return <HeroCat now={useNow()} />;
+    }
+
+    afterEach(() => {
+      window.history.replaceState(null, "", "/");
+    });
+
+    it("wears no hat on an ordinary day", () => {
+      const { container } = render(<HeroCat now={DAY} />);
+      expect(hats(container)).toHaveLength(0);
+    });
+
+    it("wears a Santa hat in December and a party hat on the birthday, by the calendar", () => {
+      const december = render(<HeroCat now={DECEMBER} />);
+      expect(hats(december.container)).toHaveLength(1);
+      expect(hats(december.container)[0]).toHaveAttribute("data-hat", "santa");
+      december.unmount();
+      const birthday = render(<HeroCat now={BIRTHDAY} />);
+      expect(hats(birthday.container)).toHaveLength(1);
+      expect(hats(birthday.container)[0]).toHaveAttribute("data-hat", "party");
+    });
+
+    it("keeps the hat on through the spin: one in every frame", () => {
+      const { container } = render(<HeroCat now={DECEMBER} />);
+      for (let i = 0; i < UIIA.clicks; i += 1) fireEvent.click(screen.getByRole("button"));
+      expect(container.querySelectorAll(".cat-spin-frame")).toHaveLength(4);
+      expect(container.querySelectorAll('.cat-spin-frame .cat-hat[data-hat="santa"]')).toHaveLength(4);
+    });
+
+    it("dresses up for ?holiday=christmas on any day", () => {
+      window.history.replaceState(null, "", "/?holiday=christmas");
+      const { container } = render(<HeroCat now={DAY} />);
+      expect(container.querySelector('[data-hat="santa"]')).not.toBeNull();
+    });
+
+    it("takes the hat off for ?holiday=none, even in December", () => {
+      vi.setSystemTime(DECEMBER);
+      window.history.replaceState(null, "", "/?time=12:00");
+      const dressed = render(<Clocked />);
+      expect(dressed.container.querySelector('[data-hat="santa"]')).not.toBeNull();
+      dressed.unmount();
+      window.history.replaceState(null, "", "/?holiday=none&time=12:00");
+      const { container } = render(<Clocked />);
+      expect(container.querySelector("svg.cat-art")).not.toBeNull();
+      expect(container.querySelector("[data-hat]")).toBeNull();
+    });
+
+    it("wears what the holiday prop says when the hero passes one, over the calendar and the query", () => {
+      window.history.replaceState(null, "", "/?holiday=christmas");
+      const party = render(<HeroCat now={DECEMBER} holiday="birthday" />);
+      expect(hats(party.container).map((hat) => hat.getAttribute("data-hat"))).toEqual(["party"]);
+      party.unmount();
+      const bare = render(<HeroCat now={DECEMBER} holiday={null} />);
+      expect(hats(bare.container)).toHaveLength(0);
+    });
+  });
 });
 
 describe("cat.css", () => {

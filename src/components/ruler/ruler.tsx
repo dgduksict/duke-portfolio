@@ -5,6 +5,7 @@ import { useEffect, useLayoutEffect, useRef, useState, type PointerEvent as Reac
 import { RulerCat } from "@/components/cat/ruler-cat";
 import { useCatState } from "@/components/cat/use-cat-state";
 import { navItems } from "@/data/navigation";
+import { useHoliday } from "@/hooks/use-holiday";
 import { useI18n } from "@/hooks/use-i18n";
 import { useNow } from "@/hooks/use-now";
 import { GROOM_AFTER_MS, type RulerPose, rulerCatPose, TYPING_WINDOW_MS } from "@/lib/cat";
@@ -188,8 +189,11 @@ export function Ruler() {
   const metrics = useRef<Metrics>({ viewport: 0, docHeight: 0 });
   const pathname = usePathname();
 
-  // The cat: awake or asleep from the sky, and the snapshot the rendered cat works its pose out from (null = hidden).
-  const catState = useCatState(useNow());
+  // The cat: awake or asleep from the sky, dressed for the holiday (a hat; none on an ordinary day), and the snapshot
+  // the rendered cat works its pose out from (null = hidden).
+  const clock = useNow();
+  const catState = useCatState(clock);
+  const holiday = useHoliday(clock);
   const catStateRef = useRef(catState);
   const [cat, setCat] = useState<CatSnapshot | null>(null);
 
@@ -564,7 +568,7 @@ export function Ruler() {
 
           <div ref={needleRef} className="ruler-needle">
             <span className="ruler-needle-line" />
-            {cat !== null ? <RulerCat state={catState} msSinceScroll={cat.ms} progress={cat.progress} /> : null}
+            {cat !== null ? <RulerCat state={catState} msSinceScroll={cat.ms} progress={cat.progress} holiday={holiday} /> : null}
             {full ? (
               <span ref={readoutRef} className="ruler-readout" data-value="0">
                 {COLUMNS.map((i) => (

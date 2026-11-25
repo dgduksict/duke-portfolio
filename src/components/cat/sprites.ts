@@ -7,10 +7,11 @@
  *      edge that keeps the ink     w  white / cream (code, mug)  c  coffee
  *      readable on a dark sky      t  steam                      z  sleeping z
  *   e  eye (a half-lidded yellow slit)                           y  yarn
- *                                                                h  yarn shade (the wound thread)
- *                                                                p  pink (the purr's hearts)
+ *   x  Santa hat red                                             h  yarn shade (the wound thread)
+ *   v  Santa hat shade                                           p  pink (the purr's hearts, the party hat's stripes)
  *
- * Coffee and cream also paint the inside of the sunrise yawn's open mouth and its one fang (HERO_YAWN).
+ * Coffee and cream also paint the inside of the sunrise yawn's open mouth and its one fang (HERO_YAWN). Cream is also the
+ * Santa hat's brim and pompom; the party hat is amber (with its deep shade) striped in pink, under a cream pompom.
  *
  * The rim sits on the top, left and right edges of the silhouette (never under it: he sits on a table) and draws the
  * few inner lines (a shut eye, a tucked tail). `PALETTE` maps each character to the `--cat-*` colour variable it is
@@ -55,6 +56,8 @@ export const PALETTE: Readonly<Record<string, string>> = {
   y: "--cat-yarn",
   h: "--cat-yarn-shade",
   p: "--cat-heart",
+  x: "--cat-santa",
+  v: "--cat-santa-deep",
 };
 
 /** The legend colours of a screen: picked out of a laptop into its own `cat-screen` layer. */
@@ -733,6 +736,80 @@ export const PAW: Sprite = [
   ".kk.", // 3
 ];
 
+/*
+ * ---------- the holiday hats (cat-art.tsx, HAT_AT) ----------
+ * He wears one in every drawing from 20 November to 31 December (the Santa hat) and on 5 January (the party hat). A
+ * hat is its own sprite, laid over his head at the drawing's anchor (HAT_AT in cat-art.tsx, the hat's top left on the
+ * drawing's grid). The hero hats share one 10 x 7 box and the mini hats one 6 x 5 box, each centred the same way in
+ * it, so one anchor per drawing fits either hat. No rim: red, amber and cream read on the day sky and the night glass.
+ */
+
+/**
+ * The Santa hat on the hero: a red cone over both ears, its tip flopping back (to the left: he faces right) down to a
+ * cream pompom behind his ears, on a two-row cream brim across his brow, the shade down its back edge. 10 x 7.
+ */
+export const SANTA_HAT: Sprite = [
+// 0123456789
+  "..vxxx....", // 0
+  ".vx.vxxx..", // 1
+  "ww.vxxxxx.", // 2
+  "wwvxxxxxx.", // 3
+  ".vxxxxxxxx", // 4
+  "wwwwwwwwww", // 5
+  "wwwwwwwwww", // 6
+];
+
+/**
+ * The Santa hat by night, on the sleeping loaf: slumped over sideways, the cone lying across both ears and its tip
+ * hanging down over his back ear to the pompom, which rests on his neck; his ear shows between the tip and the brim.
+ * The same 10 x 7 box as SANTA_HAT.
+ */
+export const SANTA_HAT_DROOP: Sprite = [
+// 0123456789
+  "......vxx.", // 0
+  "....vvxxxx", // 1
+  "..vvxxxxxx", // 2
+  ".vxxxxxxxx", // 3
+  "vx.vxxxxxx", // 4
+  "ww.wwwwwww", // 5
+  "ww.wwwwwww", // 6
+];
+
+/**
+ * The party hat on the hero: an upright cone in amber and pink stripes, its right side in deep amber, with a cream
+ * pompom on top. It sits between his ears (they show either side of it). 10 x 7, centred like SANTA_HAT.
+ */
+export const PARTY_HAT: Sprite = [
+// 0123456789
+  "....ww....", // 0
+  "....ad....", // 1
+  "...ppd....", // 2
+  "...aadd...", // 3
+  "..pppdd...", // 4
+  "..aaaadd..", // 5
+  ".ppppppdd.", // 6
+];
+
+/** The Santa hat on a mini (the ruler cat): tip flopped back to a one-pixel pompom, a one-row brim. 6 x 5. */
+export const SANTA_HAT_MINI: Sprite = [
+// 012345
+  ".vxx..", // 0
+  "w.vxx.", // 1
+  "..vxxx", // 2
+  ".vxxxx", // 3
+  "wwwwww", // 4
+];
+
+/** The party hat on a mini: a striped cone under a one-pixel pompom. 6 x 5, centred like SANTA_HAT_MINI. */
+export const PARTY_HAT_MINI: Sprite = [
+// 012345
+  "..w...", // 0
+  "..a...", // 1
+  ".ppd..", // 2
+  ".aadd.", // 3
+  "ppppd.", // 4
+];
+
 /* ---------- part boxes (first match wins; ears before the head that holds them) ---------- */
 
 export const HERO_DAY_PARTS: readonly PartBox[] = [
@@ -822,4 +899,9 @@ export const SPRITES: Readonly<Record<string, Sprite>> = {
   yarnBall: YARN_BALL,
   heart: HEART,
   paw: PAW,
+  santaHat: SANTA_HAT,
+  santaHatDroop: SANTA_HAT_DROOP,
+  partyHat: PARTY_HAT,
+  santaHatMini: SANTA_HAT_MINI,
+  partyHatMini: PARTY_HAT_MINI,
 };

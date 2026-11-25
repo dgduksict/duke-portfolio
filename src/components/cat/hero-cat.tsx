@@ -1,14 +1,16 @@
 "use client";
 
 import { type PointerEvent, useEffect, useMemo, useRef, useState } from "react";
-import { CatArt } from "@/components/cat/cat-art";
+import { CatArt, hatFor } from "@/components/cat/cat-art";
 import { PixelSprite } from "@/components/cat/pixel-sprite";
 import { HEART } from "@/components/cat/sprites";
 import { useCatState } from "@/components/cat/use-cat-state";
 import { useLoaderDone } from "@/components/loader/use-loader-done";
 import { profile } from "@/data/profile";
+import { useHoliday } from "@/hooks/use-holiday";
 import { useI18n } from "@/hooks/use-i18n";
 import { type CatState, countPoke, PURR, UIIA, WAKE_MS, wakesOnArrival } from "@/lib/cat";
+import type { Holiday } from "@/lib/holiday";
 import { skyAt } from "@/lib/sky";
 import { sunPosition } from "@/lib/sun";
 import { cn } from "@/lib/utils";
@@ -77,10 +79,18 @@ function morningAt(now: Date | null): boolean {
  * line or counts towards UIIA; a shorter press is an ordinary poke. No holds during UIIA. The keyboard keeps poking on
  * Enter and Space exactly as before (a native button clicks on keydown), so there is no keyboard purr. A long press
  * opens no menu or callout on the button. Under reduced motion only the box says "prrr".
+ *
+ * Holidays: he wears a Santa hat from 20 November to 31 December and a party hat on 5 January (lib/holiday.ts, by the
+ * Ulaanbaatar calendar), in every drawing and frame. `holiday` is the one the page already worked out (the hero
+ * passes it, so the scene and the cat agree); left out, he works it out himself from `now` and `?holiday=`
+ * (useHoliday, read after mount, so the server HTML has no hat). `null` is an ordinary day.
  */
-export function HeroCat({ now }: { readonly now: Date | null }) {
+export function HeroCat({ now, holiday }: { readonly now: Date | null; readonly holiday?: Holiday | null }) {
   const { dict } = useI18n();
   const state = useCatState(now);
+  // The hook always runs (hooks never run conditionally); a holiday passed in wins over it.
+  const ownHoliday = useHoliday(now);
+  const hat = hatFor(holiday === undefined ? ownHoliday : holiday);
   const loaderDone = useLoaderDone();
 
   // The easter egg: recent poke times, and while it runs, whether he spins ("spin") or only speaks ("still", reduced
@@ -275,6 +285,7 @@ export function HeroCat({ now }: { readonly now: Date | null }) {
         uiia={role === "in" && spinning}
         wake={role === "in" && waking}
         content={role === "in" && purr === "move"}
+        hat={hat}
         className="size-full"
       />
     </div>

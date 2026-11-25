@@ -39,6 +39,46 @@ describe("RulerCat: which pose", () => {
   });
 });
 
+describe("RulerCat: hats", () => {
+  /** Props that put him in each of his five poses. */
+  const POSED: readonly [RulerPose, { state: "day" | "night"; msSinceScroll: number; progress: number }][] = [
+    ["type", { state: "day", msSinceScroll: 0, progress: 0.4 }],
+    ["sit", { state: "day", msSinceScroll: 200, progress: 0.4 }],
+    ["groom", { state: "day", msSinceScroll: 2000, progress: 0.4 }],
+    ["sleep", { state: "night", msSinceScroll: 0, progress: 0.4 }],
+    ["nap", { state: "day", msSinceScroll: 0, progress: 0.99 }],
+  ];
+
+  it("ruler cat wears the hat in all five poses", () => {
+    for (const [holiday, hat] of [
+      ["christmas", "santa"],
+      ["birthday", "party"],
+    ] as const) {
+      for (const [expected, props] of POSED) {
+        const { container, unmount } = render(<RulerCat {...props} holiday={holiday} />);
+        expect(pose(container)).toBe(expected);
+        const hats = container.querySelectorAll(".cat-hat");
+        expect(hats, `${holiday} ${expected}`).toHaveLength(1);
+        expect(hats[0]).toHaveAttribute("data-hat", hat);
+        expect(hats[0]?.parentElement).toHaveClass("cat-head");
+        // Still no transform anywhere in his drawing: the hat sits by its rects' coordinates.
+        expect(container.querySelector("svg [transform]")).toBeNull();
+        unmount();
+      }
+    }
+  });
+
+  it("wears no hat on an ordinary day", () => {
+    for (const [, props] of POSED) {
+      for (const holiday of [null, undefined]) {
+        const { container, unmount } = render(<RulerCat {...props} holiday={holiday} />);
+        expect(container.querySelector(".cat-hat")).toBeNull();
+        unmount();
+      }
+    }
+  });
+});
+
 describe("RulerCat: markup", () => {
   it("wraps the mini art in a wrapper that faces left and ignores the pointer", () => {
     const { container } = render(<RulerCat state="day" msSinceScroll={0} progress={0.4} />);
